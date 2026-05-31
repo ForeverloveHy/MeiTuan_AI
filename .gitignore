@@ -1,0 +1,25 @@
+# local secrets
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# virtual environments
+.venv/
+venv/
+
+# generated artifacts
+runs/
+data/graphs*/
+data/outputs*/
+data/generated*/
+data/simulated_longcat*/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
