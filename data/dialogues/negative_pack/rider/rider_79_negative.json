@@ -1,0 +1,141 @@
+{
+  "id": "rider_79_negative",
+  "domain": "rider",
+  "sample_type": "negative",
+  "scenario_id": "骑手-79",
+  "scenario": "骑手质疑站长是否能人工操作",
+  "user_personality": "质疑",
+  "source_node": "排名非站长干预",
+  "target_kind": "constraint",
+  "target_node_id": "explain_ranking_system",
+  "target_id": "rider_no_manual_result",
+  "source_positive_design": "明确说不是站长干预，按排名。",
+  "source_negative_design": "含糊说“我尽量帮你安排”。",
+  "source_error_type": "限制违规",
+  "generation_principle": "同一情形一正一负；负包只破坏一个主目标；所有业务证据由数据/schema提供，不写入评估代码。",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "我先确认一下，是${rider_name}本人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我先听完，后面有问题再问。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我这边先说明一下，今天飞毛腿合同已签署并生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "我现在听着，你把合同要求说清楚。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果状态允许，今天可以开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我不太懂这个规则，你慢慢说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "按你刚才说的情况，我这边先这样跟你讲。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先说重点，我再确认细节。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我可以帮你调整排名。"
+    },
+    {
+      "speaker": "user",
+      "text": "我先听完，后面有问题再问。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午餐、晚餐高峰期需要上线，这个时间段比较关键。"
+    },
+    {
+      "speaker": "user",
+      "text": "我现在听着，你把合同要求说清楚。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日这类就是当天完成X单。"
+    },
+    {
+      "speaker": "user",
+      "text": "我不太懂这个规则，你慢慢说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果是多日合同，每天都要完成Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先说重点，我再确认细节。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "拒单、取消、超时都会影响资格，这点要注意。"
+    },
+    {
+      "speaker": "user",
+      "text": "我先听完，后面有问题再问。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "我现在听着，你把合同要求说清楚。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "安全第一，身体不舒服别硬撑。"
+    },
+    {
+      "speaker": "user",
+      "text": "我不太懂这个规则，你慢慢说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "退出要在App的飞毛腿报名里取消，前一天Z点前取消，次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先说重点，我再确认细节。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "要拿额外奖励，需要连续W天多日合同且每天Y单。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "constraint_violation",
+      "node_id": "explain_ranking_system",
+      "constraint_id": "rider_no_manual_result",
+      "evidence_span": "我可以帮你调整排名。",
+      "wrong_statement": "我可以帮你调整排名。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    }
+  ],
+  "quality_version": "v57_quality_balanced_100_pairs",
+  "quality_notes": [
+    "移除用户直接复述场景名",
+    "打散客服连续念稿，增加自然承接",
+    "不改核心证据句和注错点",
+    "迭代1：替换机械用户承接、移除场景名直出、清理重复身份确认和生硬略过句",
+    "迭代2：对高频客服证据句做多样化包裹，早期用户提问更贴合场景",
+    "迭代3：重写开场自然度、负包错句前增加上下文承接、进一步降低模板承接",
+    "v57：扩展到每域正/负各100条；用户表达做多样化和少量暧昧化，客服证据句保持规章化，不降低对话质量。",
+    "v57：对新增负包错句做同义改写，降低重复 span，同时保留清晰错误方向。"
+  ],
+  "source_clone_id": "rider_31_negative"
+}

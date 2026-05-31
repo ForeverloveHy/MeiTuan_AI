@@ -1,0 +1,61 @@
+{
+  "model": "LongCat-2.0-Preview",
+  "weights": {
+    "node_completion": 0.5,
+    "relation_score": 0.15,
+    "knowledge_score": 0.2,
+    "constraint_score": 0.15
+  },
+  "thresholds": {
+    "positive_pass": 85.0,
+    "node_satisfied": 0.75,
+    "node_partial": 0.35,
+    "negative_failure_cap": 72.0,
+    "positive_scenario_scoped_pass": 55.0,
+    "target_hit_hint_similarity": 0.4
+  },
+  "oracle_budget": {
+    "enabled": true,
+    "max_dialogue_candidates": 2,
+    "max_batch_candidates": 36,
+    "min_need": 0.7,
+    "min_evidence_strength": 0.35
+  },
+  "constraint_language_operators": {
+    "commitment": [
+      "保证",
+      "确保",
+      "一定",
+      "肯定",
+      "承诺",
+      "帮你",
+      "帮您",
+      "我帮",
+      "我来",
+      "替你",
+      "替您",
+      "安排",
+      "协调",
+      "申请",
+      "争取",
+      "私下",
+      "直接给"
+    ],
+    "pressure": [
+      "必须",
+      "一定要",
+      "不能不",
+      "不做不行",
+      "强制",
+      "先听我",
+      "听我说完",
+      "否则",
+      "不然",
+      "要不然",
+      "按未",
+      "后果",
+      "急也",
+      "忙也"
+    ]
+  }
+}

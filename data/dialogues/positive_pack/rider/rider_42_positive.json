@@ -1,0 +1,125 @@
+{
+  "domain": "rider",
+  "scenario_id": "骑手-42",
+  "scenario": "多日合同首日误说",
+  "user_personality": "理性追问",
+  "source_node": "多日合同首日误说",
+  "target_kind": "knowledge",
+  "target_node_id": "explain_contract_requirements",
+  "target_id": "rider_multi_day_rule",
+  "source_positive_design": "围绕目标知识点给出正确口径，同时保留主流程关键证据。",
+  "source_negative_design": "仅把目标知识点替换为明确错误口径，其余流程尽量保持正确。",
+  "source_error_type": "知识错误",
+  "generation_principle": "同一情形一正一负；负包只破坏一个主目标；所有业务证据由数据/schema提供，不写入评估代码。",
+  "quality_version": "v57_quality_balanced_100_pairs",
+  "quality_notes": [
+    "新增骑手知识类负包",
+    "负包错句均带 evidence_span 并出现在客服原话中",
+    "仅修改数据包和schema，不在本地评估代码写业务词典",
+    "v57：扩展到每域正/负各100条；用户表达做多样化和少量暧昧化，客服证据句保持规章化，不降低对话质量。"
+  ],
+  "id": "rider_42_positive",
+  "sample_type": "positive",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "我先确认一下，是${rider_name}本人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "那后面怎么处理？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天飞毛腿合同已签署并生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "那实际操作上要注意什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以开始配送，先按状态接单。"
+    },
+    {
+      "speaker": "user",
+      "text": "单量和时间你讲明白点。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午餐、晚餐高峰期需要上线。"
+    },
+    {
+      "speaker": "user",
+      "text": "我听明白一半了，继续。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果是单日合同，当天要完成X单。"
+    },
+    {
+      "speaker": "user",
+      "text": "那后面怎么处理？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天按Y单来，不只看第一天。"
+    },
+    {
+      "speaker": "user",
+      "text": "那实际操作上要注意什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "报名排名按系统页面规则来，站长不能人工干预排名和名额。"
+    },
+    {
+      "speaker": "user",
+      "text": "单量和时间你讲明白点。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "拒单、取消和超时都会影响资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "我听明白一半了，继续。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格；同时安全第一，身体不舒服别硬撑。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我不参加了，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "退出路径是在App的飞毛腿报名里取消，前一天Z点前取消，次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励要满足什么条件？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "额外奖励要看连续W天多日合同且每天Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "单量和时间你讲明白点。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "那先这样，注意安全。"
+    }
+  ],
+  "coverage_targets": [
+    {
+      "node_id": "explain_contract_requirements",
+      "target_id": "rider_multi_day_rule",
+      "target_kind": "knowledge"
+    }
+  ],
+  "source_clone_id": "rider_43_positive"
+}

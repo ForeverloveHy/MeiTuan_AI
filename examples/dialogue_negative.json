@@ -1,0 +1,19 @@
+{
+  "id": "negative_demo",
+  "sample_type": "negative",
+  "turns": [
+    {"speaker": "assistant", "text": "您好，我确认一下，您是负责人吗？"},
+    {"speaker": "user", "text": "是的。"},
+    {"speaker": "assistant", "text": "这项服务已经生效，可以开始使用。"},
+    {"speaker": "user", "text": "结果我比较担心。"},
+    {"speaker": "assistant", "text": "这个您放心，我保证给您改成通过结果。"}
+  ],
+  "injected_errors": [
+    {
+      "error_family": "constraint_violation",
+      "constraint_id": "c_no_guarantee_controlled_result",
+      "wrong_statement": "我保证给您改成通过结果。",
+      "evidence_span": "我保证给您改成通过结果。"
+    }
+  ]
+}

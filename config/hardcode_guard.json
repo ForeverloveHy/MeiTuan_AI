@@ -1,0 +1,46 @@
+{
+  "scan_roots": [
+    "src",
+    "tools",
+    "scripts",
+    "tests",
+    "prompts"
+  ],
+  "scan_extensions": [
+    ".py",
+    ".md",
+    ".txt"
+  ],
+  "forbidden_terms": [
+    "SaaS系统",
+    "企业微信",
+    "低延迟直播",
+    "低延迟",
+    "商家直播",
+    "标准直播",
+    "校务系统",
+    "课程发布页",
+    "飞毛腿",
+    "飞猫腿",
+    "骑手",
+    "商家",
+    "站长",
+    "派单",
+    "名额",
+    "单日合同",
+    "多日合同",
+    "X单",
+    "Y单",
+    "x单",
+    "y单",
+    "后台帮你取消",
+    "站长代取消",
+    "费用",
+    "价格",
+    "直播"
+  ],
+  "allowed_files": [
+    "prompts/instructions/merchant_instruction.txt",
+    "prompts/instructions/rider_instruction.txt"
+  ]
+}

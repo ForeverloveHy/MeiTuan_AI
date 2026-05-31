@@ -1,0 +1,248 @@
+{
+  "graph_id": "abstract_demo",
+  "name": "抽象服务通知状态图",
+  "metadata": {
+    "source": "demo only",
+    "description": "不对应任何具体业务，用于验证 2.0-v1 干净内核。"
+  },
+  "nodes": [
+    {
+      "id": "confirm_identity",
+      "name": "确认对象身份",
+      "type": "process",
+      "required": true,
+      "activation": {
+        "mode": "always"
+      },
+      "requirements": [
+        {
+          "id": "identity_question",
+          "text": "客服确认对方身份或负责人身份",
+          "required": true,
+          "weight": 1.0,
+          "aliases": [],
+          "evidence_groups": [
+            {
+              "id": "identity_question",
+              "description": "客服确认对方身份或负责人身份",
+              "patterns": [
+                {
+                  "speaker": "assistant",
+                  "any": [
+                    "请问",
+                    "确认"
+                  ],
+                  "any_secondary": []
+                },
+                {
+                  "speaker": "assistant",
+                  "any": [
+                    "本人",
+                    "负责人",
+                    "负责"
+                  ]
+                }
+              ],
+              "min_hits": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notify_effective",
+      "name": "通知服务状态已生效",
+      "type": "process",
+      "required": true,
+      "activation": {
+        "mode": "always"
+      },
+      "requirements": [
+        {
+          "id": "effective_status",
+          "text": "说明事项已经生效或可以开始使用",
+          "required": true,
+          "weight": 1.0,
+          "aliases": [],
+          "evidence_groups": [
+            {
+              "id": "effective_status",
+              "description": "说明事项已经生效或可以开始使用",
+              "patterns": [
+                {
+                  "speaker": "assistant",
+                  "any": [
+                    "已生效",
+                    "已经生效",
+                    "可以开始",
+                    "可以使用"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "explain_rule_basis",
+      "name": "说明结果依据规则或页面",
+      "type": "knowledge",
+      "required": true,
+      "activation": {
+        "mode": "always"
+      },
+      "requirements": [
+        {
+          "id": "basis_statement",
+          "text": "说明结果应以规则、系统或页面为准",
+          "required": true,
+          "weight": 1.0,
+          "aliases": [],
+          "evidence_groups": [
+            {
+              "id": "basis_statement",
+              "description": "说明结果应以规则、系统或页面为准",
+              "patterns": [
+                {
+                  "speaker": "assistant",
+                  "any": [
+                    "以规则为准",
+                    "以系统为准",
+                    "以页面为准",
+                    "按规则",
+                    "页面显示"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "answer_operation",
+      "name": "被问到操作时给出步骤",
+      "type": "branch",
+      "required": true,
+      "activation": {
+        "mode": "user_triggered",
+        "patterns": [
+          {
+            "speaker": "user",
+            "any": [
+              "怎么操作",
+              "在哪里",
+              "怎么弄",
+              "步骤"
+            ]
+          }
+        ]
+      },
+      "requirements": [
+        {
+          "id": "operation_steps",
+          "text": "给出进入、选择、保存等操作步骤",
+          "required": true,
+          "weight": 1.0,
+          "aliases": [],
+          "evidence_groups": [
+            {
+              "id": "operation_steps",
+              "description": "给出进入、选择、保存等操作步骤",
+              "patterns": [
+                {
+                  "speaker": "assistant",
+                  "any": [
+                    "进入",
+                    "打开",
+                    "选择",
+                    "保存",
+                    "提交"
+                  ]
+                }
+              ],
+              "min_hits": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "confirm_identity",
+      "target": "notify_effective",
+      "relation": "soft_order"
+    },
+    {
+      "source": "notify_effective",
+      "target": "explain_rule_basis",
+      "relation": "soft_order"
+    }
+  ],
+  "knowledge_table": [
+    {
+      "id": "k_process_time",
+      "name": "处理时长范围",
+      "node_id": "explain_rule_basis",
+      "judge_type": "numeric_range",
+      "expected": {
+        "target_patterns": [
+          "处理时长",
+          "完成时间"
+        ],
+        "min": 1,
+        "max": 3
+      },
+      "severity": "medium"
+    }
+  ],
+  "constraint_table": [
+    {
+      "id": "c_no_guarantee_controlled_result",
+      "name": "不得保证受控结果",
+      "node_id": "explain_rule_basis",
+      "severity": "high",
+      "description": "不能承诺人工改变由规则或系统控制的结果。",
+      "safe_context": [
+        {
+          "speaker": "assistant",
+          "any": [
+            "不能保证",
+            "无法保证",
+            "以规则为准",
+            "以系统为准"
+          ]
+        }
+      ],
+      "prohibited": [
+        {
+          "speaker": "assistant",
+          "all": [
+            "保证"
+          ],
+          "any": [
+            "结果",
+            "通过",
+            "名额",
+            "资格"
+          ],
+          "reason": "承诺改变受控结果"
+        },
+        {
+          "speaker": "assistant",
+          "all": [
+            "人工"
+          ],
+          "any": [
+            "改",
+            "安排",
+            "保留"
+          ],
+          "reason": "承诺人工干预受控结果"
+        }
+      ]
+    }
+  ]
+}

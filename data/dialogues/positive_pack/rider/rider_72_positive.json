@@ -1,0 +1,136 @@
+{
+  "id": "rider_72_positive",
+  "domain": "rider",
+  "sample_type": "positive",
+  "scenario_id": "骑手-72",
+  "scenario": "骑手问恶劣天气是否有帮助",
+  "user_personality": "质疑",
+  "source_node": "天气差有助资格",
+  "target_kind": "knowledge",
+  "target_node_id": "encourage_delivery_safety",
+  "target_id": "rider_weather_order_help",
+  "source_positive_design": "说明恶劣天气下工作、多接单有助于保住资格，同时注意安全。",
+  "source_negative_design": "说恶劣天气跑不跑对资格没有帮助。",
+  "source_error_type": "知识错误",
+  "generation_principle": "同一情形一正一负；负包只破坏一个主目标；所有业务证据由数据/schema提供，不写入评估代码。",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "我先确认一下，是${rider_name}本人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "如果当天情况有变化怎么办？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我这边先说明一下，今天飞毛腿合同已签署并生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "这块我还不太确定，您讲清楚一点。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果状态允许，今天可以开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，你把规则讲完整。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "我还有别的疑问怎么办？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午餐、晚餐高峰期需要上线，这个时间段比较关键。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果当天情况有变化怎么办？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日这类就是当天完成X单。"
+    },
+    {
+      "speaker": "user",
+      "text": "这块我还不太确定，您讲清楚一点。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果是多日合同，每天都要完成Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，你把规则讲完整。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "报名排名按系统页面规则来，站长不能人工干预排名和名额。"
+    },
+    {
+      "speaker": "user",
+      "text": "重点别漏了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "拒单、取消和超时都会影响资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果当天情况有变化怎么办？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格；同时安全第一，身体不舒服别硬撑。"
+    },
+    {
+      "speaker": "user",
+      "text": "我想取消报名，入口在哪里？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "退出要在App的飞毛腿报名里取消，前一天Z点前取消，次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，你把规则讲完整。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "要拿额外奖励，需要连续W天多日合同且每天Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "重点别漏了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这个我向同事确认后回电，先答我能答的。"
+    }
+  ],
+  "coverage_targets": [
+    {
+      "node_id": "encourage_delivery_safety",
+      "target_id": "rider_weather_order_help",
+      "target_kind": "knowledge"
+    }
+  ],
+  "quality_version": "v57_quality_balanced_100_pairs",
+  "quality_notes": [
+    "移除用户直接复述场景名",
+    "打散客服连续念稿，增加自然承接",
+    "不改核心证据句和注错点",
+    "迭代1：替换机械用户承接、移除场景名直出、清理重复身份确认和生硬略过句",
+    "迭代2：对高频客服证据句做多样化包裹，早期用户提问更贴合场景",
+    "迭代3：重写开场自然度、负包错句前增加上下文承接、进一步降低模板承接",
+    "v57：扩展到每域正/负各100条；用户表达做多样化和少量暧昧化，客服证据句保持规章化，不降低对话质量。"
+  ],
+  "source_clone_id": "rider_21_positive"
+}

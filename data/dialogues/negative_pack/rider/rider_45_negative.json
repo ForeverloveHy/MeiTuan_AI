@@ -1,0 +1,128 @@
+{
+  "domain": "rider",
+  "scenario_id": "骑手-45",
+  "scenario": "超时影响误说",
+  "user_personality": "理性追问",
+  "source_node": "超时影响误说",
+  "target_kind": "knowledge",
+  "target_node_id": "explain_refuse_cancel_timeout",
+  "target_id": "rider_reject_cancel_timeout",
+  "source_positive_design": "围绕目标知识点给出正确口径，同时保留主流程关键证据。",
+  "source_negative_design": "仅把目标知识点替换为明确错误口径，其余流程尽量保持正确。",
+  "source_error_type": "知识错误",
+  "generation_principle": "同一情形一正一负；负包只破坏一个主目标；所有业务证据由数据/schema提供，不写入评估代码。",
+  "quality_version": "fix21_rider_knowledge_expansion",
+  "quality_notes": [
+    "新增骑手知识类负包",
+    "负包错句均带 evidence_span 并出现在客服原话中",
+    "仅修改数据包和schema，不在本地评估代码写业务词典",
+    "v57：纳入每域正/负各100条正式数据集，保持客服规章化表达，用户表达允许更自然、多样。"
+  ],
+  "id": "rider_45_negative",
+  "sample_type": "negative",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "我先确认一下，是${rider_name}本人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天飞毛腿合同已签署并生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "那现在能开始吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以开始配送，先按状态接单。"
+    },
+    {
+      "speaker": "user",
+      "text": "高峰要注意什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午餐、晚餐高峰期需要上线。"
+    },
+    {
+      "speaker": "user",
+      "text": "超时会影响吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果是单日合同，当天要完成X单。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日合同呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果是多日合同，每天完成Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "排名名额谁决定？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "报名排名按系统页面规则来，站长不能人工干预排名和名额。"
+    },
+    {
+      "speaker": "user",
+      "text": "拒单取消超时会影响吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "只要最后跑够单，超时记录不影响资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差单多的时候呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格；同时安全第一，身体不舒服别硬撑。"
+    },
+    {
+      "speaker": "user",
+      "text": "退出怎么弄？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "退出路径是在App的飞毛腿报名里取消，前一天Z点前取消，次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "额外奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "额外奖励要看连续W天多日合同且每天Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "那先这样，注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "node_id": "explain_refuse_cancel_timeout",
+      "knowledge_id": "rider_reject_cancel_timeout",
+      "evidence_span": "只要最后跑够单，超时记录不影响资格。",
+      "wrong_statement": "只要最后跑够单，超时记录不影响资格。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    }
+  ]
+}

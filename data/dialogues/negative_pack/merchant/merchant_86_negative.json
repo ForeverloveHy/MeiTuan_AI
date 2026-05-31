@@ -1,0 +1,166 @@
+{
+  "id": "merchant_86_negative",
+  "domain": "merchant",
+  "sample_type": "negative",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "请问您是贵机构或贵校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "别说太绕，按规则说就行。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用会不会变化？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我先把后面的事项说明清楚。"
+    },
+    {
+      "speaker": "user",
+      "text": "你说的是直播发布页升级吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这边记录显示，后台其实已为您走低延迟，您了解吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "你先说重点，我再确认细节。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这样做主要是因为前端当时未开放，所以临时开启低延迟，用来保障质量、保障音视频同步和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "我先听完，后面有问题再问。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续课程发布页会升级，并分开显示标准直播和低延迟直播两个独立选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "我在后台操作，不确定你说的是哪一项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "发布页升级后会分开显示标准直播、低延迟直播两个独立选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "你说的是直播发布页升级吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "发课的时候可以根据课程类型自行选择。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先说重点，我再确认细节。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播一般约5到10秒，适合大班课。"
+    },
+    {
+      "speaker": "user",
+      "text": "我先听完，后面有问题再问。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播互动更流畅，适合小班课和实操课。"
+    },
+    {
+      "speaker": "user",
+      "text": "我在后台操作，不确定你说的是哪一项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播费用较低，低延迟直播费用略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "你说的是直播发布页升级吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播费用较低，低延迟直播费用略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先说重点，我再确认细节。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我确认一下，您是通过Web控制台发课，还是通过校务系统或SaaS系统发课？"
+    },
+    {
+      "speaker": "user",
+      "text": "我先听完，后面有问题再问。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "Web控制台已显示就直接使用；未显示时我这边后台为您配置，明天再查看。"
+    },
+    {
+      "speaker": "user",
+      "text": "我在后台操作，不确定你说的是哪一项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "第三方系统按需选择；如果校务系统或SaaS系统未显示，需要在我的服务商、直播平台管理、服务产品里勾选低延迟直播并保存。"
+    },
+    {
+      "speaker": "user",
+      "text": "你说的是直播发布页升级吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "加速线路费也请确认低延迟直播也已适用，费用适用后再保存。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟不会适用原加速费。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，我大概明白，继续说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后企业微信会添加您，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "别说太绕，按规则说就行。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "还有问题吗？祝课程顺利，招生满满。"
+    }
+  ],
+  "rebuilt_from": "upload_bundle.reports.evidence_units",
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "node_id": "check_student_fee",
+      "knowledge_id": "merchant_student_fee",
+      "evidence_span": "低延迟不会适用原加速费。",
+      "wrong_statement": "低延迟不会适用原加速费。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor",
+      "explain": "如有加速线路费，需要确认低延迟是否适用，不能直接说不会适用。"
+    }
+  ],
+  "quality_version": "v57_quality_balanced_100_pairs",
+  "quality_notes": [
+    "v56：按真实LongCat图的证据组，把正确话术改成更清晰的同句锚点；负包错句改成对象/属性/错误方向更明确的表达。",
+    "v57：扩展到每域正/负各100条；用户表达做多样化和少量暧昧化，客服证据句保持规章化，不降低对话质量。"
+  ],
+  "source_clone_id": "merchant_31_negative"
+}

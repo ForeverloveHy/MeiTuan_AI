@@ -1,0 +1,147 @@
+{
+  "id": "rider_15_negative",
+  "domain": "rider",
+  "sample_type": "negative",
+  "scenario_id": "骑手-15",
+  "scenario": "骑手问拒单影响",
+  "user_personality": "质疑",
+  "source_node": "拒单影响资格",
+  "target_kind": "knowledge",
+  "target_node_id": "explain_refuse_cancel_timeout",
+  "target_id": "rider_reject_cancel_timeout",
+  "source_positive_design": "说明应减少拒单，拒单可能影响资格。",
+  "source_negative_design": "说拒单不影响飞毛腿资格。",
+  "source_error_type": "知识错误",
+  "generation_principle": "同一情形一正一负；负包只破坏一个主目标；所有业务证据由数据/schema提供，不写入评估代码。",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "我先确认一下，是${rider_name}本人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "先说清楚规则来源，别后面变。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我这边先说明一下，今天飞毛腿合同已签署并生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "我主要怕理解错。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果状态允许，今天可以开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "拒单会影响吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "按你刚才说的情况，我这边先这样跟你讲。"
+    },
+    {
+      "speaker": "user",
+      "text": "我听着。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "拒单不影响资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "你接着说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午餐、晚餐高峰期需要上线，这个时间段比较关键。"
+    },
+    {
+      "speaker": "user",
+      "text": "你直接把关键点说完。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日这类就是当天完成X单。"
+    },
+    {
+      "speaker": "user",
+      "text": "我听明白了，继续。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果是多日合同，每天都要完成Y单。"
+    },
+    {
+      "speaker": "user",
+      "text": "你说清楚依据。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "报名排名按系统页面规则来。"
+    },
+    {
+      "speaker": "user",
+      "text": "你接着说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "站长不能人工干预排名和名额。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，这块先记下了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "我主要怕理解错。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "安全第一，身体不舒服别硬撑。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，那下一步呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "退出路径是在App的飞毛腿报名里取消，前一天Z点前取消，次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "你接着说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "额外奖励要看连续W天多日合同且每天Y单。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "node_id": "explain_refuse_cancel_timeout",
+      "knowledge_id": "rider_reject_cancel_timeout",
+      "evidence_span": "拒单不影响资格。",
+      "wrong_statement": "拒单不影响资格。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    }
+  ],
+  "quality_version": "formal_pairs_v3_iter3_pair_polish",
+  "quality_notes": [
+    "移除用户直接复述场景名",
+    "打散客服连续念稿，增加自然承接",
+    "不改核心证据句和注错点",
+    "迭代1：替换机械用户承接、移除场景名直出、清理重复身份确认和生硬略过句",
+    "迭代2：对高频客服证据句做多样化包裹，早期用户提问更贴合场景",
+    "迭代3：重写开场自然度、负包错句前增加上下文承接、进一步降低模板承接",
+    "v57：纳入每域正/负各100条正式数据集，保持客服规章化表达，用户表达允许更自然、多样。"
+  ]
+}

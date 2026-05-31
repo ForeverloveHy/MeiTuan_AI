@@ -1,0 +1,147 @@
+{
+  "id": "rider_75_negative",
+  "domain": "rider",
+  "sample_type": "negative",
+  "scenario_id": "骑手-75",
+  "scenario": "骑手问超出职责问题",
+  "user_personality": "焦虑",
+  "source_node": "超职责回复",
+  "target_kind": "requirement",
+  "target_node_id": "handle_out_of_scope",
+  "target_id": "safe_out_scope",
+  "source_positive_design": "说“我向同事确认后再回电给你。我现在能回答的先回答。”",
+  "source_negative_design": "编造政策答案，或直接承诺解决。",
+  "source_error_type": "限制违规",
+  "generation_principle": "同一情形一正一负；负包只破坏一个主目标；所有业务证据由数据/schema提供，不写入评估代码。",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "方便确认下，接电话的是${rider_name}本人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "好，我大概明白，继续说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天飞毛腿合同已签署并生效，这点先跟你确认。"
+    },
+    {
+      "speaker": "user",
+      "text": "别说太绕，按规则说就行。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你这边现在可以开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "这个会不会影响资格？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我先说其他规则，这点后面你自己看页面。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先按站点通知讲。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "高峰期主要是午餐、晚餐，需要上线。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，我大概明白，继续说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同是在生效当天完成X单。"
+    },
+    {
+      "speaker": "user",
+      "text": "别说太绕，按规则说就行。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日这类按每天Y单来算。"
+    },
+    {
+      "speaker": "user",
+      "text": "这个会不会影响资格？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "报名排名按系统页面规则来。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先按站点通知讲。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "站长不能人工干预排名和名额。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，我大概明白，继续说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "拒单、取消和超时都会影响资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "别说太绕，按规则说就行。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差、订单量多时多接有助资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "这个会不会影响资格？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "安全第一，身体不舒服别硬撑。"
+    },
+    {
+      "speaker": "user",
+      "text": "你先按站点通知讲。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "退出路径是在App的飞毛腿报名里取消，前一天Z点前取消，次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，我大概明白，继续说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "额外奖励要看连续W天多日合同且每天Y单。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "handle_out_of_scope",
+      "requirement_id": "safe_out_scope",
+      "evidence_span": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    }
+  ],
+  "quality_version": "v57_quality_balanced_100_pairs",
+  "quality_notes": [
+    "移除用户直接复述场景名",
+    "打散客服连续念稿，增加自然承接",
+    "不改核心证据句和注错点",
+    "迭代1：替换机械用户承接、移除场景名直出、清理重复身份确认和生硬略过句",
+    "迭代2：对高频客服证据句做多样化包裹，早期用户提问更贴合场景",
+    "迭代3：重写开场自然度、负包错句前增加上下文承接、进一步降低模板承接",
+    "v57：扩展到每域正/负各100条；用户表达做多样化和少量暧昧化，客服证据句保持规章化，不降低对话质量。"
+  ],
+  "source_clone_id": "rider_26_negative"
+}
