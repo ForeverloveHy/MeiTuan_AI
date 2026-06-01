@@ -1,57 +1,189 @@
-# SCEG 复杂指令多轮客服对话评估系统
+# SCEG：复杂指令下多轮对话评估系统
 
-SCEG（Schema / State-Chart Evidence Grounding）是一个面向复杂客服指令的结构化可解释评估系统。系统先利用 LongCat 将自然语言复杂指令转化为可执行的状态图、知识表与限制表，再由本地 evaluator 对多轮客服对话进行高速、可复现、可解释的批量评估；只有在本地证据不足或语义边界不稳定的灰区，才会进入可选 LongCat 二次仲裁。
+> 项目队伍：膨胀神券一队  
+> 赛题方向：命题二——复杂指令下多轮对话评估系统  
+> 方法定位：Schema / State-Chart Evidence Grounding，即“结构化状态图 + 证据归因”的多轮对话评估框架。
+
+## 1. 队伍与分工
+
+评委老师们好！
+
+我们是膨胀神券一队，队长是来自武汉大学 24 级马克思主义学院的何姚，组员是来自西安电子科技大学 24 级人工智能学院的沈晨旭。本项目负责的课题是命题二：复杂指令下多轮对话评估系统。
+
+队长主要负责项目文书工作、模拟数据集构建、人工校验评估结果；组员主要负责代码与大模型的落地与调试。两位成员共同负责整个项目的方法设计、实验统筹和展示材料整理。
+
+## 2. 项目一句话概括
+
+本项目不是直接让大模型给客服对话打分，也不是用关键词规则做简单匹配，而是先将复杂客服指令转化为可执行的状态主图、知识副表和限制副表，再由本地评估器对多轮对话进行高速、可解释、可追溯的结构化评估，并在少量灰区引入 LongCat 进行二次仲裁。
+
+核心流程可以概括为：
 
 ```text
-复杂客服指令 → LongCat 离线建图 → Schema Linter / Compiler
-→ 本地 Graph Evaluator → 本地二筛 → 少量灰区 LongCat 仲裁 → 中文可解释报告
+复杂客服指令
+→ LongCat-Flash-Lite 离线建图
+→ Schema Linter / Schema Compiler
+→ 本地 Graph Evaluator
+→ 本地二筛
+→ 少量灰区 LongCat 二次仲裁
+→ 中文可解释评估报告
 ```
 
-当前 README 已拆分为四份文档，建议按顺序阅读：
+## 3. 方法创新点
 
-| 文档 | 作用 |
-| --- | --- |
-| [`docs/01_PROJECT_STRUCTURE_AND_USAGE.md`](docs/01_PROJECT_STRUCTURE_AND_USAGE.md) | 介绍项目文件夹作用、从零开始运行方式、在线建图与离线图评估 demo。 |
-| [`docs/02_METHOD_AND_MODULES.md`](docs/02_METHOD_AND_MODULES.md) | 按评估执行顺序解释系统方法、代码模块、LLM 参与边界和工业可行性。 |
-| [`docs/03_EVALUATION_CASE_WALKTHROUGH.md`](docs/03_EVALUATION_CASE_WALKTHROUGH.md) | 以一组商家正包/负包为例，说明一条数据如何走完整个评估流程。 |
-| [`docs/04_DATASET_DESIGN.md`](docs/04_DATASET_DESIGN.md) | 介绍数据集构成、多样性来源、商家与骑手正负包覆盖的测试分支。 |
+### 3.1 “一主图二副表”的 schema 建图设计
 
-## 当前数据规模
+项目以节点状态图为主图，辅助知识副表和限制副表。
 
-| 数据目录 | 数量 |
-| --- | ---: |
-| `data/dialogues/positive_pack/merchant` | 91 |
-| `data/dialogues/negative_pack/merchant` | 91 |
-| `data/dialogues/positive_pack/rider` | 86 |
-| `data/dialogues/negative_pack/rider` | 83 |
-| 合计 | 351 |
+节点主图为每项业务动作或流程步骤提供了明确的“数字坐标”，使评估结果可以回溯到具体节点、具体 requirement 和具体证据。图与表分流的设计，让“流程完整、知识正确、严格合规”三大评估点都能够被量化、调控和解释。
 
-## 最快运行
+其中：
 
-离线图评估 demo：
+- **状态主图**负责校验流程完整度、结构顺序和条件分支；
+- **知识副表**负责校验客服是否说错业务事实；
+- **限制副表**负责校验客服是否越界承诺、违规保证或突破合规边界。
 
-```bash
-python app_offline.py
+这种结构比单纯状态机更贴近真实客服质检场景，因为复杂客服指令不仅包含流程，还包含知识说明、禁止事项、异常终止策略和用户追问分支。
+
+### 3.2 结构化证据的本地评估校验设计
+
+本地校验确保整个数据集的评估主线严格落实在本地。数百条核心评估可以在个人电脑上较快完成，绝大多数样本不需要大模型逐条介入。
+
+评估校验的核心，是将数据集中每一轮对话拆解为具有特定结构的证据集，再与图表中生成的 evidence group 进行匹配，从而判断：
+
+- 流程节点是否命中；
+- requirement 是否完成；
+- 知识点是否正确；
+- 限制点是否被违反；
+- 异常终止和拒绝分支是否处理得当。
+
+这样的设计使校验更加立体化。系统不只输出“命中/不命中”，还能够识别“部分命中”“语义相近但证据不足”“需要二次仲裁”等中间状态，因此具备将灰区样本送入二次仲裁的能力。
+
+需要说明的是，副表下会直接设立对应每条知识点或限制点的证据组；而主图会先将节点拆分为多个小履约任务，再在每条 requirement 下设立证据组。因此主图具备更细粒度的给分和解释方式。该 requirement 细粒度拆分思想借鉴了 InFoBench 一类任务分解评价方法，项目原创部分主要体现在面向复杂客服指令的主图、副表、编译、执行和仲裁整合框架。
+
+### 3.3 “二次补图”与“二级仲裁”的大模型协同设计
+
+本项目并不让 LLM 直接替代本地 evaluator，而是把大模型能力放在最有价值的环节。
+
+一方面，本地会对 LongCat 建图结果进行规范性校验和结构化编译；另一方面，如果第一次建图存在硬性缺失，本地可以发起二次补图，对状态主图、知识副表或限制副表中的缺项进行补充。
+
+与此同时，本地评估器能够识别评估过程中的“灰度地带”，并通过本地二次加工，将最浓缩的局部待仲裁信息送到 LongCat 进行二次仲裁。
+
+这套流程将大规模复核与筛选留给本地系统，只让大模型在少量、必要、局部的语义判断中发挥作用，从而尽可能用更少 tokens 实现更大价值。
+
+## 4. 评估示例说明
+
+项目中的评估示例可以在以下目录查看：
+
+```text
+runs/merchant_example/report_detail.html
+runs/ridder_example/report_detail.html
 ```
 
-命令行离线评估：
+这些示例使用 **LongCat-Flash-Lite** 模型进行离线建图和在线仲裁，使用 `data/dialogues` 中的模拟对话数据，并通过 `app_offline.py` 选择辅助模式调用生成。
 
-```bash
-PYTHONPATH=src python scripts/run_offline_graph.py \
-  --graph runs/graphs_offline/course_publish_upgrade_v1.json \
-  --dialogues data/dialogues \
-  --pack all \
-  --llm-mode off
-```
+从示例报告中可以看到：
 
-在线建图 + 评估 GUI：
+- 项目已经经过正负包验收；
+- 九成以上样本主要依靠本地机制直接通过；
+- 其他灰区样本可以通过二次仲裁完成局部协调；
+- 本地机制仍然是评估主线，LongCat 仲裁只作为灰区补充。
+
+调试和演示时，状态图一般是离线预先生成的。一次完整建图通常需要 5 到 10 分钟不等；二次仲裁经过本地过滤筛选后，通常可以控制在 1 分钟以内。实际用时会受到网络、模型响应速度、样本数量和仲裁模式影响。
+
+## 5. 如何运行项目
+
+### 5.1 在线建图模式
+
+如果需要从复杂指令开始完整展示链路，可以运行：
 
 ```bash
 python app.py
 ```
 
-默认 LongCat 模型为 `LongCat-Flash-Lite`。项目中的 demo/example 按 `LongCat-Flash-Lite` 作为离线建图与可选二次仲裁模型进行说明；如平台接口侧发生模型名兼容或 fallback，实际调用记录以运行生成的 `run_token_usage.json` 为准。
+该模式会执行：
 
-## 交付红线
+```text
+输入复杂指令 → LongCat 建图 → 本地编译 → 对话评估 → 报告生成
+```
 
-本地 evaluator 只保存通用 schema 执行逻辑，不写入商家、骑手或具体业务答案。业务事实必须来自 LongCat 生成的 graph/schema 或任务输入。负包中的 `wrong_statement`、`evidence_span`、`injected_errors` 只用于验收追踪，不能被编译成判分答案。
+在线生成会额外统计建图 tokens 和建图用时。
+
+### 5.2 离线图评估模式
+
+如果已经有离线图，希望稳定复现实验结果或用于答辩演示，可以运行：
+
+```bash
+python app_offline.py
+```
+
+该模式会执行：
+
+```text
+选择已有 graph.json → 选择 dialogues → 本地评估 → 可选二次仲裁 → 生成报告
+```
+
+离线模式不重新建图，只统计评估和二次仲裁相关 tokens 与用时，因此更适合展示和复现。
+
+### 5.3 命令行离线评估示例
+
+也可以使用命令行脚本运行离线图评估：
+
+```bash
+PYTHONPATH=src python scripts/run_offline_graph.py \
+  --graph runs/graphs_offline/course_publish_upgrade_v1.json \
+  --dialogues data/dialogues \
+  --pack positive \
+  --llm-mode off
+```
+
+## 6. 数据集说明
+
+当前本地数据集主要围绕赛题给出的两类复杂客服指令构建：
+
+1. **飞毛腿骑手合同生效通知与提醒**
+2. **商家直播课程发布能力升级告知**
+
+数据集包含正包和负包。正包用于验证系统能否识别流程完整、知识正确、限制合规的客服对话；负包用于验证系统能否识别流程缺失、知识错误、限制违规、异常终止处理不当等问题。
+
+本地数据集目前主要针对上述两大题目组所给指令设计。如需引入其他业务数据，读取数据集的接口和样本组织方式后续可以进一步扩展。由于比赛时间有限，当前版本保留了围绕两类核心任务的设计。
+
+## 7. 无硬编码与无泄漏说明
+
+为了给 LLM 建图留下保底机制，本地存在少量通用话术编码，例如“不方便”“稍后”“以页面为准”“不能承诺”等跨业务客服表达。这类内容不绑定具体业务事实，主要用于增强通用语义匹配能力。
+
+但项目拒绝针对具体业务添加业务话术硬编码，例如不把“飞毛腿”“骑手合同”“标准直播”“低延迟直播”“派单”“费用优惠”等具体业务词写死在 evaluator 里。业务事实必须来自 LongCat 生成的 graph/schema，而不是由代码提前作弊式写入。
+
+同时，负包中的 `wrong_statement`、`evidence_span` 等标注信息不能被编译成判分答案，避免负包泄漏。项目内自带硬编码检测和负包泄漏自查工具，用于确保泛化性和结果的非作弊性：
+
+```bash
+PYTHONPATH=src python tools/hardcode_guard.py
+PYTHONPATH=src python tools/anti_leak_guard.py
+PYTHONPATH=src python tools/negative_purity_check.py data/dialogues/negative_pack
+```
+
+## 8. 详细文档导航
+
+根目录 README 用于总览项目。更详细的说明请查看 `docs/` 目录：
+
+```text
+docs/01_PROJECT_STRUCTURE_AND_USAGE.md
+docs/02_METHOD_AND_MODULES.md
+docs/03_EVALUATION_CASE_WALKTHROUGH.md
+docs/04_DATASET_DESIGN.md
+```
+
+四份文档分别介绍：
+
+- 项目文件结构与从零使用方式；
+- 方法流程与代码模块；
+- 一对正负样本如何完成评估；
+- 数据集构成、多样性和测试覆盖面。
+
+## 9. 联系方式
+
+如果评委老师或后续使用者有其他问题，欢迎联系：
+
+- 队长邮箱：2939065909@qq.com
+- 微信 / 手机号：19518228303
+
+欢迎各位老师提出意见与建议。
