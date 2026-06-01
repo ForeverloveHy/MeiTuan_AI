@@ -378,7 +378,7 @@ expected_detector: schema_executor
 其他低价值灰区 → 本地二筛过滤 → 避免过量仲裁
 ```
 
-### 3.11 Report Explainer：最终报告给评委看的归因
+### 3.11 Report Explainer：最终报告
 
 最终报告可以被解释为：
 
