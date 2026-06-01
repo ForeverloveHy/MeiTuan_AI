@@ -19,9 +19,9 @@ if str(SRC_ROOT) not in sys.path:
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
-from sceg2.demo_runner import run_project  # noqa: E402
-from sceg2.io_utils import read_json  # noqa: E402
-from sceg2.longcat_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
+from sceg.demo_runner import run_project  # noqa: E402
+from sceg.io_utils import read_json  # noqa: E402
+from sceg.longcat_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
 
 DEFAULT_INSTRUCTION = """请在这里粘贴复杂客服指令。
 

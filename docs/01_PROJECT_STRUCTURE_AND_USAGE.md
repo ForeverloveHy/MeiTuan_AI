@@ -88,9 +88,9 @@ config/
 - LongCat 仲裁候选预算；
 - 通用中文话术算子，例如承诺、施压、规则说明等。
 
-这些配置只包含通用评价参数和通用语言算子，不写入商家、骑手或具体任务答案。
+这些配置只包含通用评价参数和通用语言算子，不写入商家、骑手或具体任务的硬编码。
 
-`hardcode_guard.json` 是反硬编码检查配置，用于辅助 `tools/hardcode_guard.py` 检查核心代码里是否混入了不该出现的业务词。
+`hardcode_guard.json` 是反硬编码检查配置，用于辅助 `tools/hardcode_guard.py` 确保核心代码里不使用硬编码的方式来作弊。
 
 ## 4. `data/`：正式正负包对话数据
 
@@ -116,24 +116,8 @@ data/dialogues/
 
 正包用于检验系统能否认可合格客服对话；负包用于检验系统能否识别流程缺失、知识错误、限制违规等问题。
 
-## 5. `docs/`：项目说明文档
 
-`docs/` 保存评委阅读材料、方法说明、数据集说明和清理策略。当前 README 被拆成四份主要文档：
-
-```text
-docs/01_PROJECT_STRUCTURE_AND_USAGE.md
-docs/02_METHOD_AND_MODULES.md
-docs/03_EVALUATION_CASE_WALKTHROUGH.md
-docs/04_DATASET_DESIGN.md
-```
-
-其他辅助文档包括：
-
-- `METHOD_EXECUTION_OVERVIEW.md`：开发阶段的方法链路梳理；
-- `PACKAGE_CLEANUP_POLICY.md`：交付包清理原则；
-- `CHANGELOG.md`：近期版本变更记录。
-
-## 6. `examples/`：抽象最小示例
+## 5. `examples/`：抽象理解示例
 
 ```text
 examples/
@@ -142,7 +126,7 @@ examples/
 └─ graph_abstract.json
 ```
 
-`examples/` 里的文件是抽象示例，用于理解格式，不作为正式评测数据。正式评估使用 `data/dialogues/` 中的商家、骑手正负包；正式离线图使用 `runs/graphs_offline/` 中的 graph。
+`examples/` 里的文件是抽象理解示例，用于理解格式，不作为正式评测数据。正式评估使用 `data/dialogues/` 中的商家、骑手正负包；正式离线图使用 `runs/graphs_offline/` 中的 graph。
 
 ## 7. `prompts/`：LongCat 建图提示词和任务指令
 
@@ -253,12 +237,7 @@ tools/
 | `anti_leak_guard.py` | 检查 `wrong_statement`、`evidence_span` 等负包答案字段是否被编译进判分逻辑。 |
 | `negative_purity_check.py` | 检查负包是否保留明确的预设错误和结构化验收字段。 |
 
-推荐每次交付前运行：
-
-```bash
-PYTHONPATH=src python tools/hardcode_guard.py
-PYTHONPATH=src python tools/anti_leak_guard.py
-PYTHONPATH=src python tools/negative_purity_check.py data/dialogues/negative_pack
+我们设立这些工具，都是为了确保我们项目是具有高度泛化性的，虽然我们在调试时仅使用官方给的两种复杂指令示例，但是我们一切代码设计不迎合具体的任务和具体的数据集。
 ```
 
 ## 12. 从零开始运行项目
@@ -356,13 +335,11 @@ python app.py
 | `run_token_usage.json` | LongCat 调用和 token 统计。 |
 | `run_timing_summary.json` | LongCat 建图、本地评估等耗时统计。 |
 
-## 13. 推荐展示路径
-
-答辩展示可以按下面顺序：
+## 13. 推荐使用路径
 
 1. 打开 `app_offline.py`，选择 `runs/graphs_offline/course_publish_upgrade_v1.json`；
 2. 选择 `data/dialogues`，评估范围选择“全部数据”或“只跑前几条”；
 3. 二级判断先选择“关闭”，展示本地 evaluator 的速度和可解释性；
-4. 生成报告后打开 `report_simple.html`，给评委看通过率、分数和失分归因；
+4. 生成报告后打开 `report_simple.html`，展示通过率、分数和失分归因；
 5. 再打开 `report_detail.html`，展示节点命中、知识判断、限制判断、样本验收追踪；
 6. 最后说明：LongCat-Flash-Lite 的高成本语义理解只发生在离线建图和少量灰区仲裁阶段，大规模评估由本地结构化 evaluator 完成。

@@ -12,7 +12,7 @@
 
 队长主要负责项目文书工作、模拟数据集构建、人工校验评估结果；组员主要负责代码与大模型的落地与调试。两位成员共同负责整个项目的方法设计、实验统筹和展示材料整理。
 
-## 2. 项目一句话概括
+## 2. 项目概括
 
 本项目不是直接让大模型给客服对话打分，也不是用关键词规则做简单匹配，而是先将复杂客服指令转化为可执行的状态主图、知识副表和限制副表，再由本地评估器对多轮对话进行高速、可解释、可追溯的结构化评估，并在少量灰区引入 LongCat 进行二次仲裁。
 
@@ -42,11 +42,11 @@
 - **知识副表**负责校验客服是否说错业务事实；
 - **限制副表**负责校验客服是否越界承诺、违规保证或突破合规边界。
 
-这种结构比单纯状态机更贴近真实客服质检场景，因为复杂客服指令不仅包含流程，还包含知识说明、禁止事项、异常终止策略和用户追问分支。
+这种结构比单纯状态机更贴近真实客服质检场景，因为复杂客服指令不仅包含流程，还包含知识说明、禁止事项、异常终止策略和用户追问分支。后续还添加了终止策略设计，详细可以见02_METHOD_AND_MODULES.md。
 
 ### 3.2 结构化证据的本地评估校验设计
 
-本地校验确保整个数据集的评估主线严格落实在本地。数百条核心评估可以在个人电脑上较快完成，绝大多数样本不需要大模型逐条介入。
+本地校验确保整个数据集的评估主线严格落实在本地。数百条核心评估可以在个人电脑上数秒内完成，绝大多数样本不需要大模型逐条介入。
 
 评估校验的核心，是将数据集中每一轮对话拆解为具有特定结构的证据集，再与图表中生成的 evidence group 进行匹配，从而判断：
 
@@ -90,11 +90,104 @@ runs/ridder_example/report_detail.html
 
 调试和演示时，状态图一般是离线预先生成的。一次完整建图通常需要 5 到 10 分钟不等；二次仲裁经过本地过滤筛选后，通常可以控制在 1 分钟以内。实际用时会受到网络、模型响应速度、样本数量和仲裁模式影响。
 
-## 5. 如何运行项目
+## 5. 如何从零运行项目
 
-### 5.1 在线建图模式
+本节用于帮助评委老师或第一次接触项目的同学，从一个刚解压的项目包开始，完整跑通环境配置、离线图评估 demo、在线建图评估和结果查看。
 
-如果需要从复杂指令开始完整展示链路，可以运行：
+### 5.1 创建虚拟环境并安装依赖
+
+进入项目根目录后，先创建 Python 虚拟环境。
+
+Windows PowerShell：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Linux / macOS：
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+`.venv/` 在项目中只保留占位文件，不包含真实环境。这样做是为了让项目结构清晰，同时避免把本地虚拟环境打包进仓库。
+
+### 5.2 设置 LongCat 参数
+
+如果只想查看离线图评估流程，并且关闭二级判断，可以不设置 API Key，直接使用已经保留在 `runs/graphs_offline/` 中的离线图。
+
+如果需要运行在线建图，或者在评估灰区样本时开启 LongCat 二次仲裁，需要设置 LongCat 参数。项目示例默认使用的模型是：
+
+```text
+LongCat-Flash-Lite
+```
+
+Windows PowerShell：
+
+```powershell
+$env:LONGCAT_API_KEY="你的 LongCat API Key"
+$env:LONGCAT_BASE_URL="https://api.longcat.chat/openai"
+$env:LONGCAT_MODEL="LongCat-Flash-Lite"
+```
+
+Linux / macOS：
+
+```bash
+export LONGCAT_API_KEY="你的 LongCat API Key"
+export LONGCAT_BASE_URL="https://api.longcat.chat/openai"
+export LONGCAT_MODEL="LongCat-Flash-Lite"
+```
+
+API Key 只应放在本地环境变量或界面输入框中，不要写入代码、配置文件、评估报告或压缩包。
+
+### 5.3 运行离线图评估 demo
+
+离线图评估适合比赛展示和复现实验结果。它不会重新调用 LongCat 建图，而是直接读取项目中已有的 `graph.json`，再对 `data/dialogues` 中的对话样本进行本地评估，并在需要时开启少量二次仲裁。
+
+图形界面运行方式：
+
+```bash
+python app_offline.py
+```
+
+在界面中选择已有离线图、对话数据目录、正包或负包，并选择二级判断模式。为了稳定复现展示效果，推荐优先使用 `app_offline.py`。
+
+也可以使用命令行快速验证商家包：
+
+```bash
+PYTHONPATH=src python scripts/run_offline_graph.py \
+  --graph runs/graphs_offline/course_publish_upgrade_v1.json \
+  --dialogues data/dialogues \
+  --pack all \
+  --llm-mode off
+```
+
+命令行快速验证骑手包：
+
+```bash
+PYTHONPATH=src python scripts/run_offline_graph.py \
+  --graph runs/graphs_offline/flyleg_rider_call_v1.json \
+  --dialogues data/dialogues \
+  --pack all \
+  --llm-mode off
+```
+
+其中：
+
+- `--graph` 指定要使用的离线状态图；
+- `--dialogues` 指定对话数据目录；
+- `--pack all` 表示同时评估正包和负包；
+- `--llm-mode off` 表示关闭二次仲裁，只查看纯本地评估结果。
+
+如果希望查看 LongCat 二次仲裁效果，可以在图形界面中选择辅助模式，或在命令行中按实际配置打开对应的 LLM 模式。
+
+### 5.4 运行在线建图 + 评估
+
+如果需要展示从复杂指令到状态图再到评估报告的完整链路，可以运行：
 
 ```bash
 python app.py
@@ -103,38 +196,46 @@ python app.py
 该模式会执行：
 
 ```text
-输入复杂指令 → LongCat 建图 → 本地编译 → 对话评估 → 报告生成
+输入复杂客服指令
+→ LongCat-Flash-Lite 建图
+→ 本地 Schema Linter / Schema Compiler
+→ 读取对话数据
+→ 本地 Graph Evaluator 评估
+→ 可选 LongCat 二次仲裁
+→ 生成中文可解释报告
 ```
 
-在线生成会额外统计建图 tokens 和建图用时。
-
-### 5.2 离线图评估模式
-
-如果已经有离线图，希望稳定复现实验结果或用于答辩演示，可以运行：
-
-```bash
-python app_offline.py
-```
-
-该模式会执行：
+在界面中粘贴复杂客服指令，填写 LongCat API Key，选择建图模式、评估数据包和二级判断模式。系统会把运行产物写入类似下面的目录：
 
 ```text
-选择已有 graph.json → 选择 dialogues → 本地评估 → 可选二次仲裁 → 生成报告
+runs/longcat_latest__时间戳/
 ```
 
-离线模式不重新建图，只统计评估和二次仲裁相关 tokens 与用时，因此更适合展示和复现。
+在线建图模式会额外统计 LongCat 建图 tokens、建图用时、评估用时和二次仲裁 tokens，因此更适合展示系统完整能力；离线图评估模式则更适合稳定复现已有结果。
 
-### 5.3 命令行离线评估示例
+### 5.5 查看运行输出
 
-也可以使用命令行脚本运行离线图评估：
+一次运行结束后，重点查看以下文件：
 
-```bash
-PYTHONPATH=src python scripts/run_offline_graph.py \
-  --graph runs/graphs_offline/course_publish_upgrade_v1.json \
-  --dialogues data/dialogues \
-  --pack positive \
-  --llm-mode off
+| 文件 | 说明 |
+| --- | --- |
+| `report.html` | 当前选择的报告入口。 |
+| `report_simple.html` | 面向评委的简版结果报告，重点展示总分、通过情况和主要归因。 |
+| `report_detail.html` | 面向技术评审的详细过程报告，展示节点、知识、限制、证据和仲裁过程。 |
+| `all_reports_merged.json` | 所有样本的结构化评估明细。 |
+| `graph.json` | 本次使用或生成的状态图。 |
+| `run_manifest.json` | 本次运行索引，记录输入、输出和关键路径。 |
+| `run_token_usage.json` | LongCat 调用次数和 token 统计。 |
+| `run_timing_summary.json` | LongCat 建图、本地评估、二次仲裁等耗时统计。 |
+
+项目中已经保留了演示报告例子，可以直接打开：
+
+```text
+runs/merchant_example/report_detail.html
+runs/ridder_example/report_detail.html
 ```
+
+这两份 example 使用 `LongCat-Flash-Lite` 完成离线建图，并在辅助模式下对局部灰区进行二次仲裁，适合评委直接查看系统的中文可解释报告效果。
 
 ## 6. 数据集说明
 
@@ -145,13 +246,13 @@ PYTHONPATH=src python scripts/run_offline_graph.py \
 
 数据集包含正包和负包。正包用于验证系统能否识别流程完整、知识正确、限制合规的客服对话；负包用于验证系统能否识别流程缺失、知识错误、限制违规、异常终止处理不当等问题。
 
-本地数据集目前主要针对上述两大题目组所给指令设计。如需引入其他业务数据，读取数据集的接口和样本组织方式后续可以进一步扩展。由于比赛时间有限，当前版本保留了围绕两类核心任务的设计。
+本地数据集目前主要针对上述两大题目组所给指令设计。如需引入其他业务数据，读取数据集的接口和样本组织方式后续可以进一步扩展。由于比赛时间有限，当前版本保留了围绕两类核心任务的设计。详细的介绍可见
 
 ## 7. 无硬编码与无泄漏说明
 
-为了给 LLM 建图留下保底机制，本地存在少量通用话术编码，例如“不方便”“稍后”“以页面为准”“不能承诺”等跨业务客服表达。这类内容不绑定具体业务事实，主要用于增强通用语义匹配能力。
+为了给 LLM 建图留下保底机制，本地存在少量通用话术编码，例如“不方便”“稍后”“以规则为准”“不能承诺”等跨业务客服表达。这类内容不绑定具体业务事实，主要用于增强通用语义匹配能力。
 
-但项目拒绝针对具体业务添加业务话术硬编码，例如不把“飞毛腿”“骑手合同”“标准直播”“低延迟直播”“派单”“费用优惠”等具体业务词写死在 evaluator 里。业务事实必须来自 LongCat 生成的 graph/schema，而不是由代码提前作弊式写入。
+但项目拒绝针对具体业务添加业务话术硬编码，例如不把“飞毛腿”“骑手合同”“标准直播”“低延迟直播”“派单”“费用优惠”等具体业务词写在 evaluator 里。业务事实必须来自 LongCat 生成的 graph/schema，而不是由代码提前作弊式写入。
 
 同时，负包中的 `wrong_statement`、`evidence_span` 等标注信息不能被编译成判分答案，避免负包泄漏。项目内自带硬编码检测和负包泄漏自查工具，用于确保泛化性和结果的非作弊性：
 
@@ -176,7 +277,7 @@ docs/04_DATASET_DESIGN.md
 
 - 项目文件结构与从零使用方式；
 - 方法流程与代码模块；
-- 一对正负样本如何完成评估；
+- 一对正负样本如何完成评估的示例；
 - 数据集构成、多样性和测试覆盖面。
 
 ## 9. 联系方式
@@ -186,4 +287,4 @@ docs/04_DATASET_DESIGN.md
 - 队长邮箱：2939065909@qq.com
 - 微信 / 手机号：19518228303
 
-欢迎各位老师提出意见与建议。
+欢迎各位老师提出意见与建议!

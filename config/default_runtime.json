@@ -1,5 +1,5 @@
 {
-  "model": "LongCat-2.0-Preview",
+  "model": "LongCat-Flash-Lite",
   "weights": {
     "node_completion": 0.5,
     "relation_score": 0.15,

@@ -18,9 +18,9 @@ if str(SRC_ROOT) not in sys.path:
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
-from sceg2.demo_runner import run_offline_project  # noqa: E402
-from sceg2.longcat_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
-from sceg2.version import CORE_VERSION  # noqa: E402
+from sceg.demo_runner import run_offline_project  # noqa: E402
+from sceg.longcat_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
+from sceg.version import CORE_VERSION  # noqa: E402
 
 
 class OfflineApp(tk.Tk):
