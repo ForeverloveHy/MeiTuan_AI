@@ -205,7 +205,7 @@ expected_detector: schema_executor
 天气帮助表述灰区 → 本地二筛忽略 → 不影响核心结论
 ```
 
-### 2.11 Report Explainer：最终报告给评委看的归因
+### 2.11 Report Explainer：最终报告
 
 最终报告可以被解释为：
 
