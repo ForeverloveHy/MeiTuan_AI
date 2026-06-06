@@ -183,7 +183,7 @@ example/merchant_graph_example.json
 example/rider_graph_example.json
 ```
 
-这些示例图使用 `data/dialogues` 中的模拟对话数据，并通过 `app_offline.py` 或命令行脚本选择辅助模式调用生成评估报告。GitHub 清洁包中的 `runs/` 目录默认清空，仅保留 `.gitkeep`，运行后的报告会重新生成在 `runs/` 下。
+这些示例图使用 `data/dialogues` 中的模拟对话数据，并通过 `app_offline.py` 或命令行脚本选择辅助模式调用生成评估报告。目录中所给出的example_graph来源于单独使用`app_graph.py`，通过调用GPT-5.5模型生成。示例报告可直接查看`runs/rider_report/report_detail.html`以及`runs/merchant_report/report_detail.html`。
 
 从示例报告中可以看到：
 
@@ -192,7 +192,8 @@ example/rider_graph_example.json
 - 其他灰区样本可以通过二次仲裁完成局部协调；
 - 本地机制仍然是评估主线，LLM 仲裁只作为灰区补充。
 
-调试和演示时，状态图一般是离线预先生成的。一次完整建图通常需要 5 到 10 分钟不等；二次仲裁经过本地过滤筛选后，通常可以控制在 1 分钟以内。实际用时会受到网络、模型响应速度、样本数量和仲裁模式影响。
+调试和演示时，状态图一般是离线预先生成的。一次完整建图通常需要 15 到 20 分钟不等；二次仲裁经过本地过滤筛选后，通常可以控制在 2 分钟以内。实际用时会受到网络、模型响应速度、样本数量和仲裁模式影响。
+
 
 ## 5. 如何从零运行项目
 
@@ -242,7 +243,7 @@ export LLM_BASE_URL="你的 LLM BASE URL"
 export LLM_MODEL="你的LLM NAME"
 ```
 
-API Key 只应放在本地环境变量或界面输入框中，不要写入代码、配置文件、评估报告或压缩包。
+API Key 只应放在本地环境变量或界面输入框中，不写入代码、配置文件、评估报告或压缩包。
 
 ### 5.3 运行离线图评估 demo
 
