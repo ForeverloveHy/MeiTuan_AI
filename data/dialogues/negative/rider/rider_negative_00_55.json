@@ -1,0 +1,175 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_flow_missing_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "schema_executor+knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "flow_missing_plus_knowledge_fact_contradiction",
+    "replacement_policy": "replace_over_scoped_constraint_in_composite_with_instruction_direct_knowledge_error",
+    "replaced_original_issue": "safety_boundary_bad_weather_pressure"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "constraint_violation"
+  ],
+  "id": "rider_negative_00_55",
+  "scenario": "composite_flow_missing_reject_cancel_timeout_and_constraint_bad_weather_risk_pressure_from_baseline_00",
+  "negative_id_scheme": "00_55",
+  "target_missing": "reduce_reject_cancel_timeout",
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰要上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "那多日合同要连续跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日要连续7天配送，每天达到10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续合同和派单可能受影响。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是你们站长能帮我留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差订单会更少，跑不跑对飞毛腿资格帮助不大。"
+    },
+    {
+      "speaker": "user",
+      "text": "不想继续多日了怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "reduce_reject_cancel_timeout",
+      "requirement_id": "remind_reduce_reject_cancel_timeout",
+      "target_id": "reduce_reject_cancel_timeout.remind_reduce_reject_cancel_timeout",
+      "wrong_statement": "",
+      "evidence_span": "",
+      "description": "客服没有提醒骑手减少拒单、取消和超时。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "bad_weather_order_volume_and_qualification",
+      "target_id": "bad_weather_order_volume_and_qualification",
+      "wrong_statement": "天气差订单会更少，跑不跑对飞毛腿资格帮助不大。",
+      "evidence_span": "天气差订单会更少，跑不跑对飞毛腿资格帮助不大。",
+      "description": "客服把恶劣天气订单量通常更高、按规则完成有助保住资格说反。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": true,
+  "target_flow_missing": true
+}

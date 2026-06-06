@@ -1,0 +1,162 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "id": "merchant_negative_00_54",
+  "scenario": "composite_flow_missing_third_party_path_and_knowledge_standard_live_scenario_wrong_from_baseline_00",
+  "negative_id_scheme": "00_54",
+  "target_missing": "third_party_low_latency_enable",
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是机构负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，你说直播升级的事吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次来同步直播产品升级，平台新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先走低延迟？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，后台临时走低延迟主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们大班课比较多，标准直播适合吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播不适合大班课，大班课也应该优先选低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺，适合小班课和实操课，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课，低延迟在哪里开？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您后续在系统里看一下低延迟直播选项就行。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体路径呢？我现在没看到。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "路径我这里先不展开，您后面再找一下。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要确认吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以到【教务/财务设置】，进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "third_party_low_latency_enable",
+      "requirement_id": "guide_third_party_enable_low_latency",
+      "target_id": "third_party_low_latency_enable.guide_third_party_enable_low_latency",
+      "wrong_statement": "",
+      "evidence_span": "",
+      "description": "商家使用SaaS系统且看不到低延迟时，客服没有引导进入【我的】、【服务商/直播平台管理】、【直播平台】、【服务产品】并勾选低延迟直播。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "standard_live_scenario",
+      "target_id": "knowledge.standard_live_scenario",
+      "wrong_statement": "标准直播不适合大班课，大班课也应该优先选低延迟直播。",
+      "evidence_span": "标准直播不适合大班课，大班课也应该优先选低延迟直播。",
+      "description": "客服把标准直播适用场景说错，正确口径应为标准直播费用较低、适合大班课。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violations": [
+    "standard_live_scenario"
+  ]
+}

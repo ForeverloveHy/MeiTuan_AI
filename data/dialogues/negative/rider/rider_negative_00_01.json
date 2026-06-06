@@ -1,0 +1,192 @@
+{
+  "id": "rider_negative_00_01",
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "scenario": "flow_missing_ask_can_start_delivery_after_identity_confirmation_from_baseline_00",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_flow_missing",
+  "negative_id_scheme": "00_01",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "contract_effective_today",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "target_missing": {
+    "node_id": "ask_can_start_delivery",
+    "requirement_id": "ask_today_can_start_delivery",
+    "target_id": "ask_can_start_delivery.ask_today_can_start_delivery",
+    "description": "已完成开场身份确认，但客服没有主动询问李师傅今天是否可以开始配送。"
+  },
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我是站长，看到你已报名飞毛腿。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰记得上线。"
+    },
+    {
+      "speaker": "user",
+      "text": "嗯，我听着。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日合同要连续跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同要连续7天配送，并且每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断或未达标可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是你们站长能帮我留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "建议尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但安全第一，路况不好不要冒险。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我想退出呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "额外奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白了，我按要求跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全，有问题再联系我。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "ask_can_start_delivery",
+      "requirement_id": "ask_today_can_start_delivery",
+      "target_id": "ask_can_start_delivery.ask_today_can_start_delivery",
+      "description": "客服已先确认通话对象是李师傅，但没有主动询问今天是否可以开始配送，而是直接进入单量和规则说明。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor",
+      "mutation_from_baseline": "按照全局开场规则保留李师傅身份确认；删除“今天能开始配送吗”的主动询问。",
+      "sample_id": "rider_negative_00_01"
+    }
+  ],
+  "negative_validation": {
+    "expected_result": "本地通过",
+    "expected_error_family": "flow_missing",
+    "expected_matched_target": "opening_identity.confirm_rider_identity",
+    "notes": "除身份确认缺失外，其余合同生效、配送要求、排名、退出、奖励和安全提醒均保持母例完整，便于稳定归因为流程缺失。",
+    "audit_status": "reinforced_in_negative_audit_00_10",
+    "audit_notes": [
+      "保留单点流程缺失目标，不修复 injected_errors 指向的缺失项",
+      "补强其他保留流程锚点，使负包只坏一个点",
+      "统一术语：App飞毛腿报名、飞毛腿报名按排名、恶劣天气安全边界"
+    ]
+  },
+  "id_scheme": "domain_negative_00_01",
+  "identity_normalization_note": "原样本是“缺身份确认”；根据本轮要求，骑手文本统一必须先确认是否李师傅，因此改为“缺主动询问今天是否可以开始配送”。"
+}

@@ -1,0 +1,149 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合但关心退出",
+  "difficulty": "知识纠偏态",
+  "quality_label": "controlled_negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "knowledge_error",
+    "replacement_reason": "replace_overextended_constraint_with_instruction_grounded_knowledge_violation"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_41",
+  "scenario": "knowledge_violation_exit_effective_time_same_day_from_baseline_00",
+  "negative_id_scheme": "00_41",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单，并且连续7天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我后面不想继续，什么时候取消？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天在App飞毛腿报名里取消，今天就会生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "也就是当天就不算了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，今天操作今天就生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差的时候呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "exit_effective_next_day",
+      "target_id": "knowledge.exit_effective_next_day",
+      "wrong_statement": "今天在App飞毛腿报名里取消，今天就会生效。",
+      "evidence_span": "今天在App飞毛腿报名里取消，今天就会生效。",
+      "description": "正确规则是前一天18点前在App飞毛腿报名里取消，取消后次日生效；客服把生效时间说成当天生效。",
+      "evaluability": "local",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": "exit_effective_next_day"
+}

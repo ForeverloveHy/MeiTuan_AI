@@ -1,0 +1,153 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "negative",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_53",
+  "scenario": "复合错误：缺午晚高峰提醒 + 退出入口说错",
+  "negative_id_scheme": "00_53",
+  "error_family": "flow_missing+knowledge_violation",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": [
+    "peak_online_reminder.remind_lunch_dinner_peak_online"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单，并且连续7天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果后面不想继续，在哪里取消？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你在订单页点取消就行，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "不是飞毛腿报名里吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不用，订单页就可以处理。"
+    },
+    {
+      "speaker": "user",
+      "text": "排名这块怎么说？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "尽量减少拒单、取消和超时，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "peak_online_reminder",
+      "requirement_id": "remind_lunch_dinner_peak_online",
+      "target_id": "peak_online_reminder.remind_lunch_dinner_peak_online",
+      "description": "客服没有提醒午餐和晚餐高峰期需要上线。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "exit_entry",
+      "target_id": "knowledge.exit_entry",
+      "wrong_statement": "你在订单页点取消就行，取消后次日生效。",
+      "evidence_span": "你在订单页点取消就行，取消后次日生效。",
+      "description": "客服把退出入口说错；正确口径是前一天18点前在App飞毛腿报名里取消。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": [
+    "knowledge.exit_entry"
+  ]
+}

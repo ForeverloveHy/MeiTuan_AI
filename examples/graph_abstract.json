@@ -1,248 +1,438 @@
 {
-  "graph_id": "abstract_demo",
-  "name": "抽象服务通知状态图",
+  "graph_id": "abstract_atom_elements_demo",
+  "name": "抽象服务通知 atom/elements 示例图",
   "metadata": {
     "source": "demo only",
-    "description": "不对应任何具体业务，用于验证 2.0-v1 干净内核。"
+    "schema_generation_mode": "one_graph_two_tables_atom_registry_elements",
+    "description": "不对应任何具体业务，只用于验证 atom/elements-only 本地链路。"
   },
   "nodes": [
     {
-      "id": "confirm_identity",
-      "name": "确认对象身份",
+      "id": "n_confirm_identity",
+      "name": "确认接听对象",
       "type": "process",
       "required": true,
       "activation": {
         "mode": "always"
       },
-      "requirements": [
+      "atoms": [
         {
-          "id": "identity_question",
-          "text": "客服确认对方身份或负责人身份",
+          "id": "a_confirm_identity",
+          "name": "询问并确认对方身份",
           "required": true,
-          "weight": 1.0,
-          "aliases": [],
-          "evidence_groups": [
+          "object_role": "positive_object",
+          "primary_elements": [
             {
-              "id": "identity_question",
-              "description": "客服确认对方身份或负责人身份",
-              "patterns": [
-                {
-                  "speaker": "assistant",
-                  "any": [
-                    "请问",
-                    "确认"
-                  ],
-                  "any_secondary": []
-                },
-                {
-                  "speaker": "assistant",
-                  "any": [
-                    "本人",
-                    "负责人",
-                    "负责"
-                  ]
-                }
-              ],
-              "min_hits": 1
+              "type": "intent",
+              "value": "confirm",
+              "weight": 1.0
+            },
+            {
+              "type": "target",
+              "value": "identity",
+              "weight": 1.0
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "notify_effective",
-      "name": "通知服务状态已生效",
-      "type": "process",
-      "required": true,
-      "activation": {
-        "mode": "always"
-      },
-      "requirements": [
-        {
-          "id": "effective_status",
-          "text": "说明事项已经生效或可以开始使用",
-          "required": true,
-          "weight": 1.0,
-          "aliases": [],
-          "evidence_groups": [
-            {
-              "id": "effective_status",
-              "description": "说明事项已经生效或可以开始使用",
-              "patterns": [
-                {
-                  "speaker": "assistant",
-                  "any": [
-                    "已生效",
-                    "已经生效",
-                    "可以开始",
-                    "可以使用"
-                  ]
-                }
+          ],
+          "secondary_elements": {
+            "intent:confirm": {
+              "surface_forms": [
+                "确认一下",
+                "核实一下",
+                "请问"
+              ]
+            },
+            "target:identity": {
+              "surface_forms": [
+                "本人",
+                "负责人",
+                "接听人"
               ]
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "explain_rule_basis",
-      "name": "说明结果依据规则或页面",
-      "type": "knowledge",
-      "required": true,
-      "activation": {
-        "mode": "always"
-      },
-      "requirements": [
-        {
-          "id": "basis_statement",
-          "text": "说明结果应以规则、系统或页面为准",
-          "required": true,
-          "weight": 1.0,
-          "aliases": [],
-          "evidence_groups": [
-            {
-              "id": "basis_statement",
-              "description": "说明结果应以规则、系统或页面为准",
-              "patterns": [
-                {
-                  "speaker": "assistant",
-                  "any": [
-                    "以规则为准",
-                    "以系统为准",
-                    "以页面为准",
-                    "按规则",
-                    "页面显示"
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "answer_operation",
-      "name": "被问到操作时给出步骤",
-      "type": "branch",
-      "required": true,
-      "activation": {
-        "mode": "user_triggered",
-        "patterns": [
-          {
-            "speaker": "user",
-            "any": [
-              "怎么操作",
-              "在哪里",
-              "怎么弄",
-              "步骤"
+          },
+          "match_policy": {
+            "hit_threshold": 0.75,
+            "review_threshold": 0.45,
+            "must_have": [
+              "intent",
+              "target"
             ]
           }
-        ]
+        }
+      ]
+    },
+    {
+      "id": "n_notify_status",
+      "name": "通知服务状态",
+      "type": "process",
+      "required": true,
+      "activation": {
+        "mode": "always"
       },
-      "requirements": [
+      "atoms": [
         {
-          "id": "operation_steps",
-          "text": "给出进入、选择、保存等操作步骤",
+          "id": "a_notify_effective",
+          "name": "告知事项已经生效或可使用",
           "required": true,
-          "weight": 1.0,
-          "aliases": [],
-          "evidence_groups": [
+          "object_role": "positive_object",
+          "primary_elements": [
             {
-              "id": "operation_steps",
-              "description": "给出进入、选择、保存等操作步骤",
-              "patterns": [
-                {
-                  "speaker": "assistant",
-                  "any": [
-                    "进入",
-                    "打开",
-                    "选择",
-                    "保存",
-                    "提交"
-                  ]
-                }
-              ],
-              "min_hits": 1
+              "type": "target",
+              "value": "system_result",
+              "weight": 0.7
+            },
+            {
+              "type": "value",
+              "value": "生效",
+              "weight": 1.0,
+              "aliases": [
+                "可以开始使用",
+                "已开通"
+              ]
             }
-          ]
+          ],
+          "secondary_elements": {
+            "value:生效": {
+              "surface_forms": [
+                "已经生效",
+                "可以开始使用",
+                "已开通",
+                "能用了"
+              ]
+            }
+          },
+          "match_policy": {
+            "hit_threshold": 0.6,
+            "review_threshold": 0.4,
+            "must_have": [
+              "value"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "n_explain_rule_boundary",
+      "name": "说明规则边界",
+      "type": "process",
+      "required": true,
+      "activation": {
+        "mode": "always"
+      },
+      "atoms": [
+        {
+          "id": "a_rule_boundary",
+          "name": "说明结果按规则或页面为准，不能人工保证或调整",
+          "required": true,
+          "object_role": "positive_object",
+          "primary_elements": [
+            {
+              "type": "target",
+              "value": "rule",
+              "weight": 1.0
+            },
+            {
+              "type": "intent",
+              "value": "refuse",
+              "weight": 0.8
+            },
+            {
+              "type": "target",
+              "value": "manual_intervention",
+              "weight": 0.8
+            }
+          ],
+          "secondary_elements": {
+            "target:rule": {
+              "surface_forms": [
+                "按规则",
+                "以页面为准",
+                "以系统显示为准"
+              ]
+            },
+            "intent:refuse": {
+              "surface_forms": [
+                "不能",
+                "不可以",
+                "无法"
+              ]
+            },
+            "target:manual_intervention": {
+              "surface_forms": [
+                "人工调整",
+                "人工改",
+                "手动改",
+                "后台改"
+              ]
+            }
+          },
+          "match_policy": {
+            "hit_threshold": 0.65,
+            "review_threshold": 0.45,
+            "must_have": [
+              "target"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "n_guide_operation",
+      "name": "说明操作路径",
+      "type": "process",
+      "required": true,
+      "activation": {
+        "mode": "always"
+      },
+      "atoms": [
+        {
+          "id": "a_operation_path",
+          "name": "给出抽象页面操作指引",
+          "required": true,
+          "object_role": "positive_object",
+          "primary_elements": [
+            {
+              "type": "intent",
+              "value": "inform",
+              "weight": 0.8
+            },
+            {
+              "type": "surface",
+              "value": "进入对应页面",
+              "weight": 1.0
+            },
+            {
+              "type": "surface",
+              "value": "保存提交",
+              "weight": 1.0
+            }
+          ],
+          "secondary_elements": {
+            "surface:进入对应页面": {
+              "surface_forms": [
+                "进入对应页面",
+                "打开对应页面",
+                "到对应页面"
+              ]
+            },
+            "surface:保存提交": {
+              "surface_forms": [
+                "保存提交",
+                "确认后提交",
+                "提交即可"
+              ]
+            }
+          },
+          "match_policy": {
+            "hit_threshold": 0.6,
+            "review_threshold": 0.4,
+            "must_have": [
+              "surface"
+            ]
+          }
         }
       ]
     }
   ],
   "edges": [
     {
-      "source": "confirm_identity",
-      "target": "notify_effective",
+      "source": "n_confirm_identity",
+      "target": "n_notify_status",
       "relation": "soft_order"
     },
     {
-      "source": "notify_effective",
-      "target": "explain_rule_basis",
+      "source": "n_notify_status",
+      "target": "n_explain_rule_boundary",
       "relation": "soft_order"
+    },
+    {
+      "source": "n_explain_rule_boundary",
+      "target": "n_guide_operation",
+      "relation": "soft_order"
+    }
+  ],
+  "relation_groups": [
+    {
+      "id": "rg_main",
+      "name": "抽象通知主线",
+      "type": "all_of",
+      "nodes": [
+        "n_confirm_identity",
+        "n_notify_status",
+        "n_explain_rule_boundary",
+        "n_guide_operation"
+      ],
+      "required": true,
+      "min_completed": 4
     }
   ],
   "knowledge_table": [
     {
-      "id": "k_process_time",
-      "name": "处理时长范围",
-      "node_id": "explain_rule_basis",
-      "judge_type": "numeric_range",
-      "expected": {
-        "target_patterns": [
-          "处理时长",
-          "完成时间"
-        ],
-        "min": 1,
-        "max": 3
-      },
-      "severity": "medium"
-    }
-  ],
-  "constraint_table": [
-    {
-      "id": "c_no_guarantee_controlled_result",
-      "name": "不得保证受控结果",
-      "node_id": "explain_rule_basis",
-      "severity": "high",
-      "description": "不能承诺人工改变由规则或系统控制的结果。",
-      "safe_context": [
+      "id": "k_effective_status",
+      "name": "服务状态已生效",
+      "node_id": "n_notify_status",
+      "atom_ids": [
+        "a_notify_effective"
+      ],
+      "positive_elements": [
         {
-          "speaker": "assistant",
-          "any": [
-            "不能保证",
-            "无法保证",
-            "以规则为准",
-            "以系统为准"
+          "type": "value",
+          "value": "生效",
+          "aliases": [
+            "已经生效",
+            "可以开始使用"
           ]
         }
       ],
-      "prohibited": [
+      "negative_elements": [
         {
-          "speaker": "assistant",
-          "all": [
-            "保证"
-          ],
-          "any": [
-            "结果",
-            "通过",
-            "名额",
-            "资格"
-          ],
-          "reason": "承诺改变受控结果"
+          "type": "polarity",
+          "value": "negation"
         },
         {
-          "speaker": "assistant",
-          "all": [
-            "人工"
-          ],
-          "any": [
-            "改",
-            "安排",
-            "保留"
-          ],
-          "reason": "承诺人工干预受控结果"
+          "type": "value",
+          "value": "生效",
+          "aliases": [
+            "未生效",
+            "不能使用"
+          ]
         }
-      ]
+      ],
+      "secondary_elements": {
+        "value:生效": {
+          "surface_forms": [
+            "已经生效",
+            "可以开始使用",
+            "已开通"
+          ]
+        }
+      },
+      "value_check": {
+        "expected_values": [
+          "生效"
+        ],
+        "conflict_values": [
+          "未生效",
+          "不能使用"
+        ]
+      },
+      "negation_rule": {
+        "negation_terms": [
+          "未",
+          "不",
+          "不能",
+          "没有"
+        ]
+      },
+      "match_policy": {
+        "hit_threshold": 0.7,
+        "review_threshold": 0.45
+      }
     }
-  ]
+  ],
+  "hard_constraint_table": [
+    {
+      "id": "c_no_guarantee_controlled_result",
+      "name": "禁止承诺保证或人工控制结果",
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "severity": "critical",
+      "trigger_policy": "self_sufficient",
+      "negative_object": {
+        "primary_elements": [
+          {
+            "type": "intent",
+            "value": "promise"
+          },
+          {
+            "type": "modality",
+            "value": "guarantee"
+          },
+          {
+            "type": "target",
+            "value": "system_result"
+          }
+        ]
+      },
+      "negative_elements": [
+        {
+          "type": "intent",
+          "value": "promise"
+        },
+        {
+          "type": "modality",
+          "value": "guarantee"
+        },
+        {
+          "type": "target",
+          "value": "system_result"
+        }
+      ],
+      "positive_elements": [
+        {
+          "type": "intent",
+          "value": "refuse"
+        },
+        {
+          "type": "target",
+          "value": "rule"
+        }
+      ],
+      "secondary_elements": {
+        "modality:guarantee": {
+          "surface_forms": [
+            "保证",
+            "一定",
+            "肯定",
+            "确保"
+          ]
+        },
+        "target:system_result": {
+          "surface_forms": [
+            "结果",
+            "通过结果",
+            "显示结果"
+          ]
+        },
+        "target:rule": {
+          "surface_forms": [
+            "按规则",
+            "以页面为准",
+            "以系统显示为准"
+          ]
+        }
+      },
+      "match_policy": {
+        "hit_threshold": 0.7,
+        "review_threshold": 0.45,
+        "must_have": [
+          "intent",
+          "modality"
+        ]
+      }
+    }
+  ],
+  "soft_constraint_table": [
+    {
+      "id": "s_question_confirm_ratio",
+      "name": "适度确认与提问",
+      "enforcement": "soft",
+      "constraint_kind": "fuzzy_quality",
+      "quality_dimension": "确认比例",
+      "global_elements": [
+        {
+          "type": "form",
+          "value": "question"
+        }
+      ],
+      "metric": {
+        "direction": "range",
+        "min_threshold": 0.05,
+        "max_threshold": 0.5
+      },
+      "score_effect": {
+        "weight": 0.02
+      }
+    }
+  ],
+  "terminal_policies": {}
 }

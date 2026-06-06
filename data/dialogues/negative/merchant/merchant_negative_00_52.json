@@ -1,0 +1,148 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "negative",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "id": "merchant_negative_00_52",
+  "scenario": "复合错误：缺学员端费用确认 + 发布页选项说错",
+  "negative_id_scheme": "00_52",
+  "error_family": "flow_missing+knowledge_violation",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": [
+    "student_fee_check.confirm_low_latency_fee_applicability"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是机构负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，你说直播升级的事吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次直播产品升级，平台新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先走低延迟？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，后台临时走低延迟主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "以后发布页会怎么显示？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "升级后发布页只会显示低延迟直播，不再显示标准直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "那标准直播不显示了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，后面只看低延迟直播就行。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以点【我的】，进入【服务商/直播平台管理】，选择【直播平台】，再到【服务产品】勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用会不会要看？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这个先按页面发布就行。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证，祝课程顺利。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "student_fee_check",
+      "requirement_id": "confirm_low_latency_fee_applicability",
+      "target_id": "student_fee_check.confirm_low_latency_fee_applicability",
+      "description": "商家询问学员端费用时，客服没有提醒已设置费用时需确认低延迟直播也适用该费用。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "publish_page_two_options",
+      "target_id": "knowledge.publish_page_two_options",
+      "wrong_statement": "升级后发布页只会显示低延迟直播，不再显示标准直播。",
+      "evidence_span": "升级后发布页只会显示低延迟直播，不再显示标准直播。",
+      "description": "客服把发布页两个选项说错；正确口径是后续发布页会分标准直播和低延迟直播两个选项。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": [
+    "knowledge.publish_page_two_options"
+  ]
+}

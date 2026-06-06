@@ -1,0 +1,175 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "knowledge_fact_contradiction"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_28",
+  "scenario": "knowledge_violation_bonus_amount_wrong_from_baseline_00",
+  "negative_id_scheme": "00_28",
+  "target_knowledge_violation": "bonus_amount",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰记得上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我主要想问奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先说合同要求，单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天都要配送并达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "连续7天达标以后奖励是多少？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多3元。"
+    },
+    {
+      "speaker": "user",
+      "text": "这么多吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "额外奖励以飞毛腿规则为准，我先按这个口径提醒。"
+    },
+    {
+      "speaker": "user",
+      "text": "中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断或未达标可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额你们能帮我稳一下吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "建议尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "下雨是不是能多跑点？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我不想继续怎么退？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效，别当天才退。"
+    },
+    {
+      "speaker": "user",
+      "text": "行，我先按要求跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "bonus_amount",
+      "target_id": "bonus_amount",
+      "wrong_statement": "比如比单日合同每单多3元。",
+      "evidence_span": "比如比单日合同每单多3元。",
+      "description": "客服把连续配送额外奖励金额说错，正确口径应为比单日合同每单多1.5元，而不是3元。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "audit_notes": {
+    "negative_audit_26_30": "补强非目标上下文，保留单点知识错误；wrong_statement/evidence_span 已对齐 turns 原句。"
+  }
+}

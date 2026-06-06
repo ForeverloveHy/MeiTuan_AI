@@ -1,0 +1,155 @@
+{
+  "id": "ridder_positive_02",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "positive",
+  "scenario": "rational_followup_single_multi_day_rules",
+  "personality": "理性追问",
+  "difficulty": "中等难度",
+  "quality_label": "perfect_positive",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，我想确认一下规则。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰要上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "能，但单日和多日别弄混。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，我分开说。单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日也是12单吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不是，多日合同是每天至少10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "要连续几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天配送，并且每天都要达到10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "那名额谁决定？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差的时候要不要跑？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，有助保资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但安全第一，路况不安全就不要冒险。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我明天退出呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效，当天临时退可能来不及。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励条件再说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "例如比单日每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白，规则清楚了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "能跑就按规则跑，配送时注意安全。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有疑问再联系我。"
+    }
+  ],
+  "positive_validation": {
+    "expected_result": "本地通过",
+    "knowledge_events": [],
+    "constraint_events": [],
+    "injected_errors": [],
+    "notes": "理性追问型正包，用户重点核对单日、多日、连续性、退出与奖励，客服全部正确回答且无越界承诺。",
+    "audit_revision": "小修：纠偏单日/多日规则更清楚，补充安全优先。"
+  },
+  "baseline_index": 2,
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "domain_positive_00"
+}

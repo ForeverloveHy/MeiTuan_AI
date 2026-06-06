@@ -1,0 +1,67 @@
+{
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "handle_unable_delivery",
+    "comfort_and_close",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "ridder_positive_10",
+  "scenario": "unable_to_deliver_safe_close",
+  "personality": "确实无法配送",
+  "difficulty": "高压边界",
+  "baseline_index": 10,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，但今天真跑不了，家里有急事。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我确认一下：看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果今天确实无法配送，先处理家里的事情，不要勉强。"
+    },
+    {
+      "speaker": "user",
+      "text": "那我今天就先不跑了，会不会影响后面？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果后续参加多日合同，中断可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要退出的话，前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白，我先处理事情。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，有需要再联系我，注意安全。"
+    }
+  ]
+}

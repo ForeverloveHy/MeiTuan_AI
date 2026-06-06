@@ -1,0 +1,138 @@
+{
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "ridder_positive_07",
+  "scenario": "urgent_key_points",
+  "personality": "急躁",
+  "difficulty": "中等难度",
+  "baseline_index": 7,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，赶紧说重点。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的。看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "能跑，但别说太绕。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我按重点说。单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日要跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天，并且每天都要达到10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "中间断一天呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额你能不能帮我留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不能人工留名额。飞毛腿报名按排名进行，不是站长干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "少拒单、取消、超时会更稳。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差跑有用吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，有助保资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但路况不安全时不要冒险。"
+    },
+    {
+      "speaker": "user",
+      "text": "明天不跑怎么退？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励一句话说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "行，我知道了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，今天辛苦，配送时注意安全。"
+    }
+  ],
+  "positive_validation": {
+    "injected_errors": [],
+    "knowledge_events": [],
+    "constraint_events": [],
+    "expected_result": "本地通过",
+    "audit_revision": "小修：急躁短句样本保留压缩风格，但把 App入口、排名规则、安全边界说完整。"
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_constraint_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "constraint_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "constraint_violation",
+    "replacement_policy": "replace_instruction_direct_knowledge_error_with_graph_hard_constraint_error",
+    "replaced_original_issue": "manual_quota_reservation_promise",
+    "constraint_source": "perfect_rider_graph_latest.hard_constraint_table",
+    "replacement_note": "rhc02 禁止站长干预排名或资格"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_31",
+  "scenario": "constraint_violation_station_master_intervention_ranking_quota",
+  "negative_id_scheme": "00_31",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的。单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日合同要连续跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同需要连续7天配送，并且每天达到10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断或未达标可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额这块能不能帮我往前排一点？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我这边后台可以帮你往前排，名额给你保住。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你也尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但安全第一，路况不好不要冒险。"
+    },
+    {
+      "speaker": "user",
+      "text": "我明天要是临时有事，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "连续跑满有没有奖励？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，配送时注意安全。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题再联系我，今天辛苦了。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "constraint_violation",
+      "constraint_id": "rhc02",
+      "target_id": "rhc02:no_station_master_intervention_or_quota_promise",
+      "wrong_statement": "我这边后台可以帮你往前排，名额给你保住。",
+      "evidence_span": "我这边后台可以帮你往前排，名额给你保住。",
+      "description": "客服声称站长/后台可以干预排名并保留名额，命中限制表中“禁止声称站长可干预排名或资格”的硬限制。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "constraint_judge",
+      "sample_id": "rider_negative_00_31"
+    }
+  ],
+  "target_knowledge_violation": "flying_leg_registration_ranking_rule",
+  "audit_notes": {
+    "knowledge_replace01": "将原本偏外推的“承诺保留名额”替换为可从指令直接读出的“报名按排名进行”知识错误。"
+  }
+}

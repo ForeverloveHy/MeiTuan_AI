@@ -1,0 +1,5230 @@
+{
+  "graph_id": "rider_station_schema_graph",
+  "name": "飞毛腿骑手合同生效通知完美状态图",
+  "metadata": {
+    "schema_generation_mode": "llm_2_preview_prompt_reproducible_atom_element_fact",
+    "element_model": "value_main_fact_pool_bound",
+    "domain": "rider",
+    "local_review_iterations": "not_encoded_in_graph_metadata",
+    "improvements": [
+      "主图仅表达对话状态、节点履约目标、分支触发和终止/抑制关系，不把事实真假压入节点。",
+      "候选召回仅依赖 main.value 与 main.pool；非 main 只参与局部结算。",
+      "知识表和硬限制使用 fact/value_check 精判；fact 必须绑定同组 main 主干。",
+      "数字、时间、金额、数量、时长类事实由 value_check 比较，不枚举错误数值池。",
+      "condition/branch 节点由 trigger_groups 激活；FAQ 与 out_of_scope 由用户触发和客服实际回答激活。",
+      "optional_after 不做严格顺序扣分；terminal_after/suppress_after 触发后抑制不适用后续节点。",
+      "硬限制按负向对象扫描：negative 命中且 safe 未命中才成立；软限制仅作为质量维度单独展示。",
+      "仲裁路由只处理知识与硬限制灰区；节点履约由本地状态图执行器判定。",
+      "图结构应能由分阶段 prompt 复现：主图、知识表、限制表、元素细化、元素扩张。"
+    ],
+    "iter_notes": [],
+    "prompt_reproducibility_contract": "所有结构性修改必须能回写到通用 prompt/linter/compiler；不得依赖具体数据条目、数据集标签、人工答案集或任务外业务词典。",
+    "model_target": "LLM-2.0-Preview",
+    "method_revision": "current_contract_prompt_reproducibility",
+    "manual_iteration_notes": [
+      {
+        "iteration": "final_perfect_graph_alignment_iter1",
+        "changes": [
+          "r03_a2_or_impact",
+          "rk01_a1_no_temporal_false_valuecheck",
+          "rk02_a1_slot_anchored"
+        ]
+      }
+    ],
+    "final_tightener_audit": [
+      {
+        "type": "information_atom_accepts_user_provided_state",
+        "node_id": "r08",
+        "atom_id": "r08_a1"
+      },
+      {
+        "type": "duplicate_hard_rows_removed",
+        "constraint_ids": [
+          "rhc03",
+          "rhc01",
+          "rhc05_manual_platform_operation"
+        ]
+      },
+      {
+        "type": "hard_rows_derived_from_graph_facts",
+        "constraint_ids": [
+          "hard_auto_eef8d585"
+        ]
+      },
+      {
+        "type": "hard_rows_derived_from_graph_facts",
+        "constraint_ids": [
+          "hard_auto_eef8d585"
+        ]
+      }
+    ],
+    "schema_compiled": true,
+    "schema_compiler": "local_compile_normalize_antileak",
+    "schema_linter": {
+      "issue_count": 2,
+      "counts": {
+        "empty_terminal_made_optional": 2
+      }
+    },
+    "graph_source": "offline_graph",
+    "offline_graph_input": "E:\\sceg_llm_project\\perfect_rider_graph_latest.json",
+    "schema_linter_report": {
+      "issue_count": 2,
+      "counts": {
+        "empty_terminal_made_optional": 2
+      },
+      "issues": [
+        {
+          "level": "warning",
+          "type": "empty_terminal_made_optional",
+          "path": "nodes[7]",
+          "message": "terminal 节点没有可执行证据组，已改为 optional，避免把自然结束误当成核心流程缺失。"
+        },
+        {
+          "level": "warning",
+          "type": "empty_terminal_made_optional",
+          "path": "nodes[9]",
+          "message": "terminal 节点没有可执行证据组，已改为 optional，避免把自然结束误当成核心流程缺失。"
+        }
+      ],
+      "summary": "schema_linter 已完成：检查条件分支、宽泛证据组、支持/反驳污染、重复规则和知识对象锚点。"
+    },
+    "llm_domain_label": "rider_feimaotui",
+    "dialogue_domain": "rider",
+    "dialogue_binding_method": "selected_package_metadata_aliases",
+    "runtime_version": {
+      "core_version": "element-contract-kernel",
+      "core_version_note": "一图两表 + Atom/Element Groups + main/pool recall + fact/value_check + trigger-driven branches + local second filter arbitration.",
+      "version_module": "E:\\sceg_llm_project\\src\\sceg\\version.py"
+    },
+    "example_file": "rider_graph_example.json"
+  },
+  "nodes": [
+    {
+      "node_id": "r01",
+      "name": "开场身份与报名确认",
+      "node_type": "start",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "通话开始"
+      },
+      "atoms": [
+        {
+          "atom_id": "r01_a1",
+          "name": "确认骑手身份",
+          "text": "请问是李师傅本人吗？",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "李师傅",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "李师傅",
+                    "骑手师傅",
+                    "李师傅吗",
+                    "是李师傅吗",
+                    "李师傅本人"
+                  ]
+                },
+                {
+                  "value": "本人",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "本人",
+                    "您本人",
+                    "是您吗"
+                  ]
+                },
+                {
+                  "value": "询问",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "请问",
+                    "是不是"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r01_a2",
+          "name": "表明站长身份",
+          "text": "我是站长。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "站长",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "站长",
+                    "站点负责人"
+                  ]
+                },
+                {
+                  "value": "自我介绍",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "我是",
+                    "这边是"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r01_a3",
+          "name": "确认已报名飞毛腿并提醒高峰上线",
+          "text": "看到你已报名飞毛腿，午晚高峰需要上线。",
+          "required": false,
+          "weight": 3,
+          "element_groups": [
+            {
+              "require_all_main": true,
+              "elements": [
+                {
+                  "value": "报名飞毛腿",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "已报名飞毛腿",
+                    "报了飞毛腿",
+                    "飞毛腿报名"
+                  ]
+                },
+                {
+                  "value": "高峰上线",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "午晚高峰",
+                    "午餐晚餐高峰",
+                    "午晚高峰要上线",
+                    "高峰需要上线",
+                    "高峰要跑"
+                  ]
+                }
+              ]
+            }
+          ],
+          "match_policy": {
+            "conditional_required_when_no_early_user_stop": true
+          }
+        }
+      ],
+      "atom_relations": [],
+      "id": "r01",
+      "type": "start",
+      "aliases": [
+        "r01",
+        "开场身份与报名确认"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r02",
+      "name": "合同生效与单量要求",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "开场后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "r02_a1",
+          "name": "告知合同今天已生效",
+          "text": "今天飞毛腿合同已签署并生效。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "require_all_main": true,
+              "elements": [
+                {
+                  "value": "合同今天生效",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "今天合同已经生效",
+                    "合同今天生效",
+                    "今天飞毛腿合同已生效",
+                    "飞毛腿合同今天已生效",
+                    "今天已签署并生效"
+                  ]
+                },
+                {
+                  "value": "飞毛腿合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "飞毛腿合同",
+                    "飞毛腿"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r02_a2",
+          "name": "说明单日合同12单",
+          "text": "单日合同每天至少12单。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿",
+                    "单日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "单量要求",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单量",
+                    "12单",
+                    "十二单",
+                    "至少12单",
+                    "跑够单量"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r02_a3",
+          "name": "说明多日合同10单",
+          "text": "多日合同每天至少10单。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿",
+                    "多日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "单量要求",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单量",
+                    "10单",
+                    "十单",
+                    "至少10单",
+                    "每天10单"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r02_a4",
+          "name": "询问今天能否配送",
+          "text": "你今天可以开始配送吗？",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "今天配送",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "今天配送",
+                    "今天能跑",
+                    "今天能开始配送",
+                    "今天上线",
+                    "今天可以跑",
+                    "今天开始跑"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r02",
+      "type": "main",
+      "aliases": [
+        "r02",
+        "合同生效与单量要求"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r03",
+      "name": "连续配送要求与影响",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "合同生效后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "r03_a1",
+          "name": "说明连续配送要求",
+          "text": "说明飞毛腿存在连续配送天数要求。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "连续配送",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "连续配送",
+                    "连续跑",
+                    "连续完成配送",
+                    "连续7天",
+                    "连续10天",
+                    "连续天数",
+                    "跑几天"
+                  ]
+                },
+                {
+                  "value": "合同类型",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "多日合同",
+                    "飞毛腿合同",
+                    "多日",
+                    "单日",
+                    "飞毛腿",
+                    "多日要",
+                    "单日要"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r03_a2",
+          "name": "说明不完成影响合同派单",
+          "text": "否则合同和派单可能受影响。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "合同",
+                    "后续合同"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "受影响",
+                    "可能受影响",
+                    "会影响"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "派单",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "派单",
+                    "后续派单"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "受影响",
+                    "可能受影响",
+                    "会影响"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r03",
+      "type": "main",
+      "aliases": [
+        "r03",
+        "连续配送要求与影响"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r04",
+      "name": "愿意配送后的鼓励与安全提醒",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "可以配送",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "可以",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "可以",
+                  "能",
+                  "没问题"
+                ]
+              },
+              {
+                "value": "配送",
+                "main": false,
+                "fact": false,
+                "pool": [
+                  "配送",
+                  "跑",
+                  "上线",
+                  "开始配送"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r04_a1",
+          "name": "鼓励坚持完成",
+          "text": "能配送就尽量坚持完成。",
+          "required": false,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "鼓励完成",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "坚持完成",
+                    "尽量完成",
+                    "尽量坚持",
+                    "可以就跑",
+                    "能跑就跑",
+                    "今天辛苦"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r04_a2",
+          "name": "提醒注意安全",
+          "text": "配送时注意安全。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "注意安全",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "注意安全",
+                    "安全第一",
+                    "路上安全"
+                  ]
+                },
+                {
+                  "value": "配送",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "配送",
+                    "跑单"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r04",
+      "type": "branch",
+      "aliases": [
+        "r04",
+        "愿意配送后的鼓励与安全提醒"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r05",
+      "name": "拒绝或犹豫时挽留",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "拒绝犹豫",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "拒绝犹豫",
+                "main": true,
+                "pool": [
+                  "不想配送",
+                  "跑不了",
+                  "没时间",
+                  "可能不行",
+                  "再考虑",
+                  "不太想跑"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r05_a1",
+          "name": "理解犹豫并安抚",
+          "text": "理解用户犹豫并先安抚。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "理解",
+                  "main": true,
+                  "pool": [
+                    "理解",
+                    "明白",
+                    "知道你顾虑",
+                    "先确认"
+                  ],
+                  "fact": false
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "不勉强",
+                  "main": true,
+                  "pool": [
+                    "不勉强",
+                    "别勉强",
+                    "不要勉强",
+                    "安全优先"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r05_a2",
+          "name": "鼓励但不施压",
+          "text": "能配送再尽量完成，不能配送不施压。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "尽量",
+                  "main": true,
+                  "pool": [
+                    "尽量",
+                    "能跑再跑",
+                    "能安全配送再跑",
+                    "看状态试着跑"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "不勉强",
+                  "main": true,
+                  "pool": [
+                    "不勉强",
+                    "别勉强",
+                    "不要冒险",
+                    "安全优先"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "aliases": [
+        "犹豫挽留",
+        "鼓励犹豫骑手",
+        "retain_and_encourage",
+        "r05",
+        "拒绝或犹豫时挽留",
+        "ask_can_start_delivery",
+        "contract_effective_today",
+        "single_day_quota",
+        "safety_reminder",
+        "lunch_dinner_peak_online_reminder",
+        "ranking_not_station_master_intervention",
+        "reduce_reject_cancel_timeout",
+        "bad_weather_order_volume",
+        "registered_flyleg_notice",
+        "multi_day_daily_quota",
+        "consecutive_delivery_requirement",
+        "peak_online_reminder",
+        "ranking_not_station_master"
+      ],
+      "id": "r05",
+      "type": "branch",
+      "requirements": []
+    },
+    {
+      "node_id": "r06",
+      "name": "排名机制与保资格建议",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "配送要求后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "r06_a1",
+          "name": "说明按排名报名",
+          "text": "飞毛腿报名按排名进行。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "按排名",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "按排名",
+                    "排名进行",
+                    "看排名",
+                    "按名次",
+                    "排名规则",
+                    "系统排名",
+                    "看系统排名",
+                    "名次规则",
+                    "报名排名",
+                    "按报名排名",
+                    "按飞毛腿报名排名",
+                    "名额按排名",
+                    "名额按飞毛腿报名排名"
+                  ]
+                },
+                {
+                  "value": "飞毛腿报名",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "飞毛腿报名",
+                    "报名"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r06_a2",
+          "name": "说明不是站长干预",
+          "text": "并非站长干预。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "站长干预",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "不是站长干预",
+                    "并非站长干预",
+                    "站长不能干预",
+                    "站长干预不了",
+                    "站长没法干预",
+                    "不能人工干预",
+                    "不能人工留名额",
+                    "不能人工保留",
+                    "不是人工决定",
+                    "非人工干预"
+                  ]
+                },
+                {
+                  "value": "否定",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "不是",
+                    "并非",
+                    "不能",
+                    "无法"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r06_a3",
+          "name": "提醒减少拒单取消超时",
+          "text": "尽量减少拒单、取消和超时。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "require_all_main": true,
+              "elements": [
+                {
+                  "value": "减少",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "减少",
+                    "尽量减少",
+                    "少",
+                    "少一点",
+                    "别",
+                    "尽量别",
+                    "控制"
+                  ]
+                },
+                {
+                  "value": "拒单",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "拒单"
+                  ]
+                },
+                {
+                  "value": "取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消"
+                  ]
+                },
+                {
+                  "value": "超时",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "超时"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r06_a4",
+          "name": "说明恶劣天气订单更高",
+          "text": "恶劣天气订单量更高。",
+          "required": true,
+          "weight": 3,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "恶劣天气",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "恶劣天气",
+                    "天气差",
+                    "天气不好",
+                    "雨天"
+                  ]
+                },
+                {
+                  "value": "订单更多",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "订单量更高",
+                    "订单更多",
+                    "单量更高",
+                    "订单量通常更高",
+                    "订单通常更多",
+                    "单量通常更高",
+                    "订单会更多"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r06_a5",
+          "name": "说明恶劣天气有助于保资格",
+          "text": "恶劣天气下多配送有助于保住飞毛腿资格。",
+          "required": true,
+          "weight": 3,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "恶劣天气",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "恶劣天气",
+                    "天气差",
+                    "天气不好",
+                    "雨天"
+                  ]
+                },
+                {
+                  "value": "保资格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "保资格",
+                    "保住飞毛腿资格",
+                    "保住资格",
+                    "有助保资格",
+                    "有助于保资格",
+                    "更有利保资格",
+                    "帮助保资格",
+                    "资格",
+                    "飞毛腿资格",
+                    "有助保住资格",
+                    "帮助保住资格",
+                    "有帮助保资格"
+                  ]
+                },
+                {
+                  "value": "多配送",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "多配送",
+                    "多跑",
+                    "多接单",
+                    "订单量更高",
+                    "单量更多",
+                    "配送单量更高",
+                    "多跑单",
+                    "订单量通常更高",
+                    "订单更多",
+                    "单量通常更高"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r06",
+      "type": "main",
+      "aliases": [
+        "r06",
+        "排名机制与保资格建议"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r08",
+      "name": "超范围问题处理",
+      "node_type": "out_of_scope",
+      "required": false,
+      "activation": {
+        "mode": "user_triggered",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "用户询问非飞毛腿或超出站长职责范围的问题",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "超范围问题",
+                "main": true,
+                "pool": [
+                  "工资",
+                  "社保",
+                  "投诉",
+                  "其他平台",
+                  "非飞毛腿问题"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r08_a1",
+          "name": "核实后回电",
+          "text": "确认或根据用户已提供信息获取：我向同事确认后再回电给你。我现在能回答的先回答。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "同事",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "同事",
+                    "相关同事"
+                  ]
+                },
+                {
+                  "value": "确认",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "确认",
+                    "核实",
+                    "问一下"
+                  ]
+                },
+                {
+                  "value": "回电",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "回电",
+                    "再回电",
+                    "稍后回复"
+                  ]
+                },
+                {
+                  "value": "先回答",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "能回答的先回答",
+                    "先回答能确认的"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r08",
+      "type": "out_of_scope",
+      "aliases": [
+        "r08",
+        "超范围问题处理"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r09",
+      "name": "无法配送时安抚结束",
+      "node_type": "terminal",
+      "required": false,
+      "activation": {
+        "mode": "optional",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "确实无法配送",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "确实无法配送",
+                "main": true,
+                "pool": [
+                  "确实无法配送",
+                  "今天跑不了",
+                  "真的不行",
+                  "没办法配送",
+                  "跑不了",
+                  "真跑不了",
+                  "今天真跑不了",
+                  "先不跑",
+                  "无法配送",
+                  "没法配送",
+                  "不配送"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r09_a1",
+          "name": "安慰并不施压",
+          "text": "理解情况，先处理自己的事，不要勉强。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "理解",
+                  "main": true,
+                  "pool": [
+                    "理解",
+                    "先处理",
+                    "先处理家里的事情",
+                    "先处理自己的事"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "不勉强",
+                  "main": true,
+                  "pool": [
+                    "不要勉强",
+                    "不勉强",
+                    "别勉强"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r09_a2",
+          "name": "礼貌安全结束",
+          "text": "有需要再联系并提醒注意安全。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "再联系",
+                  "main": true,
+                  "pool": [
+                    "有需要再联系",
+                    "再联系",
+                    "后面联系"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "注意安全",
+                  "main": true,
+                  "pool": [
+                    "注意安全",
+                    "安全"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r09",
+      "type": "terminal",
+      "aliases": [
+        "r09",
+        "无法配送时安抚结束"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r10",
+      "name": "礼貌结束通话",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "主线结束"
+      },
+      "atoms": [
+        {
+          "atom_id": "r10_a1",
+          "name": "礼貌结束并提醒安全",
+          "text": "好的，注意安全，再见。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "安全提醒",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "注意安全",
+                    "路上注意安全",
+                    "配送时注意安全",
+                    "辛苦",
+                    "有问题再联系"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r10",
+      "type": "main",
+      "aliases": [
+        "r10",
+        "礼貌结束通话"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r11",
+      "name": "骑车或危险状态安全终止",
+      "node_type": "terminal",
+      "required": false,
+      "activation": {
+        "mode": "optional",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "骑手正在骑车、开车或明确不方便继续听",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "骑车开车不便沟通",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "骑车",
+                  "开车",
+                  "路上骑车",
+                  "正在开车",
+                  "开车中",
+                  "骑车中",
+                  "不方便听",
+                  "不方便说"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r11_a1",
+          "name": "不继续推进业务",
+          "text": "先注意安全，我不继续说明合同内容。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "安全",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "注意安全",
+                    "安全第一",
+                    "先注意安全"
+                  ]
+                },
+                {
+                  "value": "不继续",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "不继续",
+                    "先不说",
+                    "不展开",
+                    "不打扰"
+                  ]
+                },
+                {
+                  "value": "业务内容",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "合同内容",
+                    "飞毛腿内容",
+                    "业务说明"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "r11_a2",
+          "name": "稍后联系",
+          "text": "等你方便时稍后再联系。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "稍后联系",
+                  "main": true,
+                  "pool": [
+                    "稍后再联系",
+                    "稍后联系",
+                    "晚点再说",
+                    "等您方便",
+                    "方便时再联系",
+                    "再联系"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r11",
+      "type": "terminal",
+      "aliases": [
+        "r11",
+        "骑车或危险状态安全终止"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "r07_exit_rule",
+      "name": "FAQ退出规则回答",
+      "aliases": [
+        "exit_rule",
+        "退出规则",
+        "飞毛腿退出规则",
+        "r07_exit_rule",
+        "FAQ退出规则回答"
+      ],
+      "node_type": "faq",
+      "required": false,
+      "activation": {
+        "mode": "user_triggered",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "退出飞毛腿",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "退出飞毛腿",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "退出",
+                  "取消",
+                  "怎么退",
+                  "临时有事",
+                  "不跑了",
+                  "怎么取消",
+                  "怎么退出",
+                  "想退",
+                  "退的话",
+                  "怎么操作",
+                  "怎么处理",
+                  "想取消",
+                  "要取消",
+                  "不想跑了"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r07_exit_rule_a1",
+          "name": "说明App取消、截止和次日生效",
+          "text": "前一天18点前在App飞毛腿报名中取消，次日生效。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "require_all_main": true,
+              "elements": [
+                {
+                  "value": "前一天18点",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "前一天18点",
+                    "前一天18:00",
+                    "前一天晚上6点",
+                    "提前一天18点"
+                  ]
+                },
+                {
+                  "value": "App飞毛腿报名取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "App飞毛腿报名里取消",
+                    "App飞毛腿报名取消",
+                    "在App里取消",
+                    "App报名里取消"
+                  ]
+                },
+                {
+                  "value": "取消后次日生效",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消后次日生效",
+                    "取消后第二天生效",
+                    "退出后次日生效",
+                    "次日生效",
+                    "第二天生效"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "explain_app_cancel_before_18_next_day_effective"
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r07_exit_rule",
+      "type": "faq",
+      "requirements": []
+    },
+    {
+      "node_id": "r07_bonus_rule",
+      "name": "FAQ奖励规则回答",
+      "aliases": [
+        "bonus_rule",
+        "奖励规则",
+        "飞毛腿奖励规则",
+        "r07_bonus_rule",
+        "FAQ奖励规则回答"
+      ],
+      "node_type": "faq",
+      "required": false,
+      "activation": {
+        "mode": "user_triggered",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "奖励",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "奖励",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "奖励",
+                  "额外奖励",
+                  "连续跑满",
+                  "跑满",
+                  "多日奖励",
+                  "每单多"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r07_bonus_rule_a1",
+          "name": "说明连续多日奖励条件和金额",
+          "text": "连续7天、多日合同每天10单，每单多1.5元。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "连续7天",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "连续7天",
+                    "七天",
+                    "跑满7天"
+                  ]
+                },
+                {
+                  "value": "每天10单",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "每天10单",
+                    "每日10单",
+                    "每天十单",
+                    "每天都达到10单",
+                    "每天达到10单",
+                    "每天都要达到10单",
+                    "每日达到10单",
+                    "每天完成10单",
+                    "每天至少10单",
+                    "每日至少10单",
+                    "每天不少于10单",
+                    "每天要10单",
+                    "每天达标10单"
+                  ]
+                },
+                {
+                  "value": "1.5元",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "1.5元",
+                    "一块五",
+                    "每单多1.5元"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "explain_continuous_multi_day_bonus_condition_and_amount"
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r07_bonus_rule",
+      "type": "faq",
+      "requirements": []
+    },
+    {
+      "node_id": "r07_interrupt_rule",
+      "name": "FAQ中断补齐影响回答",
+      "aliases": [
+        "interrupt_rule",
+        "中断补齐规则",
+        "连续配送影响",
+        "r07_interrupt_rule",
+        "FAQ中断补齐影响回答"
+      ],
+      "node_type": "faq",
+      "required": false,
+      "activation": {
+        "mode": "user_triggered",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "中断补齐",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "中断补齐",
+                "main": false,
+                "fact": false,
+                "pool": [
+                  "中断",
+                  "断一天",
+                  "补上",
+                  "补齐",
+                  "没跑够",
+                  "差单",
+                  "差两单",
+                  "明天补",
+                  "没达标"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r07_interrupt_rule_a1",
+          "name": "说明中断或补齐可能影响合同派单",
+          "text": "中断、未达标或次日补齐可能影响合同和派单。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "中断补齐",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "中断",
+                    "断一天",
+                    "补上",
+                    "补齐",
+                    "没跑够",
+                    "明天补",
+                    "差单",
+                    "没达标"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "影响",
+                    "受影响",
+                    "可能影响"
+                  ]
+                },
+                {
+                  "value": "合同派单",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "合同",
+                    "派单",
+                    "合同和派单"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "explain_interruption_or_makeup_consequence"
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r07_interrupt_rule",
+      "type": "faq",
+      "requirements": []
+    },
+    {
+      "node_id": "r07_rank_rule",
+      "name": "FAQ排名名额回答",
+      "aliases": [
+        "rank_rule",
+        "排名名额规则",
+        "r07_rank_rule",
+        "FAQ排名名额回答"
+      ],
+      "node_type": "faq",
+      "required": false,
+      "activation": {
+        "mode": "user_triggered",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "排名名额",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "排名名额",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "排名",
+                  "名额",
+                  "站长",
+                  "帮我留",
+                  "保名额",
+                  "怎么选"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "r07_rank_rule_a1",
+          "name": "说明报名按排名且站长不能干预",
+          "text": "飞毛腿报名按排名进行，不是站长干预。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "排名",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "排名",
+                    "按排名",
+                    "排序"
+                  ]
+                },
+                {
+                  "value": "否定站长干预",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "不是站长干预",
+                    "站长不能干预",
+                    "不能人工",
+                    "按系统规则",
+                    "不能人工保名额"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "explain_ranking_not_station_manager_intervention"
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "r07_rank_rule",
+      "type": "faq",
+      "requirements": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "r01",
+      "target": "r02",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_01",
+      "condition": ""
+    },
+    {
+      "source": "r02",
+      "target": "r03",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_02",
+      "condition": ""
+    },
+    {
+      "source": "r02",
+      "target": "r04",
+      "type": "condition_on",
+      "condition": "用户表示可以配送",
+      "condition_anchor_note": "condition branch is anchored to the node that asks today-delivery intent",
+      "relation": "condition_on",
+      "id": "edge_03"
+    },
+    {
+      "source": "r04",
+      "target": "r06",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_04",
+      "condition": ""
+    },
+    {
+      "source": "r02",
+      "target": "r05",
+      "type": "condition_on",
+      "condition": "用户拒绝或犹豫",
+      "condition_anchor_note": "condition branch is anchored to the node that asks today-delivery intent",
+      "relation": "condition_on",
+      "id": "edge_05"
+    },
+    {
+      "source": "r05",
+      "target": "r09",
+      "type": "terminal_after",
+      "condition": "用户坚持无法配送",
+      "terminal_effect": {
+        "suppress_nodes": [
+          "r02",
+          "r06",
+          "r10",
+          "r03",
+          "r04",
+          "r05",
+          "r07",
+          "r08"
+        ]
+      },
+      "relation": "terminal_after",
+      "id": "edge_06"
+    },
+    {
+      "source": "r05",
+      "target": "r06",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_07",
+      "condition": ""
+    },
+    {
+      "source": "r06",
+      "target": "r10",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_08",
+      "condition": ""
+    },
+    {
+      "source": "r06",
+      "target": "r08",
+      "type": "optional_after",
+      "relation": "optional_after",
+      "id": "edge_09",
+      "condition": ""
+    },
+    {
+      "source": "r08",
+      "target": "r10",
+      "type": "optional_after",
+      "condition": "超范围处理后回到结束",
+      "relation": "optional_after",
+      "id": "edge_10"
+    },
+    {
+      "source": "r01",
+      "target": "r11",
+      "type": "terminal_after",
+      "condition": "用户正在骑车/开车或不方便继续听",
+      "terminal_effect": {
+        "suppress_nodes": [
+          "r02",
+          "r03",
+          "r04",
+          "r05",
+          "r06",
+          "r07",
+          "r08",
+          "r10"
+        ]
+      },
+      "relation": "terminal_after",
+      "id": "edge_11"
+    },
+    {
+      "source": "r01",
+      "target": "r09",
+      "type": "terminal_after",
+      "condition": "骑手明确今天无法配送或不愿继续",
+      "terminal_effect": {
+        "suppress_nodes": [
+          "r02",
+          "r03",
+          "r04",
+          "r05",
+          "r06",
+          "r07",
+          "r08",
+          "r10"
+        ]
+      },
+      "relation": "terminal_after",
+      "id": "edge_12"
+    },
+    {
+      "source": "r06",
+      "target": "r07_exit_rule",
+      "type": "optional_after",
+      "relation": "optional_after",
+      "id": "edge_13",
+      "condition": ""
+    },
+    {
+      "source": "r07_exit_rule",
+      "target": "r10",
+      "type": "optional_after",
+      "condition": "FAQ回答后回到结束",
+      "relation": "optional_after",
+      "id": "edge_14"
+    },
+    {
+      "source": "r06",
+      "target": "r07_bonus_rule",
+      "type": "optional_after",
+      "relation": "optional_after",
+      "id": "edge_15",
+      "condition": ""
+    },
+    {
+      "source": "r07_bonus_rule",
+      "target": "r10",
+      "type": "optional_after",
+      "condition": "FAQ回答后回到结束",
+      "relation": "optional_after",
+      "id": "edge_16"
+    },
+    {
+      "source": "r06",
+      "target": "r07_interrupt_rule",
+      "type": "optional_after",
+      "relation": "optional_after",
+      "id": "edge_17",
+      "condition": ""
+    },
+    {
+      "source": "r07_interrupt_rule",
+      "target": "r10",
+      "type": "optional_after",
+      "condition": "FAQ回答后回到结束",
+      "relation": "optional_after",
+      "id": "edge_18"
+    },
+    {
+      "source": "r06",
+      "target": "r07_rank_rule",
+      "type": "optional_after",
+      "relation": "optional_after",
+      "id": "edge_19",
+      "condition": ""
+    },
+    {
+      "source": "r07_rank_rule",
+      "target": "r10",
+      "type": "optional_after",
+      "condition": "FAQ回答后回到结束",
+      "relation": "optional_after",
+      "id": "edge_20"
+    }
+  ],
+  "relation_groups": [
+    {
+      "group_id": "rg_rider_main",
+      "name": "飞毛腿主线流程",
+      "nodes": [
+        "r01",
+        "r02",
+        "r03",
+        "r06",
+        "r10"
+      ],
+      "relation": "sequential",
+      "required": true,
+      "description": "主干为开场、合同规则、排名机制和结束；意愿处理由分支承接，不压入主干。",
+      "id": "rg_rider_main",
+      "type": "sequential"
+    },
+    {
+      "group_id": "rg_rider_intent_branch",
+      "name": "配送意愿分支",
+      "nodes": [
+        "r04",
+        "r05",
+        "r09",
+        "r11"
+      ],
+      "relation": "exclusive_branch",
+      "required": false,
+      "id": "rg_rider_intent_branch",
+      "type": "exclusive_branch"
+    },
+    {
+      "group_id": "rg_rider_optional",
+      "name": "用户触发问题分支",
+      "nodes": [
+        "r07_exit_rule",
+        "r07_bonus_rule",
+        "r07_interrupt_rule",
+        "r07_rank_rule",
+        "r08"
+      ],
+      "relation": "optional_parallel",
+      "required": false,
+      "description": "用户触发的退出、奖励、中断补齐、排名名额和超范围分支分别独立激活，避免一个FAQ命中掩盖另一个FAQ缺失。",
+      "id": "rg_rider_optional",
+      "type": "optional_parallel"
+    }
+  ],
+  "terminal_policies": {
+    "normal_close": {
+      "description": "主线信息完成后礼貌结束"
+    },
+    "cannot_deliver_close": {
+      "description": "用户坚持无法配送时安抚后结束，不再施压"
+    }
+  },
+  "knowledge_table": [
+    {
+      "knowledge_id": "rk01",
+      "name": "合同与单量",
+      "atoms": [
+        {
+          "atom_id": "rk01_a1",
+          "name": "合同今天生效",
+          "text": "飞毛腿合同今天已签署并生效。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "飞毛腿合同",
+                  "main": true,
+                  "pool": [
+                    "飞毛腿合同",
+                    "合同"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "状态",
+                  "main": false,
+                  "pool": [
+                    "合同状态",
+                    "生效"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "飞毛腿合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "飞毛腿合同",
+                    "合同"
+                  ]
+                },
+                {
+                  "value": "今天生效",
+                  "main": false,
+                  "pool": [
+                    "今天生效",
+                    "今天已签署并生效"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "飞毛腿合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "飞毛腿合同",
+                    "合同"
+                  ]
+                },
+                {
+                  "value": "尚未生效",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "未生效",
+                    "还没生效",
+                    "明天才生效"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            }
+          ],
+          "value_check": {}
+        },
+        {
+          "atom_id": "rk01_a2",
+          "name": "单日合同12单",
+          "text": "单日合同每天至少12单。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿",
+                    "单日飞毛腿合同"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "每天单量",
+                  "main": false,
+                  "pool": [
+                    "每天单量",
+                    "每日单量"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿",
+                    "单日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "每天单量",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "每天单量",
+                    "每日单量"
+                  ]
+                },
+                {
+                  "value": "12单",
+                  "main": false,
+                  "pool": [
+                    "12单",
+                    "十二单",
+                    "至少12单"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "expected_value": "12",
+            "unit": "单",
+            "checks": [
+              {
+                "field": "单日合同每日单量",
+                "expected_value": "12",
+                "unit": "单",
+                "condition": "单日合同",
+                "slot_anchors": [
+                  "单日合同",
+                  "单日飞毛腿",
+                  "单日"
+                ]
+              }
+            ],
+            "wrong_examples": []
+          },
+          "aliases": [
+            "single_day_contract_quota",
+            "single_day_quota"
+          ]
+        },
+        {
+          "atom_id": "rk01_a3",
+          "name": "多日合同10单",
+          "text": "多日合同每天至少10单。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿",
+                    "多日飞毛腿合同"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "每天单量",
+                  "main": false,
+                  "pool": [
+                    "每天单量",
+                    "每日单量"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿",
+                    "多日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "每天单量",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "每天单量",
+                    "每日单量"
+                  ]
+                },
+                {
+                  "value": "10单",
+                  "main": false,
+                  "pool": [
+                    "10单",
+                    "十单",
+                    "至少10单"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "expected_value": "10",
+            "unit": "单",
+            "checks": [
+              {
+                "field": "多日合同每日单量",
+                "expected_value": "10",
+                "unit": "单",
+                "condition": "多日合同",
+                "slot_anchors": [
+                  "多日合同",
+                  "多日飞毛腿",
+                  "多天"
+                ]
+              }
+            ],
+            "wrong_examples": []
+          },
+          "aliases": [
+            "multi_day_daily_quota"
+          ]
+        },
+        {
+          "atom_id": "rk01_a4",
+          "name": "单日合同未完成影响",
+          "text": "单日合同生效当天未完成12单，合同及派单可能受到影响。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "完成",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "完成",
+                    "跑够",
+                    "达标",
+                    "补齐",
+                    "补上"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "今天",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "今天",
+                    "当天",
+                    "今日"
+                  ]
+                },
+                {
+                  "value": "补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "补齐",
+                    "补上",
+                    "明天补",
+                    "明天补齐",
+                    "差单"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿",
+                    "单日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "未完成",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "未完成",
+                    "没完成",
+                    "没跑够"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "影响",
+                    "受影响"
+                  ]
+                },
+                {
+                  "value": "生效当天",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "生效当天",
+                    "当天"
+                  ]
+                },
+                {
+                  "value": "12单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "12单",
+                    "12单"
+                  ]
+                },
+                {
+                  "value": "合同",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "合同",
+                    "后续合同"
+                  ]
+                },
+                {
+                  "value": "派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "派单",
+                    "后续派单"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "不影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响合同派单",
+                    "不影响合同",
+                    "不影响派单",
+                    "没影响",
+                    "不会影响合同派单"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "单日",
+                    "单日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "补齐有效",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "明天补齐也算",
+                    "明天补上也算",
+                    "明天补齐",
+                    "补齐也算完成",
+                    "补上就行",
+                    "补上也算"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "今天补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "今天补齐",
+                    "当天补齐",
+                    "明天补齐",
+                    "明天补上",
+                    "差单明天补"
+                  ]
+                },
+                {
+                  "value": "有效完成",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "也算完成",
+                    "算完成",
+                    "补上就行",
+                    "补齐也算"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "单日补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日明天补",
+                    "明天补齐",
+                    "明天补上",
+                    "次日补齐",
+                    "次日补上"
+                  ]
+                },
+                {
+                  "value": "补齐有效",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "也算完成",
+                    "算完成",
+                    "补齐也算",
+                    "补上也算",
+                    "补上就行"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            },
+            {
+              "elements": [
+                {
+                  "value": "今天差单",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "今天差单",
+                    "今天差几单",
+                    "当天差单",
+                    "单日差单",
+                    "差几单",
+                    "差单"
+                  ]
+                },
+                {
+                  "value": "不影响后续合同派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响后续合同",
+                    "不影响后续派单",
+                    "不影响后续合同和派单",
+                    "后续合同不受影响",
+                    "后续派单不受影响"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            }
+          ],
+          "value_check": {
+            "expected": "生效当天完成12单，否则合同及派单可能受影响",
+            "wrong_examples": [],
+            "checks": [
+              {
+                "expected_value": "生效当天完成",
+                "unit": "",
+                "slot_anchors": [
+                  "完成",
+                  "补齐",
+                  "补上",
+                  "达标"
+                ]
+              },
+              {
+                "expected_value": "12单",
+                "unit": "单",
+                "slot_anchors": [
+                  "单日合同",
+                  "12单",
+                  "完成"
+                ]
+              }
+            ],
+            "allow_continuation": true,
+            "continuation_blockers": [
+              "多日",
+              "多日合同",
+              "多日飞毛腿"
+            ],
+            "expected_value": "生效当天完成12单，否则合同及派单可能受影响"
+          },
+          "aliases": [
+            "single_day_contract_consequence",
+            "single_day_completion_time",
+            "single_day_makeup_consequence"
+          ]
+        },
+        {
+          "atom_id": "rk01_a5",
+          "name": "多日合同未完成影响",
+          "text": "多日合同每天未完成10单，后续合同及派单可能受到影响。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "完成",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "完成",
+                    "跑够",
+                    "达标",
+                    "补齐",
+                    "补上",
+                    "中断"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "中断",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "中断",
+                    "断一天",
+                    "中间断一天"
+                  ]
+                },
+                {
+                  "value": "补齐",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "补上",
+                    "补齐",
+                    "后面补上"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿",
+                    "多日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "未完成",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "未完成",
+                    "没完成",
+                    "没跑够"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "影响",
+                    "受影响"
+                  ]
+                },
+                {
+                  "value": "每天",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "每天",
+                    "每日"
+                  ]
+                },
+                {
+                  "value": "10单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "10单",
+                    "10单"
+                  ]
+                },
+                {
+                  "value": "合同",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "合同",
+                    "后续合同"
+                  ]
+                },
+                {
+                  "value": "派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "派单",
+                    "后续派单"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿",
+                    "多日飞毛腿合同"
+                  ]
+                },
+                {
+                  "value": "未完成",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "未完成",
+                    "没完成",
+                    "没跑够"
+                  ]
+                },
+                {
+                  "value": "不",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不",
+                    "不会",
+                    "没",
+                    "不影响",
+                    "没影响",
+                    "不会影响合同",
+                    "不会影响派单",
+                    "一直保留",
+                    "名额一直保留"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "影响",
+                    "受影响",
+                    "不影响",
+                    "没影响",
+                    "不会影响合同",
+                    "不会影响派单",
+                    "一直保留",
+                    "名额一直保留"
+                  ]
+                },
+                {
+                  "value": "合同",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "合同",
+                    "不影响",
+                    "没影响",
+                    "不会影响合同",
+                    "不会影响派单",
+                    "一直保留",
+                    "名额一直保留"
+                  ]
+                },
+                {
+                  "value": "派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "派单",
+                    "不影响",
+                    "没影响",
+                    "不会影响合同",
+                    "不会影响派单",
+                    "一直保留",
+                    "名额一直保留"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "不影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响后续派单",
+                    "不影响合同派单",
+                    "多日没达标也不影响",
+                    "没影响"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "名额保留",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "名额一直保留",
+                    "系统名额会一直保留",
+                    "不会被别人占用",
+                    "名额不会被占用"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "多日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日合同",
+                    "多日",
+                    "多日飞毛腿"
+                  ]
+                },
+                {
+                  "value": "中断无影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "断一天也没关系",
+                    "中间断一天没关系",
+                    "补上就行",
+                    "补齐就行",
+                    "后面补上就行",
+                    "不影响后续"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "中断",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "中断",
+                    "断一天",
+                    "中间断一天"
+                  ]
+                },
+                {
+                  "value": "无影响补齐",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "没关系",
+                    "补上就行",
+                    "补齐就行",
+                    "不影响",
+                    "也没关系"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "多日未达标",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "多日没达标",
+                    "多日未达标",
+                    "多日不达标",
+                    "多日合同没达标"
+                  ]
+                },
+                {
+                  "value": "不影响后续派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响后续派单",
+                    "不影响后续合同",
+                    "后续派单不受影响",
+                    "后续合同不受影响",
+                    "没达标也不影响后续派单"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            }
+          ],
+          "value_check": {
+            "expected": "每天完成10单，否则后续合同及派单可能受影响",
+            "wrong_examples": [],
+            "checks": [
+              {
+                "expected_value": "每天10单",
+                "unit": "单",
+                "slot_anchors": [
+                  "多日合同",
+                  "10单",
+                  "每天"
+                ]
+              }
+            ],
+            "allow_continuation": true,
+            "continuation_blockers": [
+              "单日",
+              "单日合同",
+              "单日飞毛腿"
+            ],
+            "expected_value": "每天完成10单，否则后续合同及派单可能受影响"
+          },
+          "aliases": [
+            "multi_day_contract_consequence",
+            "multi_day_continuity_requirement",
+            "slot_occupied_rule",
+            "multi_day_interruption_consequence"
+          ]
+        },
+        {
+          "atom_id": "rk01_a6",
+          "name": "中断或补齐影响",
+          "text": "中断、未达标或次日补齐可能影响合同及派单。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "中断补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "中断",
+                    "断一天",
+                    "补上",
+                    "补齐",
+                    "明天补",
+                    "差单",
+                    "没达标"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "影响",
+                    "受影响",
+                    "关系"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "中断补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "中断",
+                    "断一天",
+                    "没跑够",
+                    "补上",
+                    "补齐",
+                    "没达标"
+                  ]
+                },
+                {
+                  "value": "影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "可能影响",
+                    "会影响",
+                    "受影响"
+                  ]
+                },
+                {
+                  "value": "合同派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "合同",
+                    "派单",
+                    "后续合同",
+                    "后续派单"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "中断补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "中断",
+                    "断一天",
+                    "补上",
+                    "补齐",
+                    "明天补",
+                    "没达标"
+                  ]
+                },
+                {
+                  "value": "中断补齐不影响合同派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "中断不影响合同",
+                    "中断不影响派单",
+                    "断一天不影响合同",
+                    "断一天不影响派单",
+                    "补上就不影响合同",
+                    "补上就不影响派单",
+                    "补齐就不影响合同",
+                    "补齐就不影响派单",
+                    "中断补齐不影响合同派单"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            },
+            {
+              "elements": [
+                {
+                  "value": "未达标补齐",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "没达标",
+                    "未达标",
+                    "不达标",
+                    "明天补",
+                    "次日补",
+                    "补齐"
+                  ]
+                },
+                {
+                  "value": "不影响后续合同派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响后续派单",
+                    "不影响后续合同",
+                    "后续合同不受影响",
+                    "后续派单不受影响",
+                    "没达标也不影响后续派单",
+                    "没达标也不影响后续合同"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            },
+            {
+              "elements": [
+                {
+                  "value": "今天差单",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "今天差单",
+                    "今天差几单",
+                    "当天差单",
+                    "差几单",
+                    "差单"
+                  ]
+                },
+                {
+                  "value": "不影响后续合同派单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响后续合同",
+                    "不影响后续派单",
+                    "不影响后续合同和派单",
+                    "后续合同不受影响",
+                    "后续派单不受影响"
+                  ]
+                }
+              ],
+              "allow_context_carry": false
+            }
+          ],
+          "value_check": {
+            "expected": "中断或补齐可能影响合同及派单",
+            "wrong_examples": [],
+            "expected_value": "中断或补齐可能影响合同及派单"
+          },
+          "aliases": [
+            "multi_day_continuity_requirement",
+            "single_day_completion_time",
+            "makeup_completion_consequence"
+          ]
+        }
+      ],
+      "aliases": [
+        "合同与单量"
+      ]
+    },
+    {
+      "knowledge_id": "rk02",
+      "name": "连续配送和退出奖励",
+      "atoms": [
+        {
+          "atom_id": "rk02_a1",
+          "name": "连续7天",
+          "text": "多日飞毛腿合同需要连续7天完成配送。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "飞毛腿合同",
+                    "单日飞毛腿合同",
+                    "连续7天",
+                    "连续七天",
+                    "7天"
+                  ]
+                },
+                {
+                  "value": "连续配送",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "连续配送",
+                    "连续跑",
+                    "连续完成配送",
+                    "连续7天",
+                    "连续七天",
+                    "7天"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "单日合同",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "单日合同",
+                    "飞毛腿合同",
+                    "单日飞毛腿合同",
+                    "连续7天",
+                    "连续七天",
+                    "7天"
+                  ]
+                },
+                {
+                  "value": "连续配送",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "连续配送",
+                    "连续跑",
+                    "连续完成配送",
+                    "连续7天",
+                    "连续七天",
+                    "7天"
+                  ]
+                },
+                {
+                  "value": "连续7天",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "连续7天",
+                    "十天",
+                    "连续7天",
+                    "连续七天",
+                    "7天"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "checks": [
+              {
+                "field": "单日合同连续配送天数",
+                "expected_value": "7",
+                "unit": "天",
+                "condition": "单日飞毛腿合同连续配送要求",
+                "slot_anchors": [
+                  "单日合同",
+                  "连续配送"
+                ]
+              }
+            ],
+            "allow_continuation": false
+          },
+          "aliases": [
+            "multi_day_continuity_requirement"
+          ]
+        },
+        {
+          "atom_id": "rk02_a2",
+          "name": "退出截止时间",
+          "text": "退出飞毛腿必须前一天18点前取消。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消",
+                    "退出",
+                    "退飞毛腿",
+                    "取消飞毛腿"
+                  ]
+                },
+                {
+                  "value": "App报名",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "App报名",
+                    "App飞毛腿报名",
+                    "飞毛腿报名",
+                    "App里"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消",
+                    "退出",
+                    "退飞毛腿",
+                    "取消飞毛腿"
+                  ]
+                },
+                {
+                  "value": "App报名",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "App报名",
+                    "App飞毛腿报名",
+                    "飞毛腿报名",
+                    "App里"
+                  ]
+                },
+                {
+                  "value": "前一天18点前",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "前一天18点前",
+                    "前一天18:00前",
+                    "前一天下午6点前"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "checks": [
+              {
+                "field": "退出截止时间",
+                "expected_value": "前一天18点前",
+                "unit": "点",
+                "condition": "退出截止时间",
+                "slot_anchors": []
+              }
+            ]
+          },
+          "aliases": [
+            "exit_deadline",
+            "exit_deadline_time"
+          ]
+        },
+        {
+          "atom_id": "rk02_a3",
+          "name": "退出入口",
+          "text": "退出飞毛腿需要在App飞毛腿报名中取消。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "退出飞毛腿",
+                  "main": true,
+                  "pool": [
+                    "退出飞毛腿",
+                    "取消飞毛腿",
+                    "退出",
+                    "取消",
+                    "取消后",
+                    "退出后",
+                    "退飞毛腿"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "操作入口",
+                  "main": false,
+                  "pool": [
+                    "入口",
+                    "哪里取消",
+                    "怎么操作"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "退出飞毛腿",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "退出飞毛腿",
+                    "取消飞毛腿",
+                    "退出",
+                    "取消",
+                    "取消后",
+                    "退出后",
+                    "退飞毛腿"
+                  ]
+                },
+                {
+                  "value": "操作入口",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "入口",
+                    "哪里取消",
+                    "怎么操作"
+                  ]
+                },
+                {
+                  "value": "App飞毛腿报名",
+                  "main": false,
+                  "pool": [
+                    "App飞毛腿报名",
+                    "App的飞毛腿报名",
+                    "飞毛腿报名入口"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "退出飞毛腿",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "退出飞毛腿",
+                    "取消飞毛腿",
+                    "退出",
+                    "取消",
+                    "取消后",
+                    "退出后",
+                    "退飞毛腿"
+                  ]
+                },
+                {
+                  "value": "操作入口",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "入口",
+                    "哪里取消",
+                    "怎么操作"
+                  ]
+                },
+                {
+                  "value": "站长取消",
+                  "main": false,
+                  "pool": [
+                    "站长取消",
+                    "电话取消",
+                    "客服取消",
+                    "后台取消",
+                    "站长代退"
+                  ],
+                  "fact": true
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "退出飞毛腿",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "退出飞毛腿",
+                    "取消飞毛腿",
+                    "退出",
+                    "取消"
+                  ]
+                },
+                {
+                  "value": "错误入口",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "订单页",
+                    "订单页面",
+                    "订单里取消",
+                    "订单入口"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "App飞毛腿报名",
+            "wrong_examples": [],
+            "expected_value": "App飞毛腿报名"
+          },
+          "aliases": [
+            "exit_entry"
+          ]
+        },
+        {
+          "atom_id": "rk02_a4",
+          "name": "奖励条件金额",
+          "text": "连续7天多日合同且每天10单，每单多1.5元。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "奖励",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "奖励",
+                    "额外奖励",
+                    "连续跑满奖励",
+                    "每单多",
+                    "比单日"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "奖励",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "奖励",
+                    "额外奖励",
+                    "连续跑满奖励",
+                    "每单多",
+                    "比单日"
+                  ]
+                },
+                {
+                  "value": "连续7天",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "连续7天",
+                    "七天"
+                  ]
+                },
+                {
+                  "value": "每天10单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "每天10单",
+                    "每天十单",
+                    "10单",
+                    "每天都达到10单",
+                    "每天达到10单",
+                    "每天都要达到10单",
+                    "每日达到10单",
+                    "每天完成10单",
+                    "每天至少10单",
+                    "每日至少10单",
+                    "每天不少于10单",
+                    "每天要10单",
+                    "每天达标10单"
+                  ]
+                },
+                {
+                  "value": "1.5元",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "1.5元",
+                    "一块五",
+                    "每单多1.5元"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "expected": "连续7天 + 每天10单 + 每单多1.5元",
+            "wrong_examples": [],
+            "checks": [
+              {
+                "expected_value": "连续7天",
+                "unit": "天"
+              },
+              {
+                "expected_value": "每天10单",
+                "unit": "单"
+              },
+              {
+                "expected_value": "1.5元",
+                "unit": "元"
+              }
+            ],
+            "allow_continuation": true,
+            "expected_value": "连续7天 + 每天10单 + 每单多1.5元"
+          },
+          "aliases": [
+            "bonus_condition",
+            "bonus_amount"
+          ]
+        },
+        {
+          "atom_id": "rk02_a5",
+          "name": "退出次日生效",
+          "text": "前一天18点前在App飞毛腿报名中取消后，次日生效。",
+          "severity": "medium",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消",
+                    "退出",
+                    "退飞毛腿",
+                    "取消飞毛腿"
+                  ]
+                },
+                {
+                  "value": "生效",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "生效",
+                    "什么时候生效",
+                    "生效时间"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消",
+                    "退出",
+                    "退飞毛腿",
+                    "取消飞毛腿"
+                  ]
+                },
+                {
+                  "value": "生效",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "生效",
+                    "什么时候生效",
+                    "生效时间"
+                  ]
+                },
+                {
+                  "value": "次日",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "次日",
+                    "第二天",
+                    "明天"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "取消",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "取消",
+                    "退出",
+                    "退飞毛腿",
+                    "取消后",
+                    "退出后"
+                  ]
+                },
+                {
+                  "value": "生效",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "生效",
+                    "会生效",
+                    "就会生效"
+                  ]
+                },
+                {
+                  "value": "当天",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "当天",
+                    "今天",
+                    "当日",
+                    "马上",
+                    "立即"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "checks": [
+              {
+                "field": "退出次日生效",
+                "expected_value": "次日生效",
+                "unit": "",
+                "condition": "退出次日生效",
+                "slot_anchors": []
+              }
+            ]
+          },
+          "aliases": [
+            "flyleg_exit_effective_time",
+            "exit_effective_time"
+          ]
+        }
+      ],
+      "aliases": [
+        "连续配送和退出奖励"
+      ]
+    },
+    {
+      "knowledge_id": "rk03",
+      "name": "排名和保资格",
+      "atoms": [
+        {
+          "atom_id": "rk03_a1",
+          "name": "按排名报名",
+          "text": "飞毛腿报名按排名进行，并非站长干预。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "飞毛腿报名",
+                  "main": true,
+                  "pool": [
+                    "飞毛腿报名",
+                    "飞毛腿"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "机制",
+                  "main": false,
+                  "pool": [
+                    "机制",
+                    "规则",
+                    "怎么选"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "飞毛腿报名",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "飞毛腿报名",
+                    "飞毛腿"
+                  ]
+                },
+                {
+                  "value": "机制",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "机制",
+                    "规则",
+                    "怎么选"
+                  ]
+                },
+                {
+                  "value": "排名",
+                  "main": false,
+                  "pool": [
+                    "排名",
+                    "名次",
+                    "排序",
+                    "报名排名",
+                    "按报名排名",
+                    "按飞毛腿报名排名",
+                    "名额按排名"
+                  ],
+                  "fact": true
+                },
+                {
+                  "value": "否定站长干预",
+                  "main": false,
+                  "pool": [
+                    "并非站长干预",
+                    "不是站长干预",
+                    "站长不能干预"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "飞毛腿报名",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "飞毛腿报名",
+                    "飞毛腿"
+                  ]
+                },
+                {
+                  "value": "机制",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "机制",
+                    "规则",
+                    "怎么选"
+                  ]
+                },
+                {
+                  "value": "站长决定",
+                  "main": false,
+                  "pool": [
+                    "站长决定",
+                    "站长安排",
+                    "人工指定"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "checks": [
+              {
+                "field": "按排名报名",
+                "expected_value": "排名",
+                "unit": "",
+                "condition": "按排名报名",
+                "slot_anchors": []
+              }
+            ]
+          }
+        },
+        {
+          "atom_id": "rk03_a2",
+          "name": "减少拒单取消超时",
+          "text": "骑手应减少拒单、取消和超时。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "行为建议",
+                  "main": true,
+                  "pool": [
+                    "行为建议",
+                    "排名资格",
+                    "拒单",
+                    "取消",
+                    "超时"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "减少",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "减少",
+                    "少",
+                    "别"
+                  ]
+                },
+                {
+                  "value": "拒单",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "拒单"
+                  ]
+                },
+                {
+                  "value": "取消",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "取消"
+                  ]
+                },
+                {
+                  "value": "超时",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "超时"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "行为建议",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "行为建议",
+                    "排名资格",
+                    "拒单",
+                    "取消",
+                    "超时"
+                  ]
+                },
+                {
+                  "value": "不用管拒单",
+                  "main": false,
+                  "pool": [
+                    "不用管拒单",
+                    "拒单不影响",
+                    "取消不影响",
+                    "超时不影响",
+                    "不用减少"
+                  ],
+                  "fact": true
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "拒单取消超时",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "拒单",
+                    "取消",
+                    "超时",
+                    "行为建议",
+                    "排名资格"
+                  ]
+                },
+                {
+                  "value": "不影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "拒单不影响",
+                    "取消不影响",
+                    "超时不影响",
+                    "一般不影响排名和资格",
+                    "不影响排名",
+                    "不影响资格"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "checks": [
+              {
+                "field": "减少拒单取消超时",
+                "expected_value": "减少拒单取消超时",
+                "unit": "单",
+                "condition": "减少拒单取消超时",
+                "slot_anchors": []
+              }
+            ]
+          },
+          "aliases": [
+            "reject_cancel_timeout_impact"
+          ]
+        },
+        {
+          "atom_id": "rk03_a3",
+          "name": "恶劣天气保资格",
+          "text": "恶劣天气订单量更高，有助于保住飞毛腿资格。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "恶劣天气",
+                  "main": true,
+                  "pool": [
+                    "恶劣天气",
+                    "天气不好",
+                    "天气差",
+                    "雨天"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "保资格",
+                  "main": false,
+                  "pool": [
+                    "保资格",
+                    "保住资格",
+                    "资格",
+                    "飞毛腿资格",
+                    "有助保住资格",
+                    "有助保资格",
+                    "帮助保住资格",
+                    "有帮助保资格"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "恶劣天气",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "恶劣天气",
+                    "天气差",
+                    "天气不好",
+                    "雨天"
+                  ]
+                },
+                {
+                  "value": "订单量",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "订单量",
+                    "订单",
+                    "单量"
+                  ]
+                },
+                {
+                  "value": "更高",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "更高",
+                    "更多",
+                    "通常更多"
+                  ]
+                },
+                {
+                  "value": "保资格",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "保资格",
+                    "保住资格",
+                    "资格",
+                    "飞毛腿资格",
+                    "有助保住资格",
+                    "有助保资格",
+                    "帮助保住资格",
+                    "有帮助保资格"
+                  ]
+                },
+                {
+                  "value": "有助于",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "有助于",
+                    "帮助",
+                    "有助",
+                    "有帮助",
+                    "帮助保住"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "恶劣天气",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "恶劣天气",
+                    "天气差",
+                    "天气不好",
+                    "雨天"
+                  ]
+                },
+                {
+                  "value": "订单量",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "订单量",
+                    "订单",
+                    "单量"
+                  ]
+                },
+                {
+                  "value": "更少",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "更少",
+                    "少",
+                    "变少",
+                    "不多",
+                    "订单量更低",
+                    "订单更少",
+                    "不影响资格",
+                    "没帮助",
+                    "跑不跑不影响资格"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "保资格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "资格",
+                    "保资格",
+                    "飞毛腿资格",
+                    "保住资格",
+                    "有助保住资格",
+                    "有助保资格",
+                    "帮助保住资格",
+                    "有帮助保资格"
+                  ]
+                },
+                {
+                  "value": "无帮助",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不影响",
+                    "没帮助",
+                    "无帮助",
+                    "不太有帮助",
+                    "跑不跑不影响",
+                    "订单量更低",
+                    "订单更少",
+                    "不影响资格",
+                    "跑不跑不影响资格"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "恶劣天气",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "恶劣天气",
+                    "天气差",
+                    "天气不好"
+                  ]
+                },
+                {
+                  "value": "订单更少",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "订单更少",
+                    "订单会更少",
+                    "单量更少",
+                    "不太有帮助"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "资格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "资格",
+                    "飞毛腿资格",
+                    "保资格"
+                  ]
+                },
+                {
+                  "value": "不影响",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "跑不跑不影响资格",
+                    "不影响飞毛腿资格",
+                    "不影响资格"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "订单量更高",
+            "wrong_examples": [],
+            "expected_value": "订单量更高",
+            "unit": "单"
+          },
+          "aliases": [
+            "bad_weather_order_volume",
+            "bad_weather_qualification_relation"
+          ]
+        }
+      ],
+      "aliases": [
+        "排名和保资格"
+      ]
+    }
+  ],
+  "hard_constraint_table": [
+    {
+      "constraint_id": "rhc02",
+      "name": "禁止声称站长可干预",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "rhc02_a1",
+          "name": "禁止站长干预",
+          "text": "不得声称站长能干预排名或资格。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "站长人工",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "站长",
+                    "人工",
+                    "我这边",
+                    "后台",
+                    "手动"
+                  ]
+                },
+                {
+                  "value": "干预",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "干预",
+                    "决定",
+                    "安排",
+                    "指定",
+                    "说了算",
+                    "帮你排",
+                    "往前排",
+                    "保留名额",
+                    "留住名额"
+                  ]
+                },
+                {
+                  "value": "排名资格",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "排名",
+                    "资格",
+                    "名额",
+                    "报名"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "否定人工干预",
+                  "main": true,
+                  "fact": true,
+                  "pool": [
+                    "不是站长干预",
+                    "并非站长干预",
+                    "不能干预",
+                    "干预不了",
+                    "不是人工干预",
+                    "不能人工干预",
+                    "不能人工保留",
+                    "不能人工留名额",
+                    "名额不能人工干预"
+                  ]
+                },
+                {
+                  "value": "按排名",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "按排名",
+                    "系统规则",
+                    "平台规则"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_manual_quota_intervention",
+            "no_manual_rank_intervention",
+            "no_station_master_intervention_or_quota_promise",
+            "no_manual_exit_override",
+            "no_clear_violation_records",
+            "no_clear_reject_cancel_timeout_record",
+            "no_ranking_intervention"
+          ]
+        }
+      ]
+    },
+    {
+      "constraint_id": "rhc04",
+      "name": "危险状态下不得施压",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "rhc04_a1",
+          "name": "危险状态禁止施压",
+          "text": "用户身体不适或开车时不得继续施压配送。",
+          "trigger_groups": [
+            {
+              "elements": [
+                {
+                  "value": "危险身体状态",
+                  "main": true,
+                  "pool": [
+                    "身体不舒服",
+                    "发烧",
+                    "开车",
+                    "出事故",
+                    "受伤",
+                    "骑车",
+                    "边骑",
+                    "在路上",
+                    "雨大",
+                    "雨再大",
+                    "恶劣天气",
+                    "不舒服"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "施压",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "施压",
+                    "强压",
+                    "催促",
+                    "边骑边听",
+                    "快点说",
+                    "别影响合同",
+                    "雨再大也尽量跑",
+                    "不舒服也先跑完",
+                    "必须上线",
+                    "继续听",
+                    "雨再大也跑",
+                    "不舒服也跑"
+                  ]
+                },
+                {
+                  "value": "必须",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "必须",
+                    "坚持一下",
+                    "一定要",
+                    "边骑边听",
+                    "快点说",
+                    "别影响合同",
+                    "雨再大也尽量跑",
+                    "不舒服也先跑完",
+                    "必须上线",
+                    "现在就",
+                    "马上"
+                  ]
+                },
+                {
+                  "value": "配送",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "跑",
+                    "配送",
+                    "上线",
+                    "完成",
+                    "边骑边听",
+                    "快点说",
+                    "别影响合同",
+                    "雨再大也尽量跑",
+                    "不舒服也先跑完",
+                    "必须上线"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "安全优先",
+                  "main": true,
+                  "pool": [
+                    "安全第一",
+                    "先休息",
+                    "注意身体",
+                    "不用勉强",
+                    "不要冒险",
+                    "先注意安全",
+                    "我不继续说",
+                    "稍后联系"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_unsafe_delivery_pressure",
+            "no_unsafe_or_health_pressure",
+            "no_repeated_pressure_after_clear_refusal",
+            "no_continue_when_rider_riding",
+            "safety_boundary_no_bad_weather_pressure"
+          ]
+        }
+      ]
+    },
+    {
+      "constraint_id": "hard_auto_eef8d585",
+      "id": "hard_auto_eef8d585",
+      "name": "不得代为操作",
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "severity": "high",
+      "atom_id": "hard_auto_eef8d585_a1",
+      "text": "涉及取消时不得代为操作或越权处理。",
+      "negative_groups": [
+        {
+          "elements": [
+            {
+              "value": "取消",
+              "main": true,
+              "fact": false,
+              "pool": []
+            },
+            {
+              "value": "代为操作或越权处理",
+              "main": false,
+              "fact": true,
+              "pool": []
+            }
+          ]
+        }
+      ],
+      "safe_groups": [
+        {
+          "elements": [
+            {
+              "value": "取消",
+              "main": true,
+              "fact": false,
+              "pool": []
+            },
+            {
+              "value": "引导对方按正规路径自行处理",
+              "main": false,
+              "fact": false,
+              "pool": []
+            }
+          ]
+        }
+      ],
+      "source_kind": "hard_constraint",
+      "auto_source": "delegate_or_override"
+    },
+    {
+      "constraint_id": "hard_auto_eef8d585",
+      "id": "hard_auto_eef8d585",
+      "name": "不得代为操作",
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "severity": "high",
+      "atom_id": "hard_auto_eef8d585_a1",
+      "text": "涉及取消时不得代为操作或越权处理。",
+      "negative_groups": [
+        {
+          "elements": [
+            {
+              "value": "取消",
+              "main": true,
+              "fact": false,
+              "pool": []
+            },
+            {
+              "value": "代为操作或越权处理",
+              "main": false,
+              "fact": true,
+              "pool": []
+            }
+          ]
+        }
+      ],
+      "safe_groups": [
+        {
+          "elements": [
+            {
+              "value": "取消",
+              "main": true,
+              "fact": false,
+              "pool": []
+            },
+            {
+              "value": "引导对方按正规路径自行处理",
+              "main": false,
+              "fact": false,
+              "pool": []
+            }
+          ]
+        }
+      ],
+      "source_kind": "hard_constraint",
+      "auto_source": "delegate_or_override"
+    }
+  ],
+  "soft_constraint_table": [
+    {
+      "constraint_id": "rsc01",
+      "name": "语气自然",
+      "quality_dimension": "tone",
+      "description": "电话口语自然",
+      "metric": {
+        "name": "style_score",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      }
+    },
+    {
+      "constraint_id": "rsc02",
+      "name": "礼貌结束",
+      "quality_dimension": "closing",
+      "description": "结尾礼貌并提醒安全",
+      "metric": {
+        "name": "presence_count",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      }
+    },
+    {
+      "constraint_id": "rhc05",
+      "name": "单次回复长度控制（约30字）",
+      "severity": "medium",
+      "metric": {
+        "speaker": "assistant",
+        "scope": "single_turn",
+        "name": "char_count",
+        "threshold": 40,
+        "direction": "lower_better",
+        "type": "max_chars_per_assistant_turn",
+        "max_chars": 40
+      },
+      "enforcement": "soft",
+      "constraint_kind": "structural_metric"
+    },
+    {
+      "constraint_id": "rhc06",
+      "name": "避免重复回复",
+      "severity": "medium",
+      "metric": {
+        "speaker": "assistant",
+        "scope": "dialogue_history",
+        "name": "similarity",
+        "threshold": 0.85,
+        "direction": "lower_better",
+        "type": "semantic_repetition_between_assistant_turns",
+        "similarity_threshold": 0.85
+      },
+      "description": "如需重申，应换种方式礼貌表达。",
+      "enforcement": "soft",
+      "constraint_kind": "structural_metric"
+    }
+  ],
+  "constraint_table": [
+    {
+      "constraint_id": "rhc02",
+      "name": "禁止声称站长可干预",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "rhc02_a1",
+          "name": "禁止站长干预",
+          "text": "不得声称站长能干预排名或资格。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "站长人工",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "站长",
+                    "人工",
+                    "我这边",
+                    "后台",
+                    "手动"
+                  ]
+                },
+                {
+                  "value": "干预",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "干预",
+                    "决定",
+                    "安排",
+                    "指定",
+                    "说了算",
+                    "帮你排",
+                    "往前排",
+                    "保留名额",
+                    "留住名额"
+                  ]
+                },
+                {
+                  "value": "排名资格",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "排名",
+                    "资格",
+                    "名额",
+                    "报名"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "否定人工干预",
+                  "main": true,
+                  "fact": true,
+                  "pool": [
+                    "不是站长干预",
+                    "并非站长干预",
+                    "不能干预",
+                    "干预不了",
+                    "不是人工干预",
+                    "不能人工干预",
+                    "不能人工保留",
+                    "不能人工留名额",
+                    "名额不能人工干预"
+                  ]
+                },
+                {
+                  "value": "按排名",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "按排名",
+                    "系统规则",
+                    "平台规则"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_manual_quota_intervention",
+            "no_manual_rank_intervention",
+            "no_station_master_intervention_or_quota_promise",
+            "no_manual_exit_override",
+            "no_clear_violation_records",
+            "no_clear_reject_cancel_timeout_record",
+            "no_ranking_intervention"
+          ]
+        }
+      ],
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "id": "rhc02",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "rhc02",
+        "禁止声称站长可干预"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "声称站长可干预",
+              "rhc02"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "禁止声称站长可干预"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "rhc04",
+      "name": "危险状态下不得施压",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "rhc04_a1",
+          "name": "危险状态禁止施压",
+          "text": "用户身体不适或开车时不得继续施压配送。",
+          "trigger_groups": [
+            {
+              "elements": [
+                {
+                  "value": "危险身体状态",
+                  "main": true,
+                  "pool": [
+                    "身体不舒服",
+                    "发烧",
+                    "开车",
+                    "出事故",
+                    "受伤",
+                    "骑车",
+                    "边骑",
+                    "在路上",
+                    "雨大",
+                    "雨再大",
+                    "恶劣天气",
+                    "不舒服"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "施压",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "施压",
+                    "强压",
+                    "催促",
+                    "边骑边听",
+                    "快点说",
+                    "别影响合同",
+                    "雨再大也尽量跑",
+                    "不舒服也先跑完",
+                    "必须上线",
+                    "继续听",
+                    "雨再大也跑",
+                    "不舒服也跑"
+                  ]
+                },
+                {
+                  "value": "必须",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "必须",
+                    "坚持一下",
+                    "一定要",
+                    "边骑边听",
+                    "快点说",
+                    "别影响合同",
+                    "雨再大也尽量跑",
+                    "不舒服也先跑完",
+                    "必须上线",
+                    "现在就",
+                    "马上"
+                  ]
+                },
+                {
+                  "value": "配送",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "跑",
+                    "配送",
+                    "上线",
+                    "完成",
+                    "边骑边听",
+                    "快点说",
+                    "别影响合同",
+                    "雨再大也尽量跑",
+                    "不舒服也先跑完",
+                    "必须上线"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "安全优先",
+                  "main": true,
+                  "pool": [
+                    "安全第一",
+                    "先休息",
+                    "注意身体",
+                    "不用勉强",
+                    "不要冒险",
+                    "先注意安全",
+                    "我不继续说",
+                    "稍后联系"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_unsafe_delivery_pressure",
+            "no_unsafe_or_health_pressure",
+            "no_repeated_pressure_after_clear_refusal",
+            "no_continue_when_rider_riding",
+            "safety_boundary_no_bad_weather_pressure"
+          ]
+        }
+      ],
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "id": "rhc04",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "rhc04",
+        "危险状态下不得施压"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "危险状态下不得施压",
+              "rhc04"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "危险状态下不得施压"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "hard_auto_eef8d585",
+      "id": "hard_auto_eef8d585",
+      "name": "不得代为操作",
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "severity": "high",
+      "atom_id": "hard_auto_eef8d585_a1",
+      "text": "涉及取消时不得代为操作或越权处理。",
+      "negative_groups": [
+        {
+          "elements": [
+            {
+              "value": "取消",
+              "main": true,
+              "fact": false,
+              "pool": []
+            },
+            {
+              "value": "代为操作或越权处理",
+              "main": false,
+              "fact": true,
+              "pool": []
+            }
+          ]
+        }
+      ],
+      "safe_groups": [
+        {
+          "elements": [
+            {
+              "value": "取消",
+              "main": true,
+              "fact": false,
+              "pool": []
+            },
+            {
+              "value": "引导对方按正规路径自行处理",
+              "main": false,
+              "fact": false,
+              "pool": []
+            }
+          ]
+        }
+      ],
+      "source_kind": "hard_constraint",
+      "auto_source": "delegate_or_override",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "hard_auto_eef8d585",
+        "不得代为操作"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "代为",
+              "hard_auto_eef8d585"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "不得代为操作"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "rsc01",
+      "name": "语气自然",
+      "quality_dimension": "tone",
+      "description": "电话口语自然",
+      "metric": {
+        "name": "style_score",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      },
+      "enforcement": "soft",
+      "constraint_kind": "fuzzy_quality",
+      "id": "rsc01",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "rsc01",
+        "语气自然"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "语气自然",
+              "电话口语自然",
+              "rsc01"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "语气自然"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    },
+    {
+      "constraint_id": "rsc02",
+      "name": "礼貌结束",
+      "quality_dimension": "closing",
+      "description": "结尾礼貌并提醒安全",
+      "metric": {
+        "name": "presence_count",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      },
+      "enforcement": "soft",
+      "constraint_kind": "fuzzy_quality",
+      "id": "rsc02",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "rsc02",
+        "礼貌结束"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "礼貌结束",
+              "结尾礼貌并提醒",
+              "rsc02"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "礼貌结束"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    },
+    {
+      "constraint_id": "rhc05",
+      "name": "单次回复长度控制（约30字）",
+      "severity": "medium",
+      "metric": {
+        "speaker": "assistant",
+        "scope": "single_turn",
+        "name": "char_count",
+        "threshold": 40,
+        "direction": "lower_better",
+        "type": "max_chars_per_assistant_turn",
+        "max_chars": 40
+      },
+      "enforcement": "soft",
+      "constraint_kind": "structural_metric",
+      "id": "rhc05",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "rhc05",
+        "单次回复长度控制（约30字）"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "单次回复长度控制（约30字）",
+              "rhc05"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "单次回复长度控制（约30字）"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    },
+    {
+      "constraint_id": "rhc06",
+      "name": "避免重复回复",
+      "severity": "medium",
+      "metric": {
+        "speaker": "assistant",
+        "scope": "dialogue_history",
+        "name": "similarity",
+        "threshold": 0.85,
+        "direction": "lower_better",
+        "type": "semantic_repetition_between_assistant_turns",
+        "similarity_threshold": 0.85
+      },
+      "description": "如需重申，应换种方式礼貌表达。",
+      "enforcement": "soft",
+      "constraint_kind": "structural_metric",
+      "id": "rhc06",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "rhc06",
+        "避免重复回复"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "避免重复",
+              "如需重申",
+              "应换种方式礼貌表达",
+              "rhc06"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "避免重复回复"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    }
+  ]
+}

@@ -26,7 +26,7 @@ def _fmt_score(value: Any) -> str:
 
 def _badge(text: str) -> str:
     text = str(text or "未验收")
-    cls = "ok" if text in {"本地通过", "仲裁通过", "通过"} else "warn" if text in {"待仲裁", "待确认灰区"} else "bad"
+    cls = "ok" if text in {"本地通过", "仲裁通过", "通过", "标签审计通过"} else "warn" if text in {"待仲裁", "待确认灰区"} else "bad"
     return f"<span class='badge {cls}'>{_esc(text)}</span>"
 
 
@@ -61,35 +61,95 @@ def _accept_result(rec: dict[str, Any]) -> str:
     return str(accept.get("验收结果") or acc.get("result") or "未验收")
 
 
+def _is_negative_sample(rec: dict[str, Any]) -> bool:
+    return str(rec.get("sample_type") or "").lower() in {"negative", "负包"}
+
+
+def _display_accept_result(rec: dict[str, Any]) -> str:
+    """前台样本级验收状态。
+
+    历史结果包中，负包本地命中预设问题时 acceptance.result 可能写作“标签审计通过”。
+    这属于样本级本地验收通过：评估器独立识别到负包问题，因此报告前台统一显示
+    为和正包一致的绿色“本地通过”，审计明细仍保留在 matched_expected/missing_expected。
+    """
+    raw = _accept_result(rec)
+    acc = rec.get("acceptance") or {}
+    if _is_negative_sample(rec) and (raw == "标签审计通过" or (bool(acc.get("passed")) and raw in {"通过", "本地通过"})):
+        return "本地通过"
+    return raw
+
+
+def _sample_result_bucket(rec: dict[str, Any]) -> str:
+    """样本级最终验收桶。
+
+    首页总账只统计样本，不混入 atom/knowledge/constraint 级候选项。
+    负包的“标签审计通过”表示评估器正确识别了负包预设问题，属于本地验收通过。
+    """
+    raw = _accept_result(rec)
+    acc = rec.get("acceptance") or {}
+    if raw in {"仲裁通过", "LLM仲裁通过"}:
+        return "仲裁验收通过"
+    if raw in {"待仲裁", "待确认", "待确认灰区"} or acc.get("pending"):
+        return "待仲裁样本"
+    if bool(acc.get("passed")) or raw in {"本地通过", "通过", "标签审计通过"}:
+        return "本地验收通过"
+    return "验收不通过"
+
+
 def _usage_total(run_info: dict[str, Any] | None) -> dict[str, Any]:
     usage = ((run_info or {}).get("token_usage") or {})
     return usage.get("total") or {}
 
 
+def _arbitration_process_counts(records: list[dict[str, Any]]) -> dict[str, int]:
+    before = 0
+    kept = 0
+    sent = 0
+    decided = 0
+    for r in records:
+        before += len(r.get("oracle_candidates") or [])
+        llm = r.get("llm_verifier") or {}
+        items = llm.get("items") or []
+        sent += len(items)
+        decided += len([x for x in items if x.get("verdict")])
+        # local_second_filter may contain dropped/kept items depending on runtime version.
+        # If the newer runtime writes a decision flag, count retained items; otherwise keep it informational only.
+        for x in llm.get("local_second_filter") or []:
+            decision = str(x.get("decision") or x.get("status") or "").lower()
+            if decision in {"keep", "kept", "send", "sent", "retained"}:
+                kept += 1
+    return {"before": before, "kept": kept, "sent": sent, "decided": decided}
+
+
 def _result_summary(records: list[dict[str, Any]], run_info: dict[str, Any] | None = None) -> str:
     total = len(records)
-    result_counts = Counter(_accept_result(r) for r in records)
+    bucket_counts = Counter(_sample_result_bucket(r) for r in records)
     type_counts = Counter(str(r.get("sample_type") or "未标注") for r in records)
-    sent_to_llm = sum(len((r.get("llm_verifier") or {}).get("items") or []) for r in records)
+    proc = _arbitration_process_counts(records)
     token_total = _usage_total(run_info).get("total_tokens", 0)
+    closed_sum = sum(bucket_counts.get(k, 0) for k in ["本地验收通过", "仲裁验收通过", "待仲裁样本", "验收不通过"])
     cards = [
         ("样本总数", total),
-        ("平均总分", f"{_avg(records, 'total'):.2f}"),
-        ("平均节点分", f"{_avg(records, 'node_completion'):.2f}"),
-        ("平均结构分", f"{_avg(records, 'relation_score'):.2f}"),
-        ("平均知识分", f"{_avg(records, 'knowledge_score'):.2f}"),
-        ("平均限制分", f"{_avg(records, 'constraint_score'):.2f}"),
-        ("本地通过", result_counts.get("本地通过", 0)),
-        ("仲裁通过", result_counts.get("仲裁通过", 0)),
-        ("待仲裁", result_counts.get("待仲裁", 0)),
-        ("不通过", result_counts.get("不通过", 0)),
+        ("本地验收通过", bucket_counts.get("本地验收通过", 0)),
+        ("仲裁验收通过", bucket_counts.get("仲裁验收通过", 0)),
+        ("待仲裁样本", bucket_counts.get("待仲裁样本", 0)),
+        ("验收不通过", bucket_counts.get("验收不通过", 0)),
         ("正向样本", type_counts.get("positive", 0) + type_counts.get("正包", 0)),
         ("负向样本", type_counts.get("negative", 0) + type_counts.get("负包", 0)),
-        ("送审候选", sent_to_llm),
+        ("平均总分", f"{_avg(records, 'total'):.2f}"),
+        ("平均节点分", f"{_avg(records, 'node_completion'):.2f}"),
+        ("平均知识分", f"{_avg(records, 'knowledge_score'):.2f}"),
+        ("平均限制分", f"{_avg(records, 'constraint_score'):.2f}"),
     ]
+    # 过程项单独命名，避免和样本级最终结果混算。
+    cards.extend([
+        ("二筛前候选项", proc["before"]),
+        ("实际送审项", proc["sent"]),
+    ])
     if token_total:
         cards.append(("Token 总量", token_total))
-    return "".join(f"<div class='summary-card'><div class='num'>{_esc(v)}</div><div>{_esc(k)}</div></div>" for k, v in cards)
+    warn = "" if closed_sum == total else f"<div class='summary-warning'>样本总账未闭合：{closed_sum}/{total}，请检查 acceptance.result 映射。</div>"
+    return "".join(f"<div class='summary-card'><div class='num'>{_esc(v)}</div><div>{_esc(k)}</div></div>" for k, v in cards) + warn
 
 
 def _global_breakdown(records: list[dict[str, Any]]) -> str:
@@ -98,16 +158,16 @@ def _global_breakdown(records: list[dict[str, Any]]) -> str:
         groups[(str(rec.get("domain") or "未标注"), str(rec.get("sample_type") or "未标注"))].append(rec)
     rows: list[str] = []
     for (domain, sample_type), items in sorted(groups.items()):
-        rc = Counter(_accept_result(x) for x in items)
+        rc = Counter(_sample_result_bucket(x) for x in items)
         rows.append(
             "<tr>"
             f"<td>{_esc(domain)}</td>"
             f"<td>{_esc(sample_type)}</td>"
             f"<td>{len(items)}</td>"
-            f"<td>{rc.get('本地通过', 0)}</td>"
-            f"<td>{rc.get('仲裁通过', 0)}</td>"
-            f"<td>{rc.get('待仲裁', 0)}</td>"
-            f"<td>{rc.get('不通过', 0)}</td>"
+            f"<td>{rc.get('本地验收通过', 0)}</td>"
+            f"<td>{rc.get('仲裁验收通过', 0)}</td>"
+            f"<td>{rc.get('待仲裁样本', 0)}</td>"
+            f"<td>{rc.get('验收不通过', 0)}</td>"
             f"<td>{_avg(items, 'total'):.2f}</td>"
             f"<td>{_avg(items, 'node_completion'):.2f}</td>"
             f"<td>{_avg(items, 'relation_score'):.2f}</td>"
@@ -172,6 +232,10 @@ def _matched_expected_items(rec: dict[str, Any]) -> list[dict[str, Any]]:
     return list(((rec.get("acceptance") or {}).get("matched_expected") or []))
 
 
+def _unexpected_bad_items(rec: dict[str, Any]) -> list[dict[str, Any]]:
+    return list(((rec.get("acceptance") or {}).get("unexpected_bad_events") or []))
+
+
 def _expected_issue_summary(rec: dict[str, Any]) -> str:
     items = _matched_expected_items(rec) or list(((rec.get("acceptance") or {}).get("missing_expected") or [])) or list(((rec.get("acceptance") or {}).get("oracle_expected") or []))
     if not items:
@@ -196,11 +260,14 @@ def _has_scenario_floor(rec: dict[str, Any]) -> bool:
 
 
 def _display_headline(rec: dict[str, Any]) -> str:
-    result = _accept_result(rec)
+    result = _display_accept_result(rec)
     typ = str(rec.get("sample_type") or "").lower()
     if typ == "positive" and result in {"本地通过", "仲裁通过", "通过"} and _has_scenario_floor(rec):
         return "正包通过：该样本是分支/终止场景，按 coverage_targets 验收目标处理，不强制完整主线。"
     if typ == "negative" and _matched_expected_items(rec):
+        extras = _unexpected_bad_items(rec)
+        if extras:
+            return f"负包预期问题已命中，但存在 {len(extras)} 个未对齐误杀：" + _expected_issue_summary(rec)
         return "负包通过：" + _expected_issue_summary(rec)
     exp = rec.get("explanation") or {}
     plain = exp.get("plain_summary") or {}
@@ -243,11 +310,12 @@ def _negative_issue_panel(records: list[dict[str, Any]]) -> str:
             f"<td>{_avg(items, 'node_completion'):.2f}</td>"
             f"<td>{_avg(items, 'knowledge_score'):.2f}</td>"
             f"<td>{_avg(items, 'constraint_score'):.2f}</td>"
+            f"<td>{sum(len(_unexpected_bad_items(x)) for x in items)}</td>"
             f"<td>{_esc(_short(_expected_issue_summary(items[0]), 160))}</td>"
             "</tr>"
         )
     return (
-        "<table><thead><tr><th>负包错误类型</th><th>数量</th><th>平均总分</th><th>平均节点分</th><th>平均知识分</th><th>平均限制分</th><th>示例追因</th></tr></thead>"
+        "<table><thead><tr><th>负包错误类型</th><th>数量</th><th>平均总分</th><th>平均节点分</th><th>平均知识分</th><th>平均限制分</th><th>未对齐误杀数</th><th>示例追因</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table>"
     )
 
@@ -314,7 +382,7 @@ def _global_warnings(records: list[dict[str, Any]], run_info: dict[str, Any] | N
     oracle_expected = sum(len((r.get("acceptance") or {}).get("oracle_expected") or []) for r in negative_records)
     if negative_records and matched_expected == 0 and (missing_expected or oracle_expected):
         warnings.append(
-            "负向样本没有任何预设问题被本地命中，但存在大量未命中/待仲裁预设项。通常说明 LongCat 新生成的节点/知识/限制编号与正负包绑定编号不一致，或状态图证据组过宽导致预设错误无法定位。"
+            "负向样本没有任何预设问题被本地命中，但存在大量未命中/待仲裁预设项。通常说明 LLM 新生成的节点/知识/限制编号与正负包绑定编号不一致，或状态图证据组过宽导致预设错误无法定位。"
         )
 
     by_domain: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -362,7 +430,7 @@ def _loss_items(items: list[dict[str, Any]]) -> str:
     if not items:
         return "<li>暂无明显失分点。</li>"
     rows: list[str] = []
-    for x in items[:5]:
+    for x in items[:10]:
         typ = str(x.get("类型", ""))
         cls = "neutral" if typ in {"无明显失分"} else "warn" if typ == "待确认灰区" else "bad"
         tech_raw = x.get("技术追踪", "")
@@ -378,8 +446,8 @@ def _loss_items(items: list[dict[str, Any]]) -> str:
             f"<p><span class='label'>建议：</span>{_esc(_short(x.get('建议',''), 260))}</p>"
             f"{tech_html}</li>"
         )
-    if len(items) > 5:
-        rows.append(f"<li class='muted'>还有 {len(items)-5} 条失分说明已省略；完整技术细节请看该样本 JSON。</li>")
+    if len(items) > 10:
+        rows.append(f"<li class='muted'>还有 {len(items)-10} 条失分说明已省略；完整技术细节请看该样本 JSON。</li>")
     return "".join(rows)
 
 
@@ -457,10 +525,28 @@ def _node_trace(nodes: list[dict[str, Any]]) -> str:
                 expected_html = ""
                 if expected:
                     expected_html = "<details><summary>期望证据表达</summary>" + _trace_html(expected[:6]) + "</details>"
+                audit = group.get("element_audit") or req.get("element_audit") or {}
+                element_html = ""
+                if audit:
+                    element_html = (
+                        "<details class='audit-details'><summary>展开元素层 / 候选 atom 得分</summary>"
+                        "<div class='audit-block'>"
+                        "<p><b>全部待选元素 / 命中与缺失</b></p>"
+                        + _trace_html({
+                            "判定": audit.get("verdict"),
+                            "总分": audit.get("score"),
+                            "原因": audit.get("reason"),
+                            "命中元素": audit.get("hit_elements"),
+                            "缺失元素": audit.get("missing_elements"),
+                        })
+                        + "<p><b>所有候选 atom 结果得分</b></p>"
+                        + _trace_html(audit.get("candidate_results") or [])
+                        + "</div></details>"
+                    )
                 req_rows.append(
                     "<tr class='group-row'>"
                     f"<td>└ {_esc(group.get('group_id'))}</td>"
-                    f"<td>{_esc(_short(group.get('description'), 260))}{expected_html}</td>"
+                    f"<td>{_esc(_short(group.get('description'), 260))}{expected_html}{element_html}</td>"
                     f"<td>{'是' if group.get('matched') else '否'}</td>"
                     f"<td>{_fmt_score(group.get('score'))}<br>{evidence}</td>"
                     "</tr>"
@@ -486,7 +572,7 @@ def _check_rows(checks: list[dict[str, Any]], kind: str, rec: dict[str, Any] | N
     # 避免知识表、限制表被大量“证据不足”刷屏。
     visible = [x for x in checks if x.get("结论") in {"冲突", "违规"}]
     rows = []
-    # 如果 formal 负包的预设知识/限制错误已被验收层确认，即使 LongCat schema 没把它归到
+    # 如果 formal 负包的预设知识/限制错误已被验收层确认，即使 LLM schema 没把它归到
     # knowledge_events / constraint_events，也要在对应核验表中清楚展示出来。
     if rec:
         eval_ = rec.get("evaluation") or {}
@@ -616,42 +702,73 @@ def _schema_linter_html(run_info: dict[str, Any] | None, *, detail: bool = False
     return head + "<details open><summary>schema 质检明细</summary><table><thead><tr><th>级别</th><th>类型</th><th>位置</th><th>说明</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></details>"
 
 
+_AUDIT_LEDGER_COLS = {"待选元素", "候选atom得分"}
+
+
+def _ledger_audit_cell(item: dict[str, Any]) -> str:
+    data = {"待选元素": item.get("待选元素"), "候选atom得分": item.get("候选atom得分")}
+    if all(v in (None, "", [], {}) for v in data.values()):
+        return "<span class='muted'>无</span>"
+    return (
+        "<details class='row-audit'><summary>显示待选元素 / 候选 atom 得分</summary>"
+        + _trace_html(data)
+        + "</details>"
+    )
+
+
 def _ledger_rows(rows: list[dict[str, Any]], cols: list[str], limit: int = 120) -> str:
+    visible_cols = [c for c in cols if c not in _AUDIT_LEDGER_COLS]
+    colspan = len(visible_cols) + 1
     if not rows:
-        return f"<tr><td colspan='{len(cols)}'>暂无记录。</td></tr>"
+        return f"<tr><td colspan='{colspan}'>暂无记录。</td></tr>"
     html_rows = []
     for item in rows[:limit]:
-        html_rows.append("<tr>" + "".join(f"<td>{_trace_html(item.get(c))}</td>" for c in cols) + "</tr>")
+        cells = [f"<td>{_trace_html(item.get(c))}</td>" for c in visible_cols]
+        cells.append(f"<td>{_ledger_audit_cell(item)}</td>")
+        html_rows.append("<tr>" + "".join(cells) + "</tr>")
     if len(rows) > limit:
-        html_rows.append(f"<tr><td colspan='{len(cols)}' class='muted'>还有 {len(rows) - limit} 条在 JSON 中。</td></tr>")
+        html_rows.append(f"<tr><td colspan='{colspan}' class='muted'>还有 {len(rows) - limit} 条在 JSON 中。</td></tr>")
     return "".join(html_rows)
+
+
+def _ledger_table_html(rows: list[dict[str, Any]], cols: list[str], limit: int = 120) -> str:
+    visible_cols = [c for c in cols if c not in _AUDIT_LEDGER_COLS]
+    return (
+        "<table><thead><tr>"
+        + "".join(f"<th>{_esc(c)}</th>" for c in visible_cols)
+        + "<th>元素审计</th>"
+        + "</tr></thead><tbody>"
+        + _ledger_rows(rows, cols, limit=limit)
+        + "</tbody></table>"
+    )
 
 
 def _evidence_ledger_html(ledger: dict[str, Any]) -> str:
     if not ledger:
         return "<p class='muted'>暂无证据账本。</p>"
-    node_cols = ["节点名称", "小任务文本", "证据组编号", "判定", "判定原因", "分数", "期望证据", "命中原话", "未命中时附近原话"]
-    check_cols = ["名称", "结论", "证据原话", "判定原因", "说明"]
+    node_cols = ["节点名称", "小任务文本", "证据组编号", "判定", "判定原因", "分数", "期望证据", "待选元素", "候选atom得分", "命中原话", "未命中时附近原话"]
+    check_cols = ["名称", "结论", "证据原话", "判定原因", "待选元素", "候选atom得分", "说明"]
     relation_cols = ["关系", "起点", "终点", "状态", "扣分", "说明"]
     transcript = ledger.get("对话原文") or []
     transcript_html = ""
     if transcript:
         transcript_html = "<details open><summary>对话原文：带句号编号，可直接回查</summary><ol class='transcript'>" + "".join(f"<li>{_esc(x)}</li>" for x in transcript[:160]) + "</ol></details>"
     return (
+        "<div class='ledger-wrap'>"
         f"<p class='muted'>{_esc(ledger.get('说明') or '')}</p>"
         f"{transcript_html}"
-        "<details open><summary>节点履约账本</summary><table><thead><tr>"
-        + "".join(f"<th>{_esc(c)}</th>" for c in node_cols)
-        + "</tr></thead><tbody>" + _ledger_rows(ledger.get("节点履约") or [], node_cols) + "</tbody></table></details>"
-        "<details><summary>知识核验账本</summary><table><thead><tr>"
-        + "".join(f"<th>{_esc(c)}</th>" for c in check_cols)
-        + "</tr></thead><tbody>" + _ledger_rows(ledger.get("知识核验") or [], check_cols) + "</tbody></table></details>"
-        "<details><summary>限制核验账本</summary><table><thead><tr>"
-        + "".join(f"<th>{_esc(c)}</th>" for c in check_cols)
-        + "</tr></thead><tbody>" + _ledger_rows(ledger.get("限制核验") or [], check_cols) + "</tbody></table></details>"
-        "<details><summary>结构关系账本</summary><table><thead><tr>"
-        + "".join(f"<th>{_esc(c)}</th>" for c in relation_cols)
-        + "</tr></thead><tbody>" + _ledger_rows(ledger.get("结构关系") or [], relation_cols) + "</tbody></table></details>"
+        "<details open><summary>节点履约账本</summary>"
+        + _ledger_table_html(ledger.get("节点履约") or [], node_cols)
+        + "</details>"
+        "<details><summary>知识核验账本</summary>"
+        + _ledger_table_html(ledger.get("知识核验") or [], check_cols)
+        + "</details>"
+        "<details><summary>限制核验账本</summary>"
+        + _ledger_table_html(ledger.get("限制核验") or [], check_cols)
+        + "</details>"
+        "<details><summary>结构关系账本</summary>"
+        + _ledger_table_html(ledger.get("结构关系") or [], relation_cols)
+        + "</details></div>"
     )
 
 
@@ -660,7 +777,7 @@ def _case_card(rec: dict[str, Any]) -> str:
     acc = rec.get("acceptance", {})
     exp = rec.get("explanation", {})
     plain = exp.get("plain_summary") or {}
-    result = _accept_result(rec)
+    result = _display_accept_result(rec)
     losses = exp.get("losses", [])
     knowledge_rows = _check_rows((exp.get("knowledge_summary") or {}).get("核验明细", []), "知识核验", rec)
     constraint_rows = _check_rows((exp.get("constraint_summary") or {}).get("核验明细", []), "限制核验", rec)
@@ -698,9 +815,10 @@ def _case_card(rec: dict[str, Any]) -> str:
         f"<p><b>原因解释：</b>{_esc(_short(plain.get('原因解释',''), 360))}</p>"
         f"<p><b>建议处理：</b>{_esc(_short(plain.get('建议处理',''), 360))}</p>"
         f"<p><b>验收说明：</b>{_esc('；'.join(str(x) for x in reasons))}</p>"
+        f"<p><b>未对齐误杀：</b>{len(_unexpected_bad_items(rec))} 个</p>"
         "</details>"
         f"<details><summary>失分与待确认事项</summary><ul>{_loss_items(losses)}</ul></details>"
-        f"<details><summary>证据账本：期望证据 → 实际原话 → 判定</summary>{_evidence_ledger_html(exp.get('evidence_ledger') or {})}</details>"
+        f"<details><summary>证据账本：期望证据 → 实际原话 → 判定 → 待选元素/候选atom得分</summary>{_evidence_ledger_html(exp.get('evidence_ledger') or {})}</details>"
         f"<details><summary>节点概览</summary>{node_overview}</details>"
         f"<details><summary>节点追踪：节点 → 小任务 → 证据组 → 原话轮次</summary>{node_trace}</details>"
         f"<details><summary>知识核验</summary><table><thead><tr><th>结论</th><th>知识项</th><th>证据原话</th><th>说明</th></tr></thead><tbody>{knowledge_rows}</tbody></table></details>"
@@ -726,7 +844,7 @@ def _case_summary_rows(records: list[dict[str, Any]]) -> str:
             f"<td>{_esc(eval_.get('dialogue_id'))}</td>"
             f"<td>{_esc(rec.get('domain') or '未标注')}</td>"
             f"<td>{_esc(rec.get('sample_type') or '未标注')}</td>"
-            f"<td>{_badge(_accept_result(rec))}</td>"
+            f"<td>{_badge(_display_accept_result(rec))}</td>"
             f"<td>{_score_from_record(rec, 'total'):.2f}</td>"
             f"<td>{_score_from_record(rec, 'node_completion'):.2f}</td>"
             f"<td>{_score_from_record(rec, 'knowledge_score'):.2f}</td>"
@@ -740,7 +858,7 @@ def _case_summary_rows(records: list[dict[str, Any]]) -> str:
 
 
 _BASE_CASE_STYLE = """
-body{font-family:Arial,'Microsoft YaHei',sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#222}.top{max-width:1280px;margin:auto}.panel,.case-card{background:white;border-radius:16px;padding:18px;margin:0 auto 16px;box-shadow:0 2px 14px #00000012;max-width:1280px}.case-card{padding:0}.case-card>summary{list-style:none;cursor:pointer;padding:16px 18px;line-height:1.7}.case-card>summary::-webkit-details-marker{display:none}.case-inner{border-top:1px solid #edf0f3;padding:14px 18px 18px}.score-grid{display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:10px;margin:12px 0}.score-grid div{background:#f8f8f8;border-radius:12px;padding:10px;text-align:center}.score-grid.small div{padding:8px}.score-grid b{display:block;font-size:22px}.score-grid span{font-size:12px;color:#666}.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700}.badge.ok{background:#e8f7ed;color:#16833a}.badge.warn{background:#fff3d8;color:#956300}.badge.bad{background:#ffe8e8;color:#ad2c2c}.tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px}.tag.bad{background:#ffe8e8;color:#ad2c2c}.tag.warn{background:#fff3d8;color:#956300}.tag.ok{background:#e8f7ed;color:#16833a}.tag.neutral{background:#eef2f6;color:#475569}.label{color:#666;font-weight:700}.muted{color:#64748b}li.loss-item{margin:10px 0;padding:10px 12px;border:1px solid #eee;border-radius:12px;line-height:1.6}details{margin:10px 0}summary{cursor:pointer;font-weight:700;color:#334155}.node-trace{background:#fbfdff;border:1px solid #e5edf7;border-radius:12px;padding:8px 10px}.node-trace>summary{line-height:1.8}.techline{font-size:12px;color:#64748b;background:#f8fafc;border-radius:8px;padding:8px 10px}.trace-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;line-height:1.7}.trace-row{margin:4px 0}.trace-list{margin:4px 0 4px 18px;padding:0}.trace-list li{margin:3px 0}ol.transcript{line-height:1.8;background:#fbfdff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 10px 10px 34px}table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:13px}td,th{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#fafafa}.req-row{background:#fff}.group-row{background:#fbfbfb}@media(max-width:900px){.score-grid{grid-template-columns:repeat(2,1fr)}}
+body{font-family:Arial,'Microsoft YaHei',sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#222}.top{max-width:1280px;margin:auto}.panel,.case-card{background:white;border-radius:16px;padding:18px;margin:0 auto 16px;box-shadow:0 2px 14px #00000012;max-width:1280px}.case-card{padding:0}.case-card>summary{list-style:none;cursor:pointer;padding:16px 18px;line-height:1.7}.case-card>summary::-webkit-details-marker{display:none}.case-inner{border-top:1px solid #edf0f3;padding:14px 18px 18px}.score-grid{display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:10px;margin:12px 0}.score-grid div{background:#f8f8f8;border-radius:12px;padding:10px;text-align:center}.score-grid.small div{padding:8px}.score-grid b{display:block;font-size:22px}.score-grid span{font-size:12px;color:#666}.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700}.badge.ok{background:#e8f7ed;color:#16833a}.badge.warn{background:#fff3d8;color:#956300}.badge.bad{background:#ffe8e8;color:#ad2c2c}.tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px}.tag.bad{background:#ffe8e8;color:#ad2c2c}.tag.warn{background:#fff3d8;color:#956300}.tag.ok{background:#e8f7ed;color:#16833a}.tag.neutral{background:#eef2f6;color:#475569}.label{color:#666;font-weight:700}.muted{color:#64748b}li.loss-item{margin:10px 0;padding:10px 12px;border:1px solid #eee;border-radius:12px;line-height:1.6}details{margin:10px 0}summary{cursor:pointer;font-weight:700;color:#334155}.node-trace{background:#fbfdff;border:1px solid #e5edf7;border-radius:12px;padding:8px 10px}.node-trace>summary{line-height:1.8}.techline{font-size:12px;color:#64748b;background:#f8fafc;border-radius:8px;padding:8px 10px}.trace-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;line-height:1.7}.trace-row{margin:4px 0}.trace-list{margin:4px 0 4px 18px;padding:0}.trace-list li{margin:3px 0}ol.transcript{line-height:1.8;background:#fbfdff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 10px 10px 34px}table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:13px}td,th{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#fafafa}.req-row{background:#fff}.group-row{background:#fbfbfb}@media(max-width:900px){.score-grid{grid-template-columns:repeat(2,1fr)}}.audit-details>summary,.row-audit>summary{color:#475569}.audit-block{max-height:420px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:6px}.row-audit .trace-box{max-height:340px;overflow:auto}.summary-warning{grid-column:1/-1;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px;color:#9a3412}
 """
 
 
@@ -749,7 +867,7 @@ def render_case_html(rec: dict[str, Any], mode: str = "detail") -> str:
     body = _case_card(rec).replace("<details class='case-card'>", "<details class='case-card' open>", 1)
     return (
         "<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'>"
-        f"<title>{_esc(title)} - 样本详情</title><style>{_BASE_CASE_STYLE}</style></head>"
+        f"<title>{_esc(title)} - 样本详情</title><style>{_BASE_CASE_STYLE}.audit-block{{max-height:420px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:6px}}</style></head>"
         f"<body><div class='top'><p><a href='../report_detail.html'>← 返回详细报告</a> ｜ <a href='../report_simple.html'>返回简洁报告</a></p><h1>样本详情：{_esc(title)}</h1></div>{body}</body></html>"
     )
 
@@ -767,13 +885,13 @@ def _runtime_version_html(records: list[dict[str, Any]], run_info: dict[str, Any
     version_counts = Counter(versions)
     warn = ""
     if core == "未记录":
-        warn = "<p class='warnings'>本结果包没有记录本地评估内核版本，无法判断是否来自最新代码。若仍出现 fix67/fix68 已修过的正包误杀，请先确认没有运行旧目录、旧快捷方式或旧解释器缓存。</p>"
+        warn = "<p class='warnings'>本结果包没有记录本地评估内核标识，无法判断是否来自当前代码。请先确认没有运行旧目录、旧快捷方式或旧解释器缓存。</p>"
     elif version_counts and (len(version_counts) > 1 or any(v != core for v in version_counts)):
-        warn = f"<p class='warnings'>样本级版本与报告版本不一致：{_esc(dict(version_counts))}。建议清空旧 runs 并重新运行。</p>"
+        warn = f"<p class='warnings'>样本级内核标识与报告内核标识不一致：{_esc(dict(version_counts))}。建议清空旧 runs 并重新运行。</p>"
     return (
         "<table><tbody>"
-        f"<tr><th>本地评估内核版本</th><td>{_esc(core)}</td></tr>"
-        f"<tr><th>版本说明</th><td>{_esc(note)}</td></tr>"
+        f"<tr><th>本地评估内核标识</th><td>{_esc(core)}</td></tr>"
+        f"<tr><th>方法说明</th><td>{_esc(note)}</td></tr>"
         f"<tr><th>实际导入模块</th><td>{_esc(module)}</td></tr>"
         "</tbody></table>" + warn
     )
@@ -793,10 +911,10 @@ def render_html(records: list[dict[str, Any]], run_info: dict[str, Any] | None =
         f"<title>{_esc(title)}</title>"
         "<style>"
         "body{font-family:Arial,'Microsoft YaHei',sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#222}.top{max-width:1280px;margin:auto}.summary{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:12px;margin:14px 0 22px}.summary-card{background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 10px #0000000f}.summary-card .num{font-size:26px;font-weight:700;margin-bottom:4px}.panel{background:white;border-radius:16px;padding:18px;margin:0 auto 16px;box-shadow:0 2px 14px #00000012;max-width:1280px}.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700}.badge.ok{background:#e8f7ed;color:#16833a}.badge.warn{background:#fff3d8;color:#956300}.badge.bad{background:#ffe8e8;color:#ad2c2c}.tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px}.tag.neutral{background:#eef2f6;color:#475569}.muted{color:#64748b}.warnings{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 16px 12px 32px;line-height:1.7}table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:13px;background:#fff}td,th{border:1px solid #ddd;padding:7px;text-align:left;vertical-align:top}th{background:#fafafa}a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}details{margin:10px 0}summary{cursor:pointer;font-weight:700;color:#334155}@media(max-width:900px){.summary{grid-template-columns:repeat(2,1fr)}}"
-        "</style></head><body>"
+        ".audit-details>summary,.row-audit>summary{color:#475569}.audit-block{max-height:420px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:6px}.row-audit .trace-box{max-height:340px;overflow:auto}.summary-warning{grid-column:1/-1;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px;color:#9a3412}</style></head><body>"
         f"<div class='top'><h1>{_esc(title)}</h1>{mode_links}<p class='muted'>状态图：{_esc(graph_text)}。{_esc(detail_note)}</p><div class='summary'>{_result_summary(records, run_info)}</div></div>"
         "<section class='panel'><h2>一、全局结果</h2>"
-        "<table><thead><tr><th>Domain</th><th>样本类型</th><th>数量</th><th>本地通过</th><th>仲裁通过</th><th>待仲裁</th><th>不通过</th><th>平均总分</th><th>平均节点分</th><th>平均结构分</th><th>平均知识分</th><th>平均限制分</th></tr></thead>"
+        "<table><thead><tr><th>Domain</th><th>样本类型</th><th>数量</th><th>本地验收通过</th><th>仲裁验收通过</th><th>待仲裁样本</th><th>验收不通过</th><th>平均总分</th><th>平均节点分</th><th>平均结构分</th><th>平均知识分</th><th>平均限制分</th></tr></thead>"
         f"<tbody>{_global_breakdown(records)}</tbody></table>"
         f"<h3>正负包区分度</h3>{_score_gap_panel(records)}<h3>负包错误分布与扣分追因</h3>{_negative_issue_panel(records)}</section>"
         f"<section class='panel'><h2>二、模型调用与 Token 用量</h2><table><thead><tr><th>用途</th><th>调用次数</th><th>输入 tokens</th><th>输出 tokens</th><th>合计 tokens</th></tr></thead><tbody>{_token_rows(run_info)}</tbody></table></section>"

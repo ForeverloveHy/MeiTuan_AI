@@ -1,0 +1,175 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation",
+    "knowledge_violation"
+  ],
+  "id": "rider_negative_00_59",
+  "scenario": "composite_flow_missing_safety_and_knowledge_bad_weather_exit_effective_time_wrong_from_baseline_00",
+  "negative_id_scheme": "00_59",
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，今天飞毛腿合同的事吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "能跑，但今天雨挺大。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单，多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同需要连续7天每天达标，中断可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差订单会更少，不太有助于保住资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额和排名呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果明天不想继续，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消，取消后当天生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题再联系我，今天辛苦了。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "safety_reminder",
+      "requirement_id": "remind_delivery_safety",
+      "target_id": "safety_reminder.remind_delivery_safety",
+      "wrong_statement": "",
+      "evidence_span": "",
+      "description": "客服在恶劣天气上下文中没有给出“安全第一/注意安全/不要冒险”等安全提醒。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "bad_weather_order_volume",
+      "target_id": "knowledge.bad_weather_order_volume",
+      "wrong_statement": "天气差订单会更少，不太有助于保住资格。",
+      "evidence_span": "天气差订单会更少，不太有助于保住资格。",
+      "description": "客服把恶劣天气订单量和资格关系说错，正确口径应为恶劣天气订单量通常更高，按规则完成有助保住资格。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "exit_effective_time",
+      "target_id": "knowledge.exit_effective_time",
+      "wrong_statement": "前一天18点前在App飞毛腿报名里取消，取消后当天生效。",
+      "evidence_span": "前一天18点前在App飞毛腿报名里取消，取消后当天生效。",
+      "description": "客服把退出生效时间说错，正确口径应为取消后次日生效。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "identity_normalization_note": "原复合样本包含“缺身份确认”；根据本轮要求，已保留身份确认，并把流程缺失改为“缺安全提醒”，保留三类复合错误结构。",
+  "target_knowledge_violations": [
+    "bad_weather_order_volume",
+    "exit_effective_time"
+  ]
+}

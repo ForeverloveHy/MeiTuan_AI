@@ -1,0 +1,194 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_flow_missing",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id_scheme": "domain_negative_baselineIndex_negativeIndex",
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "schema_executor",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_deletion": true,
+    "audit_pass": "negative_audit_11_15_context_strengthened_preserve_single_error"
+  },
+  "id": "rider_negative_00_14",
+  "scenario": "flow_missing_multi_day_daily_quota_from_baseline_00",
+  "negative_id_scheme": "00_14",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "registered_flyleg_notice",
+    "peak_online_reminder",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "ranking_not_station_master_intervention",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "safety_reminder",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "registered_flyleg_notice",
+    "peak_online_reminder",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "ranking_not_station_master_intervention",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "safety_reminder",
+    "polite_close"
+  ],
+  "target_missing": "multi_day_daily_quota",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午餐和晚餐高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同也要按合同要求连续履约。"
+    },
+    {
+      "speaker": "user",
+      "text": "那多日合同每天要跑多少单？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "每天按页面履约要求达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "那多日合同要连续跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日要连续7天配送。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是你们站长能帮我留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "建议尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但安全第一，路况不好不要冒险。"
+    },
+    {
+      "speaker": "user",
+      "text": "我明天要是临时有事，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效，建议提前在App里确认。"
+    },
+    {
+      "speaker": "user",
+      "text": "连续跑满有没有奖励？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天并按规则达标才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白了，我按要求跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，辛苦你，配送时注意安全。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题再联系我。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "multi_day_daily_quota",
+      "requirement_id": "explain_multi_day_contract_requires_y_orders_each_day",
+      "target_id": "multi_day_daily_quota.explain_multi_day_contract_requires_y_orders_each_day",
+      "description": "客服没有明确说明多日合同每天至少完成10单，只用“按页面要求达标”带过。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor",
+      "mutation_from_baseline": "将母例中“多日合同每天至少完成10单”及后续奖励里的每天10单条件替换为笼统达标表述。",
+      "sample_id": "rider_negative_00_14"
+    }
+  ]
+}

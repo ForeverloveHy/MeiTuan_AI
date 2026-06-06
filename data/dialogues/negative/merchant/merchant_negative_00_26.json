@@ -1,0 +1,175 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "knowledge_fact_contradiction"
+  },
+  "id": "merchant_negative_00_26",
+  "scenario": "knowledge_violation_backend_low_latency_status_wrong_from_baseline_00",
+  "negative_id_scheme": "00_26",
+  "target_knowledge_violation": "backend_low_latency_status",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台还没走低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "还没走？我以为已经切了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "还没有，后续等前端开放后再切。"
+    },
+    {
+      "speaker": "user",
+      "text": "那现在主要是通知功能？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，先同步产品升级信息。"
+    },
+    {
+      "speaker": "user",
+      "text": "以后发布页怎么选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "具体以页面实际展示为准。"
+    },
+    {
+      "speaker": "user",
+      "text": "两种有什么区别？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播1到2秒，互动更顺，适合小班课和实操课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以手动开通。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "点【我的】，进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】，在【服务产品】里勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要确认吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以到【教务/财务设置】，进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面谁跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题我在企微里继续协助，祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "backend_low_latency_status",
+      "target_id": "backend_low_latency_status",
+      "wrong_statement": "您知道后台还没走低延迟吗？",
+      "evidence_span": "您知道后台还没走低延迟吗？",
+      "description": "客服把后台低延迟状态说错，正确口径应为后台已经临时走低延迟，而不是还没走低延迟。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "audit_notes": {
+    "negative_audit_26_30": "补强非目标上下文，保留单点知识错误；wrong_statement/evidence_span 已对齐 turns 原句。"
+  }
+}

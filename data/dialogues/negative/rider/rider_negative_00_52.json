@@ -1,0 +1,156 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "negative",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_52",
+  "scenario": "复合错误：缺询问能否配送 + 单日单量说错",
+  "negative_id_scheme": "00_52",
+  "error_family": "flow_missing+knowledge_violation",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": [
+    "ask_can_start_delivery.ask_today_start_delivery"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，飞毛腿今天生效了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，我先说下规则。"
+    },
+    {
+      "speaker": "user",
+      "text": "行，你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成10单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单，并且连续7天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "今天单日也是10单吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，今天单日按10单理解就行。"
+    },
+    {
+      "speaker": "user",
+      "text": "报名名额呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "也尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果不想继续呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "ask_can_start_delivery",
+      "requirement_id": "ask_today_start_delivery",
+      "target_id": "ask_can_start_delivery.ask_today_start_delivery",
+      "description": "客服告知合同生效后，没有询问骑手今天是否可以开始配送。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "single_day_daily_quota",
+      "target_id": "knowledge.single_day_daily_quota",
+      "wrong_statement": "单日合同今天至少完成10单。",
+      "evidence_span": "单日合同今天至少完成10单。",
+      "description": "客服把单日合同当天至少完成12单说成10单。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": [
+    "knowledge.single_day_daily_quota"
+  ]
+}

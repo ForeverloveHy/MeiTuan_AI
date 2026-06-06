@@ -1,0 +1,277 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "negative_composite_flow_knowledge",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "confirm_previous_awareness",
+    "temporary_low_latency_reason",
+    "sync_quality_reason",
+    "inform_two_live_options",
+    "standard_live_explanation",
+    "low_latency_explanation",
+    "price_difference",
+    "check_publish_method",
+    "third_party_enable_low_latency",
+    "student_fee_check",
+    "student_fee_setting_guide",
+    "add_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {},
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation",
+    "knowledge_violation"
+  ],
+  "id": "merchant_negative_00_60",
+  "scenario": "缺第三方路径 + 学员端费用适用关系错误 + 第三方开通方式错误",
+  "negative_id_scheme": "00_60",
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "confirm_previous_awareness",
+    "temporary_low_latency_reason",
+    "sync_quality_reason",
+    "inform_two_live_options",
+    "standard_live_explanation",
+    "low_latency_explanation",
+    "price_difference",
+    "check_publish_method",
+    "third_party_enable_low_latency",
+    "student_fee_check",
+    "student_fee_setting_guide",
+    "add_wechat_followup",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体影响什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前选标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "知道后台已走低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么改了？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前端未开放，临时保质量。"
+    },
+    {
+      "speaker": "user",
+      "text": "主要保什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "保音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页分两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "哪两个选项？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播和低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "区别说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准延迟5到10秒，费用低。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟1到2秒，互动顺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "小班课、实操课更适合。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用会更高吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "会略高，带宽保障更强。"
+    },
+    {
+      "speaker": "user",
+      "text": "大班课怎么选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "大班课选标准直播即可。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在通过发布页还是第三方发课？"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在能看到低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "还没看到。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "那先看系统提示即可。"
+    },
+    {
+      "speaker": "user",
+      "text": "要从哪里开通？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不用担心，系统一定会自动开通。"
+    },
+    {
+      "speaker": "user",
+      "text": "一定不会失败吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，系统肯定会自动处理成功。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要调吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟不适用原学员端费用。"
+    },
+    {
+      "speaker": "user",
+      "text": "原来设置的费用不能用？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，需要重新单独设置。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用入口在哪？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "点【教务/财务设置】。"
+    },
+    {
+      "speaker": "user",
+      "text": "然后呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "保存就行？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "启用低延迟后保存。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面谁跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后企微加您，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "这个号码可以加。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "third_party_enable_low_latency",
+      "requirement_id": "guide_enable_low_latency_in_third_party_system",
+      "target_id": "third_party_enable_low_latency.guide_enable_low_latency_in_third_party_system",
+      "wrong_statement": "",
+      "evidence_span": "",
+      "description": "商家使用第三方系统且看不到低延迟时，客服没有引导【我的】、【服务商/直播平台管理】、【直播平台】、【服务产品】并勾选低延迟直播。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "student_fee_applicability",
+      "target_id": "knowledge.student_fee_applicability",
+      "wrong_statement": "低延迟不适用原学员端费用。",
+      "evidence_span": "低延迟不适用原学员端费用。",
+      "description": "客服把低延迟直播与已设置学员端费用的适用关系说错，正确口径应为需要确认低延迟也适用该费用。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "third_party_enable_method",
+      "target_id": "knowledge.third_party_enable_method",
+      "wrong_statement": "系统一定会自动开通。",
+      "evidence_span": "系统一定会自动开通。",
+      "description": "客服把第三方系统开通方式说错；正确口径是若第三方系统未显示低延迟直播，需要按路径手动进入服务产品勾选，不是系统一定自动开通。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ]
+}

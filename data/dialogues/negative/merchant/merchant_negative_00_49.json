@@ -1,0 +1,256 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "id": "merchant_negative_00_49",
+  "scenario": "composite_flow_missing_polite_close_and_wrong_third_party_auto_enable_from_baseline_00",
+  "negative_id_scheme": "00_49",
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": "polite_close",
+  "target_knowledge_violation": "third_party_auto_enable_wrong",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体影响什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前选标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "知道后台已走低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么改了？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前端未开放，临时保质量。"
+    },
+    {
+      "speaker": "user",
+      "text": "主要保什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "保音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页分两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "哪两个选项？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播和低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "区别说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准延迟5到10秒，费用低。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟1到2秒，互动顺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "小班课、实操课更适合。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用会更高吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "会略高，带宽保障更强。"
+    },
+    {
+      "speaker": "user",
+      "text": "大班课怎么选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "大班课选标准直播即可。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在通过发布页还是第三方发课？"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在能看到低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "还没看到。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "第三方系统不用手动勾选。"
+    },
+    {
+      "speaker": "user",
+      "text": "那什么时候生效？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "保存课程后会自动全开。"
+    },
+    {
+      "speaker": "user",
+      "text": "所以不用进服务产品？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，不需要单独勾选。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要调吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "已设费用，要确认低延迟适用。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用入口在哪？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "点【教务/财务设置】。"
+    },
+    {
+      "speaker": "user",
+      "text": "然后呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "保存就行？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "启用低延迟后保存。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面谁跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后企微加您，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "这个号码可以加。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，那先这样。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "polite_close",
+      "requirement_id": "wish_course_and_enrollment_success",
+      "target_id": "polite_close.wish_course_and_enrollment_success",
+      "description": "客服结束时没有礼貌表达祝课程顺利、招生满满。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "third_party_low_latency_enable",
+      "target_id": "knowledge.third_party_low_latency_enable",
+      "wrong_statement": "第三方系统不用手动勾选。",
+      "evidence_span": "第三方系统不用手动勾选。",
+      "description": "客服把第三方系统需要在服务产品中勾选低延迟说成不用手动勾选、保存课程后自动全开，属于第三方开通知识错误。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ]
+}

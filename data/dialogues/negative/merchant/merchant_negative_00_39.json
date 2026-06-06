@@ -1,0 +1,148 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "id": "merchant_negative_00_39",
+  "scenario": "发布页选项知识错误：把标准直播说成不能继续使用",
+  "negative_id_scheme": "00_39",
+  "personality": "大班课为主且想保留标准直播",
+  "difficulty": "边界施压态",
+  "quality_label": "negative_knowledge_violation",
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "constraint_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "constraint_boundary_violation",
+    "replacement_from_soft_constraint": "merchant_soft_negative_00_04"
+  },
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是机构负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，直播升级那个事吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，这次来同步直播产品升级，平台新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先走低延迟？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，后台临时走低延迟主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "以后发布页怎么选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项，具体以页面实际展示为准。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们大班课多，还是想用标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺，适合小班课和实操课，因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "那大班课应该可以继续选标准直播吧？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "升级后标准直播不能继续使用，发布页只保留低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们有些课从SaaS系统B发布。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以点【我的】，进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】，再到【服务产品】勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用还要确认吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播，可以到【教务/财务设置】，进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证，有问题我在企微继续协助。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "publish_page_two_options",
+      "target_id": "knowledge.publish_page_two_options",
+      "wrong_statement": "升级后标准直播不能继续使用，发布页只保留低延迟直播。",
+      "evidence_span": "升级后标准直播不能继续使用，发布页只保留低延迟直播。",
+      "description": "客服把发布页两个选项说错；正确口径是后续发布页会分标准直播和低延迟直播两个选项，标准直播仍可用于适合的大班课场景。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": "standard_and_low_latency_options_wrong"
+}

@@ -1,0 +1,198 @@
+{
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {},
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close",
+    "no_discount_promise",
+    "no_guarantee_system_display"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "merchant_positive_21",
+  "scenario": "plain_language_low_latency_explanation_positive",
+  "personality": "不理解术语但配合",
+  "difficulty": "中等难度",
+  "baseline_index": 21,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，但我不太懂技术词。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "没关系，我简单说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前用的是标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，低延迟到底什么意思？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "就是老师说话后，学生更快听到看到。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前端当时还没开放，所以后台先临时走低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "那以后我在哪里选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分两个选项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "一个是标准直播，一个是低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "标准直播适合什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "费用较低，适合大班课。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟直播呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "互动更顺，适合小班课和实操课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们有些课用第三方系统发。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您主要通过哪种方式发课？"
+    },
+    {
+      "speaker": "user",
+      "text": "SaaS系统B。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果系统里没显示低延迟，可以这样开。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先点【我的】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "再进【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "在【服务产品】里勾选低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端收费会不会要重新看？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以到【教务/财务设置】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "再进【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用能不能给个优惠？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "优惠我不能承诺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "具体以页面费用规则为准。"
+    },
+    {
+      "speaker": "user",
+      "text": "页面一定会有这个选项吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我不能保证一定显示。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续以发布页实际展示为准。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题我在企微里继续协助。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ]
+}

@@ -1,0 +1,5561 @@
+{
+  "graph_id": "merchant_live_schema_graph",
+  "name": "课程发布平台直播选项升级完美状态图",
+  "metadata": {
+    "schema_generation_mode": "llm_2_preview_prompt_reproducible_atom_element_fact",
+    "element_model": "value_main_fact_pool_bound",
+    "domain": "merchant",
+    "local_review_iterations": "not_encoded_in_graph_metadata",
+    "improvements": [
+      "主图仅表达对话状态、节点履约目标、分支触发和终止/抑制关系，不把事实真假压入节点。",
+      "候选召回仅依赖 main.value 与 main.pool；非 main 只参与局部结算。",
+      "知识表和硬限制使用 fact/value_check 精判；fact 必须绑定同组 main 主干。",
+      "数字、时间、金额、数量、时长类事实由 value_check 比较，不枚举错误数值池。",
+      "condition/branch 节点由 trigger_groups 激活；FAQ 与 out_of_scope 由用户触发和客服实际回答激活。",
+      "optional_after 不做严格顺序扣分；terminal_after/suppress_after 触发后抑制不适用后续节点。",
+      "硬限制按负向对象扫描：negative 命中且 safe 未命中才成立；软限制仅作为质量维度单独展示。",
+      "仲裁路由只处理知识与硬限制灰区；节点履约由本地状态图执行器判定。",
+      "图结构应能由分阶段 prompt 复现：主图、知识表、限制表、元素细化、元素扩张。"
+    ],
+    "iter_notes": [],
+    "prompt_reproducibility_contract": "所有结构性修改必须能回写到通用 prompt/linter/compiler；不得依赖具体数据条目、数据集标签、人工答案集或任务外业务词典。",
+    "model_target": "LLM-2.0-Preview",
+    "method_revision": "current_contract_prompt_reproducibility",
+    "manual_iteration_notes": [
+      {
+        "iteration": "final_perfect_graph_alignment_iter1",
+        "changes": [
+          "m08_a2_optional",
+          "mg_main_order_relaxed",
+          "mk03_a1_slot_anchored",
+          "mk03_a2_slot_anchored",
+          "mk03_a4_slot_anchored",
+          "mk03_a6_low_latency_selector_only",
+          "mk03_a7_slot_anchored"
+        ]
+      }
+    ],
+    "final_tightener_audit": [
+      {
+        "type": "information_atom_accepts_user_provided_state",
+        "node_id": "m11",
+        "atom_id": "m11_a1"
+      },
+      {
+        "type": "information_atom_accepts_user_provided_state",
+        "node_id": "m11",
+        "atom_id": "m11_a2"
+      },
+      {
+        "type": "duplicate_hard_rows_removed",
+        "constraint_ids": [
+          "mhc02"
+        ]
+      }
+    ],
+    "schema_compiled": true,
+    "schema_compiler": "local_compile_normalize_antileak",
+    "schema_linter": {
+      "issue_count": 1,
+      "counts": {
+        "empty_terminal_made_optional": 1
+      }
+    },
+    "graph_source": "offline_graph",
+    "offline_graph_input": "E:\\sceg_llm_project\\perfect_merchant_graph_latest.json",
+    "schema_linter_report": {
+      "issue_count": 1,
+      "counts": {
+        "empty_terminal_made_optional": 1
+      },
+      "issues": [
+        {
+          "level": "warning",
+          "type": "empty_terminal_made_optional",
+          "path": "nodes[15]",
+          "message": "terminal 节点没有可执行证据组，已改为 optional，避免把自然结束误当成核心流程缺失。"
+        }
+      ],
+      "summary": "schema_linter 已完成：检查条件分支、宽泛证据组、支持/反驳污染、重复规则和知识对象锚点。"
+    },
+    "llm_domain_label": "merchant_live_options",
+    "dialogue_domain": "merchant",
+    "dialogue_binding_method": "selected_package_metadata_aliases",
+    "runtime_version": {
+      "core_version": "element-contract-kernel",
+      "core_version_note": "一图两表 + Atom/Element Groups + main/pool recall + fact/value_check + trigger-driven branches + local second filter arbitration.",
+      "version_module": "E:\\sceg_llm_project\\src\\sceg\\version.py"
+    },
+    "example_file": "merchant_graph_example.json"
+  },
+  "nodes": [
+    {
+      "node_id": "m01",
+      "name": "身份确认",
+      "node_type": "start",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "通话开始"
+      },
+      "atoms": [
+        {
+          "atom_id": "m01_a1",
+          "name": "确认负责人身份",
+          "text": "您好，请问您是校区负责人吗？",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "负责人",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "负责人",
+                    "校区负责人",
+                    "老板"
+                  ]
+                },
+                {
+                  "value": "确认",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "请问",
+                    "是您吗",
+                    "您是"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m01",
+      "type": "start",
+      "aliases": [
+        "m01",
+        "身份确认"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m01b",
+      "name": "非负责人转达",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "接电话者不是负责人",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "负责人",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "负责人",
+                  "老板",
+                  "校区负责人"
+                ]
+              },
+              {
+                "value": "否定",
+                "main": true,
+                "fact": false,
+                "pool": [
+                  "不是",
+                  "不在",
+                  "不是老板",
+                  "不是负责人"
+                ],
+                "trigger_role": "polarity_required"
+              }
+            ],
+            "require_all_main": true,
+            "description": "接听者不是负责人时才触发，负责人对象与否定极性必须同组命中"
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m01b_a1",
+          "name": "请其转达负责人",
+          "text": "麻烦帮忙转达负责人。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "转达",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "转达",
+                    "帮忙说一下",
+                    "麻烦告知"
+                  ]
+                },
+                {
+                  "value": "负责人",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "负责人",
+                    "老板",
+                    "校区负责人"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m01b",
+      "type": "branch",
+      "aliases": [
+        "m01b",
+        "非负责人转达"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m02",
+      "name": "直播产品升级概览",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "身份确认后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m02_a1",
+          "name": "说明直播产品升级",
+          "text": "直播产品升级了。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "直播产品",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "直播产品",
+                    "直播功能",
+                    "直播课"
+                  ]
+                },
+                {
+                  "value": "升级",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "升级",
+                    "更新",
+                    "升级了"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m02_a2",
+          "name": "说明新增低延迟独立选项",
+          "text": "新增低延迟直播独立选项。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "独立选项",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "独立选项",
+                    "单独选项",
+                    "独立入口",
+                    "两个选项",
+                    "两个直播选项",
+                    "分两个选项",
+                    "分开显示",
+                    "一个标准直播一个低延迟直播",
+                    "分标准直播和低延迟直播",
+                    "会分标准直播和低延迟直播",
+                    "标准直播和低延迟直播",
+                    "标准直播低延迟直播",
+                    "两个独立选项"
+                  ]
+                },
+                {
+                  "value": "新增",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "新增",
+                    "加了",
+                    "上线了"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m02_a3",
+          "name": "说明发课选择且流程不变",
+          "text": "发课时选低延迟即可，其他流程不变。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟选择",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "选低延迟",
+                    "选择低延迟",
+                    "发课时选低延迟"
+                  ]
+                },
+                {
+                  "value": "流程不变",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "流程不变",
+                    "其他流程不变",
+                    "发课流程不变",
+                    "按页面提示保存",
+                    "其余步骤不变",
+                    "正常发布就行"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m02",
+      "type": "main",
+      "aliases": [
+        "m02",
+        "直播产品升级概览"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m03",
+      "name": "确认此前低延迟线路知情",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "升级概览后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m03_a1",
+          "name": "询问此前后台低延迟是否知情",
+          "text": "您之前标准直播后台走低延迟，知道吗？",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "后台低延迟",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "后台走低延迟",
+                    "后台低延迟线路",
+                    "走低延迟线路",
+                    "后台临时走低延迟",
+                    "后台已经临时走低延迟",
+                    "后台先开低延迟",
+                    "后台先走低延迟",
+                    "临时走低延迟",
+                    "临时开低延迟"
+                  ]
+                },
+                {
+                  "value": "询问知情",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "知道吗",
+                    "了解吗",
+                    "清楚吗",
+                    "知不知道",
+                    "您知道",
+                    "您了解",
+                    "您清楚",
+                    "是否知道",
+                    "知道这个情况吗",
+                    "您知道这个情况吗",
+                    "之前知道吗",
+                    "您之前知道吗",
+                    "是否知情"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "ask_whether_merchant_knows_backend_low_latency"
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "aliases": [
+        "previous_awareness_check",
+        "此前知情确认",
+        "m03",
+        "确认此前低延迟线路知情"
+      ],
+      "id": "m03",
+      "type": "main",
+      "requirements": []
+    },
+    {
+      "node_id": "m04",
+      "name": "不知情时解释原因",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "商家表示不知道此前后台走低延迟",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "不知道",
+                "main": true,
+                "pool": [
+                  "不知道",
+                  "不清楚",
+                  "没听说",
+                  "为什么",
+                  "怎么回事",
+                  "为什么后台先这样走"
+                ],
+                "fact": false
+              },
+              {
+                "value": "低延迟",
+                "main": false,
+                "pool": [
+                  "低延迟",
+                  "后台线路",
+                  "后台",
+                  "后台先",
+                  "后台先走",
+                  "为什么后台"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m04_a1",
+          "name": "说明前端未开放",
+          "text": "此前前端未开放低延迟选项。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "前端",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "前端",
+                    "页面",
+                    "前台"
+                  ]
+                },
+                {
+                  "value": "未开放",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "未开放",
+                    "没开放",
+                    "未显示"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m04_a2",
+          "name": "说明保障同步质量",
+          "text": "临时开启是为保障音视频和白板同步。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "保障同步",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "保障同步",
+                    "保证同步",
+                    "保障音视频和白板同步"
+                  ]
+                },
+                {
+                  "value": "音视频白板",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "音视频",
+                    "白板",
+                    "音视频和白板"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "aliases": [
+        "temporary_low_latency_reason",
+        "临时低延迟原因",
+        "不知情原因解释",
+        "m04",
+        "不知情时解释原因",
+        "audio_video_whiteboard_sync_reason",
+        "separate_standard_and_low_latency_options",
+        "standard_live_delay_and_low_cost",
+        "low_latency_delay_and_use_case",
+        "price_difference",
+        "third_party_enable_low_latency_steps",
+        "student_fee_check",
+        "enterprise_wechat_followup",
+        "polite_close",
+        "third_party_low_latency_enable",
+        "standard_live_explanation",
+        "third_party_enable_low_latency"
+      ],
+      "id": "m04",
+      "type": "branch",
+      "requirements": []
+    },
+    {
+      "node_id": "m05",
+      "name": "传达发布页两个选项",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "知情确认后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m05_a1",
+          "name": "说明发布页分开显示",
+          "text": "发布页会分开显示标准直播和低延迟直播。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "分开显示",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "分开显示",
+                    "分开",
+                    "两个选项",
+                    "分标准直播和低延迟直播",
+                    "会分标准直播和低延迟直播",
+                    "标准直播和低延迟直播",
+                    "标准直播低延迟直播",
+                    "两个独立选项"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m05_a2",
+          "name": "说明按课程类型选择",
+          "text": "按课程类型自行选择。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "选择",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "选择",
+                    "怎么选",
+                    "按需选择",
+                    "自行选择",
+                    "按课程类型",
+                    "根据课程"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m05_a3",
+          "name": "鼓励实时互动选低延迟",
+          "text": "实时互动建议选低延迟直播。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "实时互动",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "实时互动",
+                    "互动课",
+                    "互动要求高",
+                    "互动多",
+                    "互动性强",
+                    "互动更及时",
+                    "需要连麦互动",
+                    "互动更顺",
+                    "互动更流畅",
+                    "实操课",
+                    "小班课",
+                    "连麦互动",
+                    "课堂互动"
+                  ]
+                },
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟",
+                    "建议选低延迟",
+                    "可以选低延迟"
+                  ]
+                },
+                {
+                  "value": "建议",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "建议",
+                    "推荐",
+                    "适合"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m05",
+      "type": "main",
+      "aliases": [
+        "m05",
+        "传达发布页两个选项"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m06",
+      "name": "说明直播类型区别",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "发布页说明后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m06_a1",
+          "name": "标准直播费用低",
+          "text": "标准直播费用较低。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "费用较低",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用较低",
+                    "更便宜",
+                    "价格低"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m06_a2",
+          "name": "标准直播延迟5到10秒",
+          "text": "标准直播延迟约5到10秒。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "延迟",
+                    "延时"
+                  ]
+                },
+                {
+                  "value": "5到10秒",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "5到10秒",
+                    "5-10秒",
+                    "五到十秒"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m06_a3",
+          "name": "标准直播适合大班课",
+          "text": "标准直播适合大班课。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "大班课",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "大班课",
+                    "大班直播",
+                    "人数多的课"
+                  ]
+                },
+                {
+                  "value": "适合",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "适合",
+                    "用于",
+                    "场景",
+                    "用途"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m06_a4",
+          "name": "低延迟直播延迟1到2秒",
+          "text": "低延迟直播延迟约1到2秒。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "延迟",
+                    "延时"
+                  ]
+                },
+                {
+                  "value": "1到2秒",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "1到2秒",
+                    "1-2秒",
+                    "一到两秒"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m06_a5",
+          "name": "低延迟适合互动小班实操",
+          "text": "低延迟直播互动更流畅，适合小班课和实操课。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "互动流畅",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "互动更流畅",
+                    "互动顺畅",
+                    "实时互动"
+                  ]
+                },
+                {
+                  "value": "小班实操课",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "小班课",
+                    "实操课",
+                    "小班课和实操课"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m06",
+      "type": "main",
+      "aliases": [
+        "m06",
+        "说明直播类型区别"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m07",
+      "name": "说明价格差异原因",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "类型区别后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m07_a1",
+          "name": "低延迟费用略高原因",
+          "text": "低延迟带宽和节点保障更强，费用略高。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "低延迟直播"
+                  ]
+                },
+                {
+                  "value": "带宽节点保障",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "带宽和节点保障",
+                    "节点保障",
+                    "保障更强"
+                  ]
+                },
+                {
+                  "value": "费用略高",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用略高",
+                    "价格略高",
+                    "更贵一些",
+                    "价格会高一点",
+                    "会略高",
+                    "成本更高一点"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m07",
+      "type": "main",
+      "aliases": [
+        "m07",
+        "说明价格差异原因"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m08",
+      "name": "确认发布方式和可见性",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "价格说明后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m08_a1",
+          "name": "询问发布方式",
+          "text": "您用Web控制台、校务系统A，还是SaaS系统B发课？",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "发布方式",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "Web控制台",
+                    "校务系统A",
+                    "SaaS系统B",
+                    "发课方式",
+                    "用什么发课"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "ask_course_publish_method",
+            "ask_publish_method"
+          ]
+        },
+        {
+          "atom_id": "m08_a2",
+          "name": "询问低延迟是否可见",
+          "text": "低延迟直播选项现在能看到吗？",
+          "required": false,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "选项",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "选项",
+                    "入口",
+                    "这个选项",
+                    "低延迟选项",
+                    "低延迟直播选项"
+                  ]
+                },
+                {
+                  "value": "可见",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "能看到",
+                    "看得到",
+                    "已显示"
+                  ]
+                }
+              ]
+            }
+          ],
+          "optional_reason": "用户已提供可见性状态或本场景不需要继续追问时，不作为正包必需扣分；负包标签仍可按该 atom 审计。"
+        }
+      ],
+      "atom_relations": [],
+      "aliases": [
+        "发布方式确认",
+        "publish_method_check",
+        "m08",
+        "确认发布方式和可见性"
+      ],
+      "id": "m08",
+      "type": "main",
+      "requirements": []
+    },
+    {
+      "node_id": "m09",
+      "name": "Web控制台显示处理",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "商家使用Web控制台发课",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "Web控制台",
+                "main": true,
+                "pool": [
+                  "Web控制台",
+                  "网页后台",
+                  "Web后台",
+                  "Web"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m09_a1",
+          "name": "Web未显示后台配置明天看",
+          "text": "Web未显示的话，我们后台配置，明天再查看。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "Web未显示",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "Web未显示",
+                    "Web看不到",
+                    "Web后台没有"
+                  ]
+                },
+                {
+                  "value": "后台配置",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "后台配置",
+                    "我们后台配置"
+                  ]
+                },
+                {
+                  "value": "明天查看",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "明天查看",
+                    "明天再查看",
+                    "次日查看"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m09",
+      "type": "branch",
+      "aliases": [
+        "m09",
+        "Web控制台显示处理"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m10",
+      "name": "第三方系统开通引导",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "商家通过第三方系统且低延迟未显示",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "第三方系统",
+                "main": true,
+                "pool": [
+                  "校务系统A",
+                  "SaaS系统B",
+                  "第三方系统",
+                  "第三方"
+                ],
+                "fact": false
+              },
+              {
+                "value": "未显示",
+                "main": true,
+                "pool": [
+                  "未显示",
+                  "看不到",
+                  "没有"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m10_a1",
+          "name": "引导服务产品勾选低延迟",
+          "text": "进入我的、服务商直播平台管理、直播平台，在服务产品下勾选低延迟直播并保存。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "服务产品",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "服务产品"
+                  ]
+                },
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "勾选",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "勾选",
+                    "选中"
+                  ]
+                },
+                {
+                  "value": "保存",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "保存",
+                    "并保存"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m10",
+      "type": "branch",
+      "aliases": [
+        "m10",
+        "第三方系统开通引导"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m11",
+      "name": "检查学员端费用",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "前端显示处理后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m11_a1",
+          "name": "检查原费用或学员端费用适用性",
+          "text": "确认或根据用户已提供信息获取：检查原费用或学员端费用是否适用于低延迟直播。",
+          "required": true,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "原费用",
+                    "学员端费用",
+                    "加速线路费",
+                    "附加费",
+                    "收费",
+                    "线路费"
+                  ]
+                },
+                {
+                  "value": "适用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "适用",
+                    "是否适用",
+                    "要确认",
+                    "确认"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m11_a2",
+          "name": "已设置提醒适用低延迟",
+          "text": "确认或根据用户已提供信息获取：已设置的话，请确认低延迟直播也适用该费用。",
+          "required": false,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "该费用",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "适用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "适用",
+                    "也适用",
+                    "确认适用"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m11",
+      "type": "main",
+      "aliases": [
+        "m11",
+        "检查学员端费用"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m12",
+      "name": "费用配置帮助分支",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "商家无法配置低延迟相关费用",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "费用配置请求",
+                "main": true,
+                "pool": [
+                  "不会配置",
+                  "哪个设置",
+                  "怎么设置费用",
+                  "怎么配置费用",
+                  "找不到费用入口",
+                  "找不到费用设置",
+                  "收费规则在哪",
+                  "无法配置",
+                  "线路费设置",
+                  "设置费用",
+                  "调费用",
+                  "费用入口",
+                  "费用在哪",
+                  "费用设置",
+                  "配置不了"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m12_a1",
+          "name": "引导费用设置入口",
+          "text": "进入教务/财务设置和收费规则，编辑直播线路附加费。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "收费规则",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "收费规则",
+                    "收费设置"
+                  ]
+                },
+                {
+                  "value": "教务财务设置",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "教务财务设置",
+                    "教务/财务设置",
+                    "财务设置"
+                  ]
+                },
+                {
+                  "value": "附加费",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "附加费",
+                    "直播线路附加费",
+                    "线路附加费"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m12_a2",
+          "name": "提醒保存启用低延迟费用",
+          "text": "为低延迟启用并保存费用规则。",
+          "required": false,
+          "weight": 2,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "低延迟直播"
+                  ]
+                },
+                {
+                  "value": "保存",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "保存",
+                    "启用并保存",
+                    "按页面提示保存"
+                  ]
+                },
+                {
+                  "value": "启用",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "启用",
+                    "适用"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "aliases": [
+        "费用入口咨询",
+        "费用设置帮助",
+        "fee_config_help",
+        "m12",
+        "费用配置帮助分支",
+        "identity_confirmation"
+      ],
+      "id": "m12",
+      "type": "branch",
+      "requirements": []
+    },
+    {
+      "node_id": "m13",
+      "name": "企业微信添加",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "费用确认后进入"
+      },
+      "atoms": [
+        {
+          "atom_id": "m13_a1",
+          "name": "说明企业微信添加验证",
+          "text": "稍后通过企业微信添加您，请通过验证。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "企业微信",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "企业微信",
+                    "企微"
+                  ]
+                },
+                {
+                  "value": "通过验证",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "通过验证",
+                    "加您",
+                    "添加您"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m13_a2",
+          "name": "不可添加时索要手机号",
+          "text": "当前号码不可添加时，请提供可添加手机号。",
+          "required": false,
+          "weight": 3,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "手机号",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "手机号",
+                    "可添加手机号",
+                    "能加的号码"
+                  ]
+                },
+                {
+                  "value": "可添加",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "可添加",
+                    "能添加",
+                    "能加"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m13",
+      "type": "main",
+      "aliases": [
+        "m13",
+        "企业微信添加"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m14",
+      "name": "商家忙碌处理",
+      "node_type": "branch",
+      "required": false,
+      "activation": {
+        "mode": "condition",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "商家表示忙或没空",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "忙",
+                "main": true,
+                "pool": [
+                  "忙",
+                  "没空",
+                  "不方便",
+                  "没时间"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m14_a1",
+          "name": "忙碌时保证简短",
+          "text": "就1分钟，保证简短。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "1分钟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "1分钟",
+                    "一分钟",
+                    "很快",
+                    "简短说",
+                    "简短同步",
+                    "讲重点",
+                    "简单说",
+                    "很快说完",
+                    "不耽误太久",
+                    "不要求现在操作"
+                  ]
+                },
+                {
+                  "value": "简短",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "简短",
+                    "简单说",
+                    "保证简短"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m14",
+      "type": "branch",
+      "aliases": [
+        "m14",
+        "商家忙碌处理"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m15",
+      "name": "商家开车终止",
+      "node_type": "terminal",
+      "required": false,
+      "activation": {
+        "mode": "optional",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "商家表示正在开车",
+        "trigger_groups": [
+          {
+            "elements": [
+              {
+                "value": "开车",
+                "main": true,
+                "pool": [
+                  "开车",
+                  "正在开车",
+                  "开车中"
+                ],
+                "fact": false
+              }
+            ]
+          }
+        ]
+      },
+      "atoms": [
+        {
+          "atom_id": "m15_a1",
+          "name": "开车时稍后再打",
+          "text": "那我稍后再打。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "稍后联系",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "稍后再打",
+                    "稍后再联系",
+                    "晚点再打",
+                    "等您方便",
+                    "不继续",
+                    "不打扰"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m15",
+      "type": "terminal",
+      "aliases": [
+        "m15",
+        "商家开车终止"
+      ],
+      "requirements": []
+    },
+    {
+      "node_id": "m16",
+      "name": "结束通话",
+      "node_type": "main",
+      "required": true,
+      "activation": {
+        "mode": "always",
+        "patterns": [],
+        "trigger_object": {},
+        "trigger_hint": "主线结束"
+      },
+      "atoms": [
+        {
+          "atom_id": "m16_a1",
+          "name": "确认是否还有问题",
+          "text": "您这边还有其他问题吗？",
+          "required": false,
+          "weight": 4,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "其他问题",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "其他问题",
+                    "还有问题",
+                    "还有疑问",
+                    "其他问题吗"
+                  ]
+                },
+                {
+                  "value": "询问",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "吗",
+                    "是否",
+                    "有没有",
+                    "还有"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "atom_id": "m16_a2",
+          "name": "祝课程顺利招生满满",
+          "text": "祝您课程顺利，招生满满。",
+          "required": true,
+          "weight": 5,
+          "element_groups": [
+            {
+              "elements": [
+                {
+                  "value": "礼貌结束",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "祝课程顺利",
+                    "招生满满",
+                    "有问题企微跟进",
+                    "企微继续跟进",
+                    "有疑问我继续跟进"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "atom_relations": [],
+      "id": "m16",
+      "type": "main",
+      "aliases": [
+        "m16",
+        "结束通话"
+      ],
+      "requirements": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "m01",
+      "target": "m02",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_01",
+      "condition": ""
+    },
+    {
+      "source": "m02",
+      "target": "m03",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_02",
+      "condition": ""
+    },
+    {
+      "source": "m03",
+      "target": "m04",
+      "type": "condition_on",
+      "condition": "商家不知情",
+      "relation": "condition_on",
+      "id": "edge_03"
+    },
+    {
+      "source": "m03",
+      "target": "m05",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_04",
+      "condition": ""
+    },
+    {
+      "source": "m04",
+      "target": "m05",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_05",
+      "condition": ""
+    },
+    {
+      "source": "m05",
+      "target": "m06",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_06",
+      "condition": ""
+    },
+    {
+      "source": "m06",
+      "target": "m07",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_07",
+      "condition": ""
+    },
+    {
+      "source": "m07",
+      "target": "m08",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_08",
+      "condition": ""
+    },
+    {
+      "source": "m08",
+      "target": "m09",
+      "type": "condition_on",
+      "condition": "Web控制台",
+      "relation": "condition_on",
+      "id": "edge_09"
+    },
+    {
+      "source": "m08",
+      "target": "m10",
+      "type": "condition_on",
+      "condition": "第三方系统未显示",
+      "relation": "condition_on",
+      "id": "edge_10"
+    },
+    {
+      "source": "m09",
+      "target": "m11",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_11",
+      "condition": ""
+    },
+    {
+      "source": "m10",
+      "target": "m11",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_12",
+      "condition": ""
+    },
+    {
+      "source": "m11",
+      "target": "m12",
+      "type": "condition_on",
+      "condition": "费用无法配置",
+      "relation": "condition_on",
+      "id": "edge_13"
+    },
+    {
+      "source": "m11",
+      "target": "m13",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_14",
+      "condition": ""
+    },
+    {
+      "source": "m12",
+      "target": "m13",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_15",
+      "condition": ""
+    },
+    {
+      "source": "m13",
+      "target": "m16",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_16",
+      "condition": ""
+    },
+    {
+      "source": "m01",
+      "target": "m01b",
+      "type": "condition_on",
+      "condition": "接听者不是负责人",
+      "relation": "condition_on",
+      "id": "edge_17"
+    },
+    {
+      "source": "m01b",
+      "target": "m02",
+      "type": "before",
+      "relation": "before",
+      "id": "edge_18",
+      "condition": ""
+    },
+    {
+      "source": "m01",
+      "target": "m15",
+      "type": "terminal_after",
+      "condition": "商家表示正在开车",
+      "terminal_effect": {
+        "suppress_nodes": [
+          "m02",
+          "m03",
+          "m04",
+          "m05",
+          "m06",
+          "m07",
+          "m08",
+          "m09",
+          "m10",
+          "m11",
+          "m12",
+          "m13",
+          "m14",
+          "m16"
+        ]
+      },
+      "relation": "terminal_after",
+      "id": "edge_19"
+    }
+  ],
+  "relation_groups": [
+    {
+      "group_id": "mg_main",
+      "name": "商家直播通知主线",
+      "nodes": [
+        "m01",
+        "m02",
+        "m03",
+        "m05",
+        "m06",
+        "m07",
+        "m08",
+        "m11",
+        "m13",
+        "m16"
+      ],
+      "relation": "optional_parallel",
+      "required": true,
+      "description": "主干节点均应覆盖，但话术顺序允许因用户提前提供信息或追问而前后浮动；具体依赖由 edges/条件分支承接。",
+      "id": "mg_main",
+      "type": "optional_parallel"
+    },
+    {
+      "group_id": "mg_visibility_branch",
+      "name": "发课渠道处理分支",
+      "nodes": [
+        "m09",
+        "m10"
+      ],
+      "relation": "exclusive_branch",
+      "required": false,
+      "id": "mg_visibility_branch",
+      "type": "exclusive_branch"
+    },
+    {
+      "group_id": "mg_context_branch",
+      "name": "上下文处理分支",
+      "nodes": [
+        "m01b",
+        "m04",
+        "m12",
+        "m14",
+        "m15"
+      ],
+      "relation": "optional_parallel",
+      "required": false,
+      "id": "mg_context_branch",
+      "type": "optional_parallel"
+    }
+  ],
+  "terminal_policies": {
+    "normal_close": {
+      "description": "解答后祝课程顺利结束"
+    },
+    "driving_close": {
+      "description": "商家开车时稍后再打并结束"
+    }
+  },
+  "knowledge_table": [
+    {
+      "knowledge_id": "mk01",
+      "name": "直播选项升级",
+      "atoms": [
+        {
+          "atom_id": "mk01_a1",
+          "name": "新增两个独立选项",
+          "text": "发布页新增标准直播和低延迟直播两个独立选项。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "发布页",
+                  "main": true,
+                  "pool": [
+                    "发布页",
+                    "课程发布页"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "直播选项",
+                  "main": false,
+                  "pool": [
+                    "直播选项",
+                    "标准直播和低延迟直播"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "发布页",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "发布页",
+                    "课程发布页"
+                  ]
+                },
+                {
+                  "value": "直播选项",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "直播选项",
+                    "标准直播和低延迟直播"
+                  ]
+                },
+                {
+                  "value": "两个独立选项",
+                  "main": false,
+                  "pool": [
+                    "两个独立选项",
+                    "分开显示",
+                    "标准直播和低延迟直播"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "发布页",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "发布页",
+                    "课程发布页"
+                  ]
+                },
+                {
+                  "value": "直播选项",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "直播选项",
+                    "标准直播和低延迟直播"
+                  ]
+                },
+                {
+                  "value": "只有低延迟",
+                  "main": false,
+                  "pool": [
+                    "只有低延迟",
+                    "取消标准直播"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "两个独立选项",
+            "wrong_examples": [],
+            "expected_value": "两个独立选项"
+          }
+        },
+        {
+          "atom_id": "mk01_a2",
+          "name": "流程不变",
+          "text": "选择低延迟直播后其他发课流程不变。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "发课流程",
+                  "main": false,
+                  "pool": [
+                    "发课流程",
+                    "流程"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "发课流程",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "发课流程",
+                    "流程"
+                  ]
+                },
+                {
+                  "value": "不变",
+                  "main": false,
+                  "pool": [
+                    "不变",
+                    "其他流程不变"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "发课流程",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "发课流程",
+                    "流程"
+                  ]
+                },
+                {
+                  "value": "重建课程",
+                  "main": false,
+                  "pool": [
+                    "需要重建课程",
+                    "流程全变"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "不变",
+            "wrong_examples": [],
+            "expected_value": "不变"
+          }
+        }
+      ],
+      "aliases": [
+        "直播选项升级"
+      ]
+    },
+    {
+      "knowledge_id": "mk02",
+      "name": "此前低延迟线路",
+      "atoms": [
+        {
+          "atom_id": "mk02_a1",
+          "name": "此前后台走低延迟",
+          "text": "商家此前选标准直播时后台走低延迟线路保障质量。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "此前标准直播",
+                  "main": true,
+                  "pool": [
+                    "此前标准直播",
+                    "之前标准直播"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "后台线路",
+                  "main": false,
+                  "pool": [
+                    "后台线路",
+                    "后台走线"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "此前标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "此前标准直播",
+                    "之前标准直播"
+                  ]
+                },
+                {
+                  "value": "后台线路",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "后台线路",
+                    "后台走线"
+                  ]
+                },
+                {
+                  "value": "后台走低延迟",
+                  "main": false,
+                  "pool": [
+                    "后台走低延迟",
+                    "走低延迟线路"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "此前标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "此前标准直播",
+                    "之前标准直播"
+                  ]
+                },
+                {
+                  "value": "后台线路",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "后台线路",
+                    "后台走线"
+                  ]
+                },
+                {
+                  "value": "一直标准线路",
+                  "main": false,
+                  "pool": [
+                    "一直标准线路",
+                    "没有低延迟"
+                  ],
+                  "fact": true
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "此前标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "此前标准直播",
+                    "之前标准直播",
+                    "标准直播",
+                    "后台"
+                  ]
+                },
+                {
+                  "value": "没有低延迟",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "还没走低延迟",
+                    "没有走低延迟",
+                    "未走低延迟",
+                    "一直标准线路"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "后台走低延迟",
+            "wrong_examples": [],
+            "expected_value": "后台走低延迟"
+          },
+          "aliases": [
+            "backend_low_latency_status"
+          ]
+        },
+        {
+          "atom_id": "mk02_a2",
+          "name": "前端未开放临时开启",
+          "text": "前端当时未开放，临时开启低延迟是为保障音视频与白板同步。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "临时低延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "临时低延迟",
+                    "临时开启",
+                    "后台走低延迟",
+                    "后台低延迟"
+                  ]
+                },
+                {
+                  "value": "原因",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "原因",
+                    "为什么",
+                    "目的"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "临时原因目的",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "原因",
+                    "目的",
+                    "为什么",
+                    "音视频",
+                    "白板",
+                    "同步",
+                    "临时开启",
+                    "后台先改"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "临时低延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "临时低延迟",
+                    "临时开启",
+                    "后台走低延迟",
+                    "之前低延迟"
+                  ]
+                },
+                {
+                  "value": "原因",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "原因",
+                    "为什么"
+                  ]
+                },
+                {
+                  "value": "前端未开放",
+                  "main": false,
+                  "pool": [
+                    "前端未开放",
+                    "前端当时未开放"
+                  ],
+                  "fact": true
+                },
+                {
+                  "value": "保障同步",
+                  "main": false,
+                  "pool": [
+                    "保障音视频和白板同步",
+                    "保障同步"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "临时低延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "临时低延迟",
+                    "临时开启",
+                    "后台走低延迟",
+                    "后台低延迟"
+                  ]
+                },
+                {
+                  "value": "原因错误",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "为了涨价",
+                    "强制收费",
+                    "和同步关系不大",
+                    "不是为了同步",
+                    "跟白板同步没关系"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "临时低延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "临时低延迟",
+                    "临时开启",
+                    "后台先改",
+                    "后台走低延迟"
+                  ]
+                },
+                {
+                  "value": "错误原因",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "主动申请",
+                    "你们主动申请",
+                    "产品推广",
+                    "提前体验",
+                    "关系不大",
+                    "和音视频白板同步关系不大",
+                    "不是为了同步"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            }
+          ],
+          "value_check": {
+            "expected": "前端未开放",
+            "wrong_examples": [],
+            "expected_value": "前端未开放"
+          },
+          "aliases": [
+            "temporary_enable_reason",
+            "temporary_enable_purpose",
+            "frontend_not_open_quality_reason"
+          ]
+        }
+      ],
+      "aliases": [
+        "此前低延迟线路"
+      ]
+    },
+    {
+      "knowledge_id": "mk03",
+      "name": "直播类型差异",
+      "atoms": [
+        {
+          "atom_id": "mk03_a1",
+          "name": "标准直播费用较低",
+          "text": "标准直播费用较低。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准费用",
+                    "标准直播费用"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "成本"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "成本",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "较低",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "较低",
+                    "更便宜",
+                    "低"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准费用",
+                    "标准直播费用"
+                  ]
+                },
+                {
+                  "value": "费用更高",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "费用更高",
+                    "更贵",
+                    "价格高",
+                    "成本更高"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "checks": [
+              {
+                "field": "标准直播费用较低",
+                "expected_value": "费用较低",
+                "unit": "",
+                "condition": "标准直播费用较低",
+                "slot_anchors": [
+                  "标准直播",
+                  "费用"
+                ]
+              }
+            ]
+          },
+          "aliases": [
+            "standard_live_cost_direction",
+            "standard_live_fee_direction"
+          ]
+        },
+        {
+          "atom_id": "mk03_a2",
+          "name": "标准直播延迟5到10秒",
+          "text": "标准直播延迟约5到10秒。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "延迟",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "延迟",
+                    "延时"
+                  ]
+                },
+                {
+                  "value": "5到10秒",
+                  "main": false,
+                  "pool": [
+                    "5到10秒",
+                    "5-10秒",
+                    "五到十秒"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "checks": [
+              {
+                "field": "标准直播延迟5到10秒",
+                "expected_value": "5到10秒",
+                "unit": "秒",
+                "condition": "标准直播延迟5到10秒",
+                "slot_anchors": [
+                  "标准直播"
+                ]
+              }
+            ]
+          },
+          "aliases": [
+            "standard_live_delay_range",
+            "standard_live_delay",
+            "standard_live_latency"
+          ]
+        },
+        {
+          "atom_id": "mk03_a3",
+          "name": "标准直播适合大班课",
+          "text": "标准直播适合大班课。",
+          "severity": "medium",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "适合",
+                  "main": false,
+                  "pool": [
+                    "适合",
+                    "用于",
+                    "场景",
+                    "用途"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "标准直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "标准直播",
+                    "标准",
+                    "标准延迟"
+                  ]
+                },
+                {
+                  "value": "适合",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "适合",
+                    "用于",
+                    "场景",
+                    "用途"
+                  ]
+                },
+                {
+                  "value": "大班课",
+                  "main": false,
+                  "pool": [
+                    "大班课",
+                    "大班直播",
+                    "人数较多课程"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "expected": "大班课",
+            "wrong_examples": [],
+            "expected_value": "大班课",
+            "checks": []
+          }
+        },
+        {
+          "atom_id": "mk03_a4",
+          "name": "低延迟直播延迟1到2秒",
+          "text": "低延迟直播延迟约1到2秒。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "延迟",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "延迟",
+                    "延时"
+                  ]
+                },
+                {
+                  "value": "1到2秒",
+                  "main": false,
+                  "pool": [
+                    "1到2秒",
+                    "1-2秒",
+                    "一到两秒"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "checks": [
+              {
+                "field": "低延迟直播延迟1到2秒",
+                "expected_value": "1到2秒",
+                "unit": "秒",
+                "condition": "低延迟直播延迟1到2秒",
+                "slot_anchors": [
+                  "低延迟直播"
+                ]
+              }
+            ]
+          },
+          "aliases": [
+            "low_latency_delay_range"
+          ]
+        },
+        {
+          "atom_id": "mk03_a5",
+          "name": "低延迟适合互动小班实操",
+          "text": "低延迟直播互动更流畅，适合小班课和实操课。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "适合互动",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "适合",
+                    "场景",
+                    "互动",
+                    "小班",
+                    "实操"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "适合",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "适合",
+                    "用于",
+                    "场景",
+                    "用途"
+                  ]
+                },
+                {
+                  "value": "互动更流畅",
+                  "main": false,
+                  "pool": [
+                    "互动更流畅",
+                    "实时互动",
+                    "互动顺畅"
+                  ],
+                  "fact": true
+                },
+                {
+                  "value": "小班实操课",
+                  "main": false,
+                  "pool": [
+                    "小班课",
+                    "实操课",
+                    "小班课和实操课"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "反向场景",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "只适合大班课",
+                    "不适合互动",
+                    "互动没优势",
+                    "互动关系不大",
+                    "不适合小班",
+                    "不适合实操",
+                    "小班实操不太适合",
+                    "小班实操不适合",
+                    "互动体验和标准差不多",
+                    "互动和标准差不多",
+                    "互动没明显优势"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            }
+          ],
+          "value_check": {
+            "expected": "小班课/实操课/互动场景",
+            "wrong_examples": [
+              "只适合大班课"
+            ],
+            "expected_value": "小班课/实操课/互动场景"
+          },
+          "aliases": [
+            "low_latency_use_case",
+            "low_latency_interaction_advantage"
+          ]
+        },
+        {
+          "atom_id": "mk03_a6",
+          "name": "低延迟价格原因",
+          "text": "低延迟带宽和节点保障更强，费用略高。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用原因",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "费用原因",
+                    "为什么贵",
+                    "价格原因",
+                    "费用",
+                    "价格"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "带宽",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "带宽"
+                  ]
+                },
+                {
+                  "value": "节点",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "节点"
+                  ]
+                },
+                {
+                  "value": "保障",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "保障",
+                    "保障更强"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "略高",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "略高",
+                    "更贵一些",
+                    "稍高"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "原因错误",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "为了涨价",
+                    "随便定价",
+                    "没有带宽保障",
+                    "和带宽节点无关",
+                    "不是带宽节点原因",
+                    "不是带宽和节点保障原因",
+                    "页面产品策略调整"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用不涨",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "免费",
+                    "不收费",
+                    "价格不变",
+                    "费用不变",
+                    "肯定不会涨",
+                    "不是带宽和节点保障原因",
+                    "不是带宽节点原因",
+                    "和带宽节点无关",
+                    "页面产品策略调整"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            }
+          ],
+          "value_check": {},
+          "aliases": [
+            "low_latency_fee_direction",
+            "low_latency_fee_reason"
+          ]
+        },
+        {
+          "atom_id": "mk03_a7",
+          "name": "低延迟费用方向",
+          "text": "低延迟直播费用略高。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "成本",
+                    "更贵",
+                    "收费"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "成本"
+                  ]
+                },
+                {
+                  "value": "略高",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "略高",
+                    "会略高",
+                    "费用略高",
+                    "更贵一些",
+                    "稍高"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "成本"
+                  ]
+                },
+                {
+                  "value": "更低",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "更低",
+                    "费用更低",
+                    "更便宜",
+                    "价格更低",
+                    "不会更贵",
+                    "不贵",
+                    "免费",
+                    "不收费",
+                    "不涨价"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "checks": [
+              {
+                "field": "低延迟费用方向",
+                "expected_value": "费用略高",
+                "unit": "",
+                "condition": "低延迟费用方向",
+                "slot_anchors": [
+                  "低延迟直播",
+                  "费用"
+                ]
+              }
+            ]
+          },
+          "aliases": [
+            "low_latency_fee_direction",
+            "low_latency_cost_direction"
+          ]
+        }
+      ],
+      "aliases": [
+        "直播类型差异"
+      ]
+    },
+    {
+      "knowledge_id": "mk04",
+      "name": "前端配置与费用企业微信",
+      "atoms": [
+        {
+          "atom_id": "mk04_a1",
+          "name": "Web未显示后台配置",
+          "text": "Web控制台未显示低延迟直播时，后台配置后明天查看。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "Web控制台",
+                  "main": true,
+                  "pool": [
+                    "Web控制台",
+                    "Web后台",
+                    "Web",
+                    "网页后台"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "未显示低延迟",
+                  "main": false,
+                  "pool": [
+                    "未显示低延迟",
+                    "看不到低延迟"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "Web控制台",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "Web控制台",
+                    "Web后台",
+                    "Web",
+                    "网页后台"
+                  ]
+                },
+                {
+                  "value": "未显示低延迟",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "未显示低延迟",
+                    "看不到低延迟"
+                  ]
+                },
+                {
+                  "value": "后台配置",
+                  "main": false,
+                  "pool": [
+                    "后台配置",
+                    "我们后台配置"
+                  ],
+                  "fact": true
+                },
+                {
+                  "value": "明天查看",
+                  "main": false,
+                  "pool": [
+                    "明天查看",
+                    "明天再查看"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [],
+          "value_check": {
+            "expected": "后台配置",
+            "wrong_examples": [],
+            "expected_value": "后台配置"
+          }
+        },
+        {
+          "atom_id": "mk04_a2",
+          "name": "第三方开通路径",
+          "text": "第三方系统未显示时，进入我的、服务商直播平台管理、直播平台，在服务产品下勾选低延迟直播并保存。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "第三方系统",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "第三方系统",
+                    "校务系统A",
+                    "SaaS系统B"
+                  ]
+                },
+                {
+                  "value": "开通低延迟",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "开通低延迟",
+                    "低延迟开通",
+                    "怎么开通",
+                    "看不到低延迟"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "第三方开通路径",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "第三方",
+                    "SaaS",
+                    "校务系统",
+                    "开通",
+                    "入口",
+                    "路径",
+                    "没看到入口",
+                    "手动开通"
+                  ]
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "我的",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "我的"
+                  ]
+                },
+                {
+                  "value": "服务商",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "服务商"
+                  ]
+                },
+                {
+                  "value": "直播平台管理",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "直播平台管理"
+                  ]
+                },
+                {
+                  "value": "服务产品",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "服务产品"
+                  ]
+                },
+                {
+                  "value": "低延迟直播",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "勾选",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "勾选",
+                    "选中"
+                  ]
+                },
+                {
+                  "value": "保存",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "保存"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "第三方系统",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "第三方系统",
+                    "校务系统A",
+                    "SaaS系统B"
+                  ]
+                },
+                {
+                  "value": "错误路径",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "课程管理里开通",
+                    "系统设置里开通",
+                    "客服代开",
+                    "不用勾选服务产品",
+                    "找销售开通"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            },
+            {
+              "elements": [
+                {
+                  "value": "第三方开通路径",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "第三方",
+                    "SaaS",
+                    "校务系统",
+                    "开通",
+                    "入口",
+                    "路径"
+                  ]
+                },
+                {
+                  "value": "错误入口",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "订单管理",
+                    "课程订单",
+                    "直播加速开通",
+                    "不用手动勾选",
+                    "自动全开",
+                    "不需要单独勾选",
+                    "不用进服务产品"
+                  ]
+                }
+              ],
+              "allow_context_carry": true
+            }
+          ],
+          "value_check": {
+            "expected": "我的",
+            "wrong_examples": [],
+            "expected_value": "我的"
+          },
+          "aliases": [
+            "third_party_enable_path",
+            "third_party_auto_enable",
+            "third_party_low_latency_enable"
+          ]
+        },
+        {
+          "atom_id": "mk04_a3",
+          "name": "费用和企业微信",
+          "text": "已设置费用需确认低延迟适用；稍后通过企业微信添加。",
+          "severity": "high",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "费用企业微信",
+                  "main": true,
+                  "pool": [
+                    "费用",
+                    "企业微信"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟直播",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟直播",
+                    "低延迟"
+                  ]
+                },
+                {
+                  "value": "费用",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "该费用",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "适用",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "适用",
+                    "也适用"
+                  ]
+                },
+                {
+                  "value": "企业微信",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "企业微信",
+                    "企微"
+                  ]
+                },
+                {
+                  "value": "验证",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "通过验证",
+                    "验证"
+                  ]
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "确认",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "确认"
+                  ]
+                },
+                {
+                  "value": "否定",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不用",
+                    "不需要",
+                    "无需",
+                    "不用确认费用",
+                    "完全不用看",
+                    "不加企业微信",
+                    "不需要确认"
+                  ]
+                },
+                {
+                  "value": "企业微信",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "企业微信"
+                  ]
+                },
+                {
+                  "value": "否定添加",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不加",
+                    "不用加",
+                    "不用确认费用",
+                    "完全不用看",
+                    "不加企业微信",
+                    "不需要确认"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "低延迟费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "费用",
+                    "学员端费用",
+                    "低延迟费用"
+                  ]
+                },
+                {
+                  "value": "不适用",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不适用",
+                    "不用确认",
+                    "完全不用看",
+                    "不用确认费用",
+                    "不加企业微信",
+                    "不需要确认"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "收费规则",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "收费",
+                    "收费规则",
+                    "附加费"
+                  ]
+                },
+                {
+                  "value": "错误入口",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "服务商/直播平台管理",
+                    "直播平台管理",
+                    "不用确认费用",
+                    "完全不用看",
+                    "不加企业微信",
+                    "不需要确认"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "低延迟费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "费用",
+                    "学员端费用"
+                  ]
+                },
+                {
+                  "value": "不适用",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不适用原学员端费用",
+                    "低延迟不适用原学员端费用"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "学员端费用",
+                    "线路费"
+                  ]
+                },
+                {
+                  "value": "不用看",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "完全不用看",
+                    "不用看",
+                    "不用确认费用",
+                    "不需要确认费用"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "收费规则",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "收费",
+                    "收费规则",
+                    "附加费"
+                  ]
+                },
+                {
+                  "value": "错误入口",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "服务商/直播平台管理改收费",
+                    "进服务商直播平台管理改收费"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "低延迟适用费用",
+            "wrong_examples": [],
+            "expected_value": "低延迟适用费用"
+          },
+          "aliases": [
+            "student_fee_applicability",
+            "student_fee_entry",
+            "student_fee_impact"
+          ]
+        },
+        {
+          "atom_id": "mk04_a4",
+          "name": "Web已显示直接使用",
+          "text": "Web控制台已显示低延迟直播时，可直接使用。",
+          "severity": "medium",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "Web控制台",
+                  "main": true,
+                  "pool": [
+                    "Web控制台",
+                    "网页后台",
+                    "Web后台",
+                    "Web"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "已显示",
+                  "main": false,
+                  "pool": [
+                    "已显示",
+                    "能看到",
+                    "看得到"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "Web控制台",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "Web控制台",
+                    "网页后台",
+                    "Web后台",
+                    "Web"
+                  ]
+                },
+                {
+                  "value": "已显示",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "已显示",
+                    "能看到",
+                    "看得到"
+                  ]
+                },
+                {
+                  "value": "直接使用",
+                  "main": false,
+                  "pool": [
+                    "直接使用",
+                    "直接选择",
+                    "按需选择"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "Web控制台",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "Web控制台",
+                    "网页后台",
+                    "Web后台",
+                    "Web"
+                  ]
+                },
+                {
+                  "value": "已显示",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "已显示",
+                    "能看到",
+                    "看得到"
+                  ]
+                },
+                {
+                  "value": "还要开通",
+                  "main": false,
+                  "pool": [
+                    "还要开通",
+                    "不能直接用",
+                    "需要额外配置",
+                    "必须重新开通"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "已显示可直接使用",
+            "wrong_examples": [
+              "已显示仍不能使用"
+            ],
+            "expected_value": "已显示可直接使用"
+          }
+        },
+        {
+          "atom_id": "mk04_a5",
+          "name": "第三方已显示按需选择",
+          "text": "第三方系统已显示低延迟直播时，按需选择即可。",
+          "severity": "medium",
+          "selector_groups": [
+            {
+              "elements": [
+                {
+                  "value": "第三方系统",
+                  "main": true,
+                  "pool": [
+                    "第三方系统",
+                    "校务系统A",
+                    "SaaS系统B",
+                    "第三方"
+                  ],
+                  "fact": false
+                },
+                {
+                  "value": "已显示",
+                  "main": false,
+                  "pool": [
+                    "已显示",
+                    "能看到",
+                    "看得到"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "correct_groups": [
+            {
+              "elements": [
+                {
+                  "value": "第三方系统",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "第三方系统",
+                    "校务系统A",
+                    "SaaS系统B",
+                    "第三方"
+                  ]
+                },
+                {
+                  "value": "已显示",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "已显示",
+                    "能看到",
+                    "看得到"
+                  ]
+                },
+                {
+                  "value": "按需选择",
+                  "main": false,
+                  "pool": [
+                    "按需选择",
+                    "直接选择",
+                    "自行选择"
+                  ],
+                  "fact": true
+                }
+              ]
+            }
+          ],
+          "wrong_groups": [
+            {
+              "elements": [
+                {
+                  "value": "第三方系统",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "第三方系统",
+                    "校务系统A",
+                    "SaaS系统B",
+                    "第三方"
+                  ]
+                },
+                {
+                  "value": "重新开通",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "重新开通",
+                    "开通"
+                  ]
+                },
+                {
+                  "value": "必须",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "必须",
+                    "一定",
+                    "必须重新开通",
+                    "不能直接选",
+                    "自动全开"
+                  ]
+                }
+              ]
+            }
+          ],
+          "value_check": {
+            "expected": "已显示按需选择",
+            "wrong_examples": [
+              "必须重新开通"
+            ],
+            "expected_value": "已显示按需选择"
+          }
+        }
+      ],
+      "aliases": [
+        "前端配置与费用企业微信"
+      ]
+    }
+  ],
+  "hard_constraint_table": [
+    {
+      "constraint_id": "mhc04",
+      "name": "禁止价格错误承诺",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "mhc04_a1",
+          "name": "禁止保证免费价格不变",
+          "text": "不得保证低延迟免费或价格不变。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟价格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "价格",
+                    "费用",
+                    "加速线路费",
+                    "线路费"
+                  ]
+                },
+                {
+                  "value": "错误承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "保证免费",
+                    "一定免费",
+                    "价格不变",
+                    "不收钱",
+                    "免费",
+                    "不会涨",
+                    "不加钱",
+                    "肯定不会涨"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟价格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "价格",
+                    "费用"
+                  ]
+                },
+                {
+                  "value": "正确价格口径",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "费用略高",
+                    "以页面价格为准",
+                    "按配置计费",
+                    "价格略高"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "减免",
+                    "优惠",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "否定承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不能承诺",
+                    "不承诺",
+                    "无法承诺",
+                    "不能保证"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_fee_no_increase_promise"
+          ]
+        }
+      ]
+    },
+    {
+      "constraint_id": "mhc01",
+      "name": "禁止指定语气词",
+      "severity": "high",
+      "atoms": [
+        {
+          "atom_id": "mhc01_a1",
+          "name": "禁用语气词",
+          "text": "不得说好的、哈哈、嘿嘿、嘻嘻等语气词。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "禁用语气词",
+                  "main": true,
+                  "pool": [
+                    "哈哈",
+                    "嘿嘿",
+                    "嘻嘻",
+                    "好嘞",
+                    "好呀"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": []
+        }
+      ]
+    },
+    {
+      "constraint_id": "mhc05_result_guarantee",
+      "name": "禁止承诺系统展示或后台代操作结果",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "mhc05_a1",
+          "name": "禁止保证页面显示同步成功",
+          "text": "不得保证页面一定显示、同步成功或自动开通。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "系统结果",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "页面",
+                    "显示",
+                    "同步",
+                    "系统",
+                    "开通",
+                    "保存",
+                    "服务商支持",
+                    "收费规则"
+                  ]
+                },
+                {
+                  "value": "保证",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "一定",
+                    "肯定",
+                    "保证",
+                    "必定",
+                    "一定会",
+                    "肯定会",
+                    "自动开通",
+                    "一定显示",
+                    "一定成功",
+                    "一定生效",
+                    "肯定成功"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "系统结果",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "页面",
+                    "显示",
+                    "同步",
+                    "系统",
+                    "开通"
+                  ]
+                },
+                {
+                  "value": "否定承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不能保证",
+                    "不能承诺",
+                    "不保证",
+                    "无法保证",
+                    "以实际展示为准",
+                    "以页面实际展示为准"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_system_display_or_result_guarantee",
+            "no_system_auto_success_guarantee",
+            "no_third_party_sync_guarantee",
+            "no_fee_rule_success_guarantee",
+            "no_system_display_or_result_promise",
+            "no_page_display_guarantee",
+            "no_system_auto_open_promise"
+          ]
+        },
+        {
+          "atom_id": "mhc05_a2",
+          "name": "禁止承诺后台代开或代配置",
+          "text": "不得承诺客服后台直接代开通或代配置费用。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "代操作",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "直接帮您",
+                    "帮您开通",
+                    "帮您配好",
+                    "代开",
+                    "代配置",
+                    "后台帮您",
+                    "我这边帮您",
+                    "人工帮您",
+                    "客服代开"
+                  ]
+                },
+                {
+                  "value": "操作结果",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "开通",
+                    "配置",
+                    "收费",
+                    "低延迟",
+                    "费用",
+                    "服务产品"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "代操作",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "代开",
+                    "后台",
+                    "我这边",
+                    "帮您"
+                  ]
+                },
+                {
+                  "value": "否定承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不能承诺",
+                    "不承诺",
+                    "无法承诺",
+                    "不能保证"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_manual_backend_configuration_promise",
+            "no_manual_fee_configuration_promise",
+            "no_manual_backend_activation_or_proxy_operation"
+          ]
+        },
+        {
+          "atom_id": "mhc05_a3",
+          "name": "禁止强迫立即配置或只能选低延迟",
+          "text": "不得强迫商家立即配置或声称只能选择低延迟。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟配置",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "勾选",
+                    "处理",
+                    "配置",
+                    "标准直播不能用",
+                    "收费规则"
+                  ]
+                },
+                {
+                  "value": "强制",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "必须",
+                    "只能",
+                    "马上",
+                    "立刻",
+                    "必须马上",
+                    "现在必须",
+                    "强制"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "选择",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "按需选择",
+                    "自行选择",
+                    "页面为准",
+                    "可以手动开通"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_forced_immediate_configuration",
+            "no_force_low_latency_only_choice",
+            "no_immediate_setup_pressure"
+          ]
+        }
+      ]
+    },
+    {
+      "constraint_id": "mhc03",
+      "name": "开车时必须稍后再打",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "mhc03_a1",
+          "name": "开车不得继续讲",
+          "text": "商家开车时不得继续说明业务。",
+          "trigger_groups": [
+            {
+              "elements": [
+                {
+                  "value": "开车",
+                  "main": true,
+                  "pool": [
+                    "开车",
+                    "正在开车",
+                    "开车中"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "继续",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "继续",
+                    "接着",
+                    "快点"
+                  ]
+                },
+                {
+                  "value": "说明",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "说明",
+                    "讲",
+                    "说",
+                    "说完"
+                  ]
+                },
+                {
+                  "value": "业务",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "业务",
+                    "直播",
+                    "低延迟"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "稍后联系",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "稍后再打",
+                    "晚点再打",
+                    "稍后再联系",
+                    "等您方便",
+                    "不打扰"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "不继续",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "不继续",
+                    "先不说",
+                    "不推进",
+                    "不展开"
+                  ]
+                },
+                {
+                  "value": "业务说明",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "业务说明",
+                    "业务",
+                    "直播",
+                    "低延迟"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "安全",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "注意安全",
+                    "一路平安",
+                    "先注意安全"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_continue_call_while_driving"
+          ]
+        }
+      ]
+    }
+  ],
+  "soft_constraint_table": [
+    {
+      "constraint_id": "msc01",
+      "name": "简短自然",
+      "quality_dimension": "brief_tone",
+      "description": "每次回复简短自然",
+      "metric": {
+        "name": "style_score",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      }
+    },
+    {
+      "constraint_id": "msc02",
+      "name": "频繁给商家发言机会",
+      "quality_dimension": "turn_balance",
+      "description": "说明后暂停等待商家回应",
+      "metric": {
+        "name": "turn_balance",
+        "direction": "range"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      }
+    },
+    {
+      "constraint_id": "msc03",
+      "name": "被打断后简短过渡",
+      "quality_dimension": "interruption_transition",
+      "description": "若对话被打断，应使用“您刚才提到”或“我刚说到”一类简短过渡语接回。",
+      "metric": {
+        "name": "conditional_presence",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.02,
+        "can_cap_score": false
+      }
+    },
+    {
+      "constraint_id": "mhc05",
+      "name": "单次回复长度控制（15到20字左右）",
+      "severity": "medium",
+      "metric": {
+        "speaker": "assistant",
+        "scope": "single_turn",
+        "name": "char_count",
+        "threshold": 30,
+        "direction": "lower_better",
+        "type": "max_chars_per_assistant_turn",
+        "max_chars": 30
+      },
+      "enforcement": "soft",
+      "constraint_kind": "structural_metric"
+    }
+  ],
+  "constraint_table": [
+    {
+      "constraint_id": "mhc04",
+      "name": "禁止价格错误承诺",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "mhc04_a1",
+          "name": "禁止保证免费价格不变",
+          "text": "不得保证低延迟免费或价格不变。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟价格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "价格",
+                    "费用",
+                    "加速线路费",
+                    "线路费"
+                  ]
+                },
+                {
+                  "value": "错误承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "保证免费",
+                    "一定免费",
+                    "价格不变",
+                    "不收钱",
+                    "免费",
+                    "不会涨",
+                    "不加钱",
+                    "肯定不会涨"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟价格",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "价格",
+                    "费用"
+                  ]
+                },
+                {
+                  "value": "正确价格口径",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "费用略高",
+                    "以页面价格为准",
+                    "按配置计费",
+                    "价格略高"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "费用",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "费用",
+                    "价格",
+                    "减免",
+                    "优惠",
+                    "学员端费用",
+                    "线路费",
+                    "加速线路费"
+                  ]
+                },
+                {
+                  "value": "否定承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不能承诺",
+                    "不承诺",
+                    "无法承诺",
+                    "不能保证"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_fee_no_increase_promise"
+          ]
+        }
+      ],
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "id": "mhc04",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "mhc04",
+        "禁止价格错误承诺"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "价格错误承诺",
+              "mhc04"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "禁止价格错误承诺"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "mhc01",
+      "name": "禁止指定语气词",
+      "severity": "high",
+      "atoms": [
+        {
+          "atom_id": "mhc01_a1",
+          "name": "禁用语气词",
+          "text": "不得说好的、哈哈、嘿嘿、嘻嘻等语气词。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "禁用语气词",
+                  "main": true,
+                  "pool": [
+                    "哈哈",
+                    "嘿嘿",
+                    "嘻嘻",
+                    "好嘞",
+                    "好呀"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": []
+        }
+      ],
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "id": "mhc01",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "mhc01",
+        "禁止指定语气词"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "指定语气词",
+              "mhc01"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "禁止指定语气词"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "mhc05_result_guarantee",
+      "name": "禁止承诺系统展示或后台代操作结果",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "mhc05_a1",
+          "name": "禁止保证页面显示同步成功",
+          "text": "不得保证页面一定显示、同步成功或自动开通。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "系统结果",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "页面",
+                    "显示",
+                    "同步",
+                    "系统",
+                    "开通",
+                    "保存",
+                    "服务商支持",
+                    "收费规则"
+                  ]
+                },
+                {
+                  "value": "保证",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "一定",
+                    "肯定",
+                    "保证",
+                    "必定",
+                    "一定会",
+                    "肯定会",
+                    "自动开通",
+                    "一定显示",
+                    "一定成功",
+                    "一定生效",
+                    "肯定成功"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "系统结果",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "页面",
+                    "显示",
+                    "同步",
+                    "系统",
+                    "开通"
+                  ]
+                },
+                {
+                  "value": "否定承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不能保证",
+                    "不能承诺",
+                    "不保证",
+                    "无法保证",
+                    "以实际展示为准",
+                    "以页面实际展示为准"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_system_display_or_result_guarantee",
+            "no_system_auto_success_guarantee",
+            "no_third_party_sync_guarantee",
+            "no_fee_rule_success_guarantee",
+            "no_system_display_or_result_promise",
+            "no_page_display_guarantee",
+            "no_system_auto_open_promise"
+          ]
+        },
+        {
+          "atom_id": "mhc05_a2",
+          "name": "禁止承诺后台代开或代配置",
+          "text": "不得承诺客服后台直接代开通或代配置费用。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "代操作",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "直接帮您",
+                    "帮您开通",
+                    "帮您配好",
+                    "代开",
+                    "代配置",
+                    "后台帮您",
+                    "我这边帮您",
+                    "人工帮您",
+                    "客服代开"
+                  ]
+                },
+                {
+                  "value": "操作结果",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "开通",
+                    "配置",
+                    "收费",
+                    "低延迟",
+                    "费用",
+                    "服务产品"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "代操作",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "代开",
+                    "后台",
+                    "我这边",
+                    "帮您"
+                  ]
+                },
+                {
+                  "value": "否定承诺",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "不能承诺",
+                    "不承诺",
+                    "无法承诺",
+                    "不能保证"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_manual_backend_configuration_promise",
+            "no_manual_fee_configuration_promise",
+            "no_manual_backend_activation_or_proxy_operation"
+          ]
+        },
+        {
+          "atom_id": "mhc05_a3",
+          "name": "禁止强迫立即配置或只能选低延迟",
+          "text": "不得强迫商家立即配置或声称只能选择低延迟。",
+          "trigger_groups": [],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "低延迟配置",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "低延迟",
+                    "勾选",
+                    "处理",
+                    "配置",
+                    "标准直播不能用",
+                    "收费规则"
+                  ]
+                },
+                {
+                  "value": "强制",
+                  "main": false,
+                  "fact": true,
+                  "pool": [
+                    "必须",
+                    "只能",
+                    "马上",
+                    "立刻",
+                    "必须马上",
+                    "现在必须",
+                    "强制"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "选择",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "按需选择",
+                    "自行选择",
+                    "页面为准",
+                    "可以手动开通"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_forced_immediate_configuration",
+            "no_force_low_latency_only_choice",
+            "no_immediate_setup_pressure"
+          ]
+        }
+      ],
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "id": "mhc05_result_guarantee",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "mhc05_result_guarantee",
+        "禁止承诺系统展示或后台代操作结果"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "承诺系统展示或后台代操作结果",
+              "mhc05_result_guarantee"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "禁止承诺系统展示或后台代操作结果"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "mhc03",
+      "name": "开车时必须稍后再打",
+      "severity": "critical",
+      "atoms": [
+        {
+          "atom_id": "mhc03_a1",
+          "name": "开车不得继续讲",
+          "text": "商家开车时不得继续说明业务。",
+          "trigger_groups": [
+            {
+              "elements": [
+                {
+                  "value": "开车",
+                  "main": true,
+                  "pool": [
+                    "开车",
+                    "正在开车",
+                    "开车中"
+                  ],
+                  "fact": false
+                }
+              ]
+            }
+          ],
+          "negative_groups": [
+            {
+              "elements": [
+                {
+                  "value": "继续",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "继续",
+                    "接着",
+                    "快点"
+                  ]
+                },
+                {
+                  "value": "说明",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "说明",
+                    "讲",
+                    "说",
+                    "说完"
+                  ]
+                },
+                {
+                  "value": "业务",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "业务",
+                    "直播",
+                    "低延迟"
+                  ]
+                }
+              ]
+            }
+          ],
+          "safe_groups": [
+            {
+              "elements": [
+                {
+                  "value": "稍后联系",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "稍后再打",
+                    "晚点再打",
+                    "稍后再联系",
+                    "等您方便",
+                    "不打扰"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "不继续",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "不继续",
+                    "先不说",
+                    "不推进",
+                    "不展开"
+                  ]
+                },
+                {
+                  "value": "业务说明",
+                  "main": false,
+                  "fact": false,
+                  "pool": [
+                    "业务说明",
+                    "业务",
+                    "直播",
+                    "低延迟"
+                  ]
+                }
+              ]
+            },
+            {
+              "elements": [
+                {
+                  "value": "安全",
+                  "main": true,
+                  "fact": false,
+                  "pool": [
+                    "注意安全",
+                    "一路平安",
+                    "先注意安全"
+                  ]
+                }
+              ]
+            }
+          ],
+          "aliases": [
+            "no_continue_call_while_driving"
+          ]
+        }
+      ],
+      "enforcement": "hard",
+      "constraint_kind": "semantic_object",
+      "id": "mhc03",
+      "trigger_policy": "self_sufficient",
+      "aliases": [
+        "mhc03",
+        "开车时必须稍后再打"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {
+        "speaker": "assistant",
+        "window": "whole_dialogue",
+        "allow_multiple": false
+      },
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "开车时必须稍后再打",
+              "mhc03"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "开车时必须稍后再打"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      },
+      "trigger": []
+    },
+    {
+      "constraint_id": "msc01",
+      "name": "简短自然",
+      "quality_dimension": "brief_tone",
+      "description": "每次回复简短自然",
+      "metric": {
+        "name": "style_score",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      },
+      "enforcement": "soft",
+      "constraint_kind": "fuzzy_quality",
+      "id": "msc01",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "msc01",
+        "简短自然"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "简短自然",
+              "每次回复简短自然",
+              "msc01"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "简短自然"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    },
+    {
+      "constraint_id": "msc02",
+      "name": "频繁给商家发言机会",
+      "quality_dimension": "turn_balance",
+      "description": "说明后暂停等待商家回应",
+      "metric": {
+        "name": "turn_balance",
+        "direction": "range"
+      },
+      "score_effect": {
+        "weight": 0.03,
+        "can_cap_score": false
+      },
+      "enforcement": "soft",
+      "constraint_kind": "fuzzy_quality",
+      "id": "msc02",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "msc02",
+        "频繁给商家发言机会"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "频繁给商家发言机会",
+              "说明后暂停等待商家回应",
+              "msc02"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "频繁给商家发言机会"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    },
+    {
+      "constraint_id": "msc03",
+      "name": "被打断后简短过渡",
+      "quality_dimension": "interruption_transition",
+      "description": "若对话被打断，应使用“您刚才提到”或“我刚说到”一类简短过渡语接回。",
+      "metric": {
+        "name": "conditional_presence",
+        "direction": "higher_better"
+      },
+      "score_effect": {
+        "weight": 0.02,
+        "can_cap_score": false
+      },
+      "enforcement": "soft",
+      "constraint_kind": "fuzzy_quality",
+      "id": "msc03",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "msc03",
+        "被打断后简短过渡"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "被打断后简短过渡",
+              "若对话被打断",
+              "应使用“您刚才提到”或“我刚说到”一类简短过渡语接回",
+              "您刚才提到",
+              "我刚说到",
+              "msc03"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "被打断后简短过渡"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    },
+    {
+      "constraint_id": "mhc05",
+      "name": "单次回复长度控制（15到20字左右）",
+      "severity": "medium",
+      "metric": {
+        "speaker": "assistant",
+        "scope": "single_turn",
+        "name": "char_count",
+        "threshold": 30,
+        "direction": "lower_better",
+        "type": "max_chars_per_assistant_turn",
+        "max_chars": 30
+      },
+      "enforcement": "soft",
+      "constraint_kind": "structural_metric",
+      "id": "mhc05",
+      "trigger_policy": "global_style",
+      "aliases": [
+        "mhc05",
+        "单次回复长度控制（15到20字左右）"
+      ],
+      "negative_object": {},
+      "trigger_object": {},
+      "detection_scope": {},
+      "verdict_logic": "",
+      "prohibited": [],
+      "safe_context": [],
+      "unresolved": [],
+      "soft_rule": {},
+      "trigger": [],
+      "violation_scope": {
+        "protected_objects": [
+          {
+            "any": [
+              "单次回复长度控制（15到20字左右）",
+              "mhc05"
+            ]
+          }
+        ],
+        "forbidden_actions": [
+          {
+            "any": [
+              "单次回复长度控制（15到20字左右）"
+            ]
+          }
+        ],
+        "safe_actions": [],
+        "ambiguous_zone": [],
+        "trigger_scope": []
+      }
+    }
+  ]
+}

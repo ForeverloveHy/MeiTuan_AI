@@ -45,7 +45,7 @@ def check_negative_file(path: Path) -> list[str]:
         grey_allowed = bool(data.get("allow_oracle_grey_zone") or err.get("oracle_grey_zone"))
         if family == "semantic_or_context" or evaluability in {"semantic", "open_set"} or detector in {"semantic_node_coverage", "audit_only"}:
             # A small, explicitly marked grey-zone subset is allowed so the
-            # dataset can exercise LongCat arbitration.  It still must provide
+            # dataset can exercise LLM arbitration.  It still must provide
             # a target id and a traceable assistant span; otherwise it would be
             # an uncheckable negative sample rather than a controlled review case.
             if not grey_allowed:

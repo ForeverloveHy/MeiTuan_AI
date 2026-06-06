@@ -1,0 +1,183 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "knowledge_fact_contradiction"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_29",
+  "scenario": "knowledge_violation_reject_cancel_timeout_impact_wrong_from_baseline_00",
+  "negative_id_scheme": "00_29",
+  "target_knowledge_violation": "reject_cancel_timeout_impact",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，今天合同生效了？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰记得上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，但我担心拒单记录。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天都要配送并达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "那拒单、取消、超时会影响资格吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "拒单、取消和超时一般不影响排名和资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "那我偶尔取消应该没事？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "按这个口径看，一般不影响飞毛腿资格。"
+    },
+    {
+      "speaker": "user",
+      "text": "中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断或未达标可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额你们能帮我留吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "明天有事怎么退？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效，别当天才退。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励规则呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "reject_cancel_timeout_impact",
+      "target_id": "reject_cancel_timeout_impact",
+      "wrong_statement": "拒单、取消和超时一般不影响排名和资格。",
+      "evidence_span": "拒单、取消和超时一般不影响排名和资格。",
+      "description": "客服把拒单、取消、超时对排名和资格的影响说错，正确口径应为应尽量减少这类行为，否则可能影响排名、资格稳定性、后续合同或派单。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "audit_notes": {
+    "negative_audit_26_30": "补强非目标上下文，保留单点知识错误；wrong_statement/evidence_span 已对齐 turns 原句。"
+  }
+}

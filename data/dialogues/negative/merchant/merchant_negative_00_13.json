@@ -1,0 +1,188 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_flow_missing",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "id_scheme": "domain_negative_baselineIndex_negativeIndex",
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "schema_executor",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_deletion": true,
+    "audit_pass": "negative_audit_11_15_context_strengthened_preserve_single_error"
+  },
+  "id": "merchant_negative_00_13",
+  "scenario": "flow_missing_fee_setting_guidance_from_baseline_00",
+  "negative_id_scheme": "00_13",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "audio_video_whiteboard_sync_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "audio_video_whiteboard_sync_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "target_missing": "fee_setting_guidance",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体影响什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么改了？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，所以后台临时走低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是为了保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "后续发布页怎么选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "区别说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺，适合小班课和实操课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课，没看到低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以按路径手动开通。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先点【我的】，进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】，在【服务产品】里勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要调吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用入口在哪？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这个看后台页面提示。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体哪个设置里？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我这里先不展开入口。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面谁跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题我在企微里继续协助。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "fee_setting_guidance",
+      "requirement_id": "guide_fee_rule_entry_and_save",
+      "target_id": "fee_setting_guidance.guide_fee_rule_entry_and_save",
+      "description": "商家询问费用入口时，客服没有引导进入教务/财务设置、收费规则并保存启用低延迟。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor",
+      "mutation_from_baseline": "保留学员端费用确认，但将具体费用设置入口与保存步骤替换为笼统看页面提示。",
+      "sample_id": "merchant_negative_00_13"
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_flow_missing",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id_scheme": "domain_negative_baselineIndex_negativeIndex",
+  "id": "rider_negative_00_07",
+  "scenario": "flow_missing_peak_online_reminder_from_baseline_00",
+  "negative_id_scheme": "00_07",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "safety_reminder",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "safety_reminder",
+    "polite_close"
+  ],
+  "target_missing": "lunch_dinner_peak_online_reminder",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日合同要连续跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同要连续7天配送，并且每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断或未达标可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是你们站长能帮我留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "建议尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但安全第一，路况不好不要冒险。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我想退出呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全，有问题再联系我。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "lunch_dinner_peak_online_reminder",
+      "requirement_id": "remind_lunch_dinner_peak_online",
+      "target_id": "lunch_dinner_peak_online_reminder.remind_lunch_dinner_peak_online",
+      "description": "客服告知合同生效并询问能否配送，但没有提醒午餐和晚餐高峰期需要上线。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor",
+      "mutation_from_baseline": "删除母例中的“午晚高峰要上线”，保留今天能否配送询问，避免连带缺失开始配送确认。",
+      "sample_id": "rider_negative_00_07"
+    }
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "schema_executor",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_deletion": true,
+    "audit_status": "reinforced_in_negative_audit_00_10",
+    "audit_notes": [
+      "保留单点流程缺失目标，不修复 injected_errors 指向的缺失项",
+      "补强其他保留流程锚点，使负包只坏一个点",
+      "统一术语：App飞毛腿报名、飞毛腿报名按排名、恶劣天气安全边界"
+    ]
+  }
+}

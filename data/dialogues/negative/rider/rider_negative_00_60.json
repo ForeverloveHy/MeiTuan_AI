@@ -1,0 +1,186 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation",
+    "knowledge_violation"
+  ],
+  "id": "rider_negative_00_60",
+  "scenario": "composite_flow_missing_ask_delivery_and_knowledge_multi_day_quota_ranking_rule_wrong_from_baseline_00",
+  "negative_id_scheme": "00_60",
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，飞毛腿合同今天生效了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成8单，并且连续7天每天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "多日每天是8单吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，每天8单就按这个提醒。"
+    },
+    {
+      "speaker": "user",
+      "text": "中间断一天呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断或未达标可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "报名排名怎么看？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名主要看先到先得，不按排名。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果不想继续，怎么退？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "ask_can_start_delivery",
+      "requirement_id": "ask_delivery_start_availability",
+      "target_id": "ask_can_start_delivery.ask_delivery_start_availability",
+      "wrong_statement": "",
+      "evidence_span": "",
+      "description": "客服告知合同生效后，没有询问骑手今天是否可以开始配送。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "multi_day_daily_quota",
+      "target_id": "knowledge.multi_day_daily_quota",
+      "wrong_statement": "多日合同每天至少完成8单，并且连续7天每天都要达标。",
+      "evidence_span": "多日合同每天至少完成8单，并且连续7天每天都要达标。",
+      "description": "客服把多日合同每天单量说错，正确口径应为每天至少10单。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "ranking_rule",
+      "target_id": "knowledge.ranking_rule",
+      "wrong_statement": "飞毛腿报名主要看先到先得，不按排名。",
+      "evidence_span": "飞毛腿报名主要看先到先得，不按排名。",
+      "description": "客服把飞毛腿报名排名规则说错，正确口径应为报名按排名进行，并非站长人工干预。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violations": [
+    "multi_day_daily_quota",
+    "ranking_rule"
+  ]
+}

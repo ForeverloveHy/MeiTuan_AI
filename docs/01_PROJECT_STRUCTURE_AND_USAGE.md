@@ -1,77 +1,93 @@
 # 01 项目结构与从零开始使用指南
 
-本文档用于回答两个问题：第一，项目中每个文件夹承担什么作用；第二，评委拿到项目后，如何从零开始跑通在线建图、离线图评估和报告生成。
+本文档说明当前 ATLAS-Eval 项目的目录结构、主要入口和从零运行方式。ATLAS-Eval 的中文名称是“图元证据多轮对话评估系统”。当前版本默认使用 **LLM** 完成离线建图和可选局部仲裁；本地评估器负责批量评估、证据归因、正负包验收和报告生成。
 
-## 1. 项目简介
+文档正文保持中文语境。为保证和代码准确对应，少量字段名保留英文，例如 `atom`、`element`、`pool`、`trigger_groups`。它们在中文语境中分别表示评估原子、语义元素、表达池和触发元素组。
 
-SCEG 是一个复杂指令多轮客服对话评估系统。它不是把整段对话直接交给大模型打一个黑盒分数，而是先用 LongCat 把复杂客服指令转成可执行的状态图、知识表和限制表，再用本地 evaluator 对对话进行节点履约、知识正确性、限制合规性、上下文转场和样本验收评估。
-
-项目中的 demo/example 按 `LongCat-Flash-Lite` 作为离线建图与可选二次仲裁模型进行说明。也就是说，LongCat 负责把复杂指令结构化为 graph/schema，并在本地无法稳定判断的少量灰区中做二级判断；大规模样本评估本身由本地代码完成。
-
-## 2. 根目录文件说明
+## 1. 根目录结构
 
 ```text
-sceg_longcat_project/
+atlas_eval_project/
 ├─ app.py
+├─ app_graph.py
 ├─ app_offline.py
 ├─ README.md
 ├─ requirements.txt
 ├─ config/
-├─ data/
+├─ data/                  # 保留当前数据集，评估时读取 data/dialogues
 ├─ docs/
-├─ examples/
+├─ example/
 ├─ prompts/
 ├─ runs/
 ├─ scripts/
 ├─ src/
+│  └─ sceg/
 ├─ tools/
-└─ .venv/
+└─ .venv/                 # 只保留占位，不打包真实虚拟环境
 ```
 
-### `app.py`：在线建图 + 评估 GUI
+## 2. 主要运行入口
 
-`app.py` 是完整链路的图形界面入口。它负责展示系统如何从一段复杂客服指令开始，自动生成结构化评估标准，再评估本地对话包并输出中文报告。
+### 2.1 `app.py`：在线建图 + 评估图形界面
 
-运行后，界面会依次完成：
+适合展示完整链路：
 
 ```text
-输入复杂指令
-→ 调用 LongCat-Flash-Lite 离线建图
-→ Schema Linter / Compiler 结构检查与编译
-→ 本地 evaluator 评估正负包
-→ 可选 LongCat 二级判断
-→ 生成 HTML / JSON 报告
+输入复杂客服指令
+→ LLM 五阶段建图
+→ 本地结构检查、编译和最终收紧
+→ 读取对话包
+→ 本地评估器评分
+→ 可选 LLM 辅助仲裁
+→ 输出中文报告
 ```
 
-界面中的“建图模式”有三种：
+GitHub 清洁版中的演示图统一放在 `example/` 目录：`example/merchant_graph_example.json` 和 `example/rider_graph_example.json`。`runs/` 默认清空，只在运行后生成报告与临时产物。
 
-| 模式 | 作用 |
-| --- | --- |
-| 快速建图 | 默认模式。只有节点、知识、限制、ID 对齐等硬缺口才触发二次补图。 |
-| 稳健建图 | 质量提醒也会触发二次 repair，适合最终验收。 |
-| 只建一次 | 跳过二次补图，适合快速调试界面或检查本地 evaluator。 |
+### 2.2 `app_graph.py`：只建图入口
 
-### `app_offline.py`：离线图评估 Demo
-
-`app_offline.py` 是稳定演示入口。它不重新输入复杂指令，也不重新调用 LongCat 建图，而是直接读取已有的离线 `graph.json` 和本地 `data/dialogues` 对话包进行评估。
+只生成图表，不评估数据集。适合调试提示词、观察 LLM 输出质量和检查元素结构。它会调用五阶段建图流程：
 
 ```text
-选择离线 graph.json
+状态主图
+→ 知识表
+→ 硬/软限制表
+→ 评估原子的一级语义元素
+→ 表达池与用户触发话术扩张
+```
+
+### 2.3 `app_offline.py`：离线图评估入口
+
+适合稳定展示和复现。它不重新调用 LLM 建图，而是读取已有 `graph.json` 和本地 `data/dialogues`：
+
+```text
+选择 graph.json
 → 选择 dialogues 目录
-→ 本地编译 graph
-→ 本地评估对话
-→ 生成中文报告
+→ 本地编译图表
+→ 本地评估样本
+→ 可选局部仲裁
+→ 生成报告
 ```
 
-默认情况下，离线 demo 的“二级判断”为关闭，不会调用大模型。只有用户主动选择“审计模式”或“辅助模式”，并填写 API Key 时，才会把本地二筛后的少量灰区发送给 LongCat-Flash-Lite 做局部仲裁。
+### 2.4 `scripts/run_offline_graph.py`：命令行离线评估入口
 
-### `requirements.txt`：环境依赖
+适合快速回归、批量验收和打包前自查。
 
-项目主要依赖 Python 标准库和少量界面/报告所需包。建议使用独立虚拟环境安装，避免和系统 Python 或其他项目冲突。
+```bash
+# 商家示例图
+PYTHONPATH=src python scripts/run_offline_graph.py \
+  --graph example/merchant_graph_example.json \
+  --dialogues data/dialogues \
+  --pack all \
+  --llm-mode off
 
-### `.venv/`：虚拟环境占位
-
-交付包中 `.venv/` 只保留 `.gitkeep` 占位，不包含真实虚拟环境。拿到项目后需要在本机重新创建虚拟环境。
+# 骑手示例图
+PYTHONPATH=src python scripts/run_offline_graph.py \
+  --graph example/rider_graph_example.json \
+  --dialogues data/dialogues \
+  --pack all \
+  --llm-mode off
+```
 
 ## 3. `config/`：运行配置
 
@@ -81,170 +97,108 @@ config/
 └─ hardcode_guard.json
 ```
 
-`default_runtime.json` 保存 evaluator 的运行参数，包括：
+`default_runtime.json` 保存评分权重、阈值、仲裁预算、负包误杀控制和通用中文话语行为算子。它只包含通用机制，不保存商家或骑手的业务答案。
 
-- 四维评分权重：节点完成度、结构关系、知识正确性、限制合规性；
-- 正包通过阈值、节点命中阈值、负包分数 cap；
-- LongCat 仲裁候选预算；
-- 通用中文话术算子，例如承诺、施压、规则说明等。
+`hardcode_guard.json` 用于约束 `tools/hardcode_guard.py`，防止核心评估代码混入任务硬编码。
 
-这些配置只包含通用评价参数和通用语言算子，不写入商家、骑手或具体任务的硬编码。
-
-`hardcode_guard.json` 是反硬编码检查配置，用于辅助 `tools/hardcode_guard.py` 确保核心代码里不使用硬编码的方式来作弊。
-
-## 4. `data/`：正式正负包对话数据
-
-```text
-data/dialogues/
-├─ positive_pack/
-│  ├─ merchant/
-│  └─ rider/
-└─ negative_pack/
-   ├─ merchant/
-   └─ rider/
-```
-
-`data/` 只保存正式对话数据，不保存运行产物。当前规模为：
-
-| 数据包 | 数量 |
-| --- | ---: |
-| 商家正包 `positive_pack/merchant` | 91 |
-| 商家负包 `negative_pack/merchant` | 91 |
-| 骑手正包 `positive_pack/rider` | 86 |
-| 骑手负包 `negative_pack/rider` | 83 |
-| 合计 | 351 |
-
-正包用于检验系统能否认可合格客服对话；负包用于检验系统能否识别流程缺失、知识错误、限制违规等问题。
-
-
-## 5. `examples/`：抽象理解示例
-
-```text
-examples/
-├─ dialogue_positive.json
-├─ dialogue_negative.json
-└─ graph_abstract.json
-```
-
-`examples/` 里的文件是抽象理解示例，用于理解格式，不作为正式评测数据。正式评估使用 `data/dialogues/` 中的商家、骑手正负包；正式离线图使用 `runs/graphs_offline/` 中的 graph。
-
-## 7. `prompts/`：LongCat 建图提示词和任务指令
+## 4. `prompts/`：五阶段建图提示词
 
 ```text
 prompts/
+├─ atlas_eval_method_memory_prompt.md
 ├─ latest_schema_graph_prompt.md
-├─ schema_graph_repair_prompt.md
-└─ instructions/
-   ├─ merchant_instruction.txt
-   └─ rider_instruction.txt
+├─ schema_core_graph_prompt.md
+├─ schema_knowledge_table_prompt.md
+├─ schema_constraint_tables_prompt.md
+├─ schema_atom_element_refinement_prompt.md
+├─ schema_element_expansion_prompt.md
+└─ schema_graph_repair_prompt.md
 ```
 
-`latest_schema_graph_prompt.md` 用于第一次 LongCat 建图，要求输出状态主图、知识表、限制表、终止策略等结构化 schema。
+当前提示词要求 LLM 输出的是可执行评估结构，而不是普通摘要或普通状态机。
 
-`schema_graph_repair_prompt.md` 用于二次补图。当本地 schema gap audit 发现结构缺口时，系统会把原始复杂指令、当前 schema、审计结果和高层绑定提示发送给 LongCat-Flash-Lite，让它返回一份完整修正后的 schema。
+| 阶段 | 中文名称 | 输出 | 作用 |
+| --- | --- | --- | --- |
+| 第一阶段 | 状态主图 | `nodes`、`edges`、`relation_groups`、`terminal_policies` | 建立主流程、条件分支、FAQ 和终止策略。 |
+| 第二阶段 | 知识表 | `selector_groups`、`correct_groups`、`wrong_groups`、`value_check` | 建立事实核验对象、正确事实、错误事实和数值校验。 |
+| 第三阶段 | 限制表 | `hard_constraint_table`、`soft_constraint_table` | 建立硬限制和软质量限制。 |
+| 第四阶段 | 一级语义元素 | 每个评估原子下的 `element_groups` | 从客服期望答话或用户触发种子中拆语义元素。 |
+| 第五阶段 | 表达扩张 | 客服侧 `pool`、用户侧 `source_text trigger_groups` | 客服侧扩等价表达池；用户侧扩自然话术并转成触发组。 |
 
-`prompts/instructions/` 保存商家和骑手任务指令，便于复现实验和展示。注意：prompt 可以包含任务指令，但本地 evaluator 代码不能写死任务答案。
+## 5. `src/sceg/`：核心代码目录
 
-## 8. `runs/`：离线图、演示报告和运行产物
+当前核心代码位于 `src/sceg/`。主要模块如下：
 
-```text
-runs/
-├─ graphs_offline/
-│  ├─ course_publish_upgrade_v1.json
-│  └─ flyleg_rider_call_v1.json
-├─ merchant_example/
-├─ ridder_example/
-├─ latest_run.json
-└─ latest_offline_run.json
-```
-
-`runs/graphs_offline/` 保存已经生成好的离线状态图。当前有两份：
-
-| 文件 | 对应任务 |
+| 模块 | 中文作用 |
 | --- | --- |
-| `course_publish_upgrade_v1.json` | 商家课程发布页直播升级通知。 |
-| `flyleg_rider_call_v1.json` | 飞毛腿骑手合同通知与配送提醒。 |
+| `demo_runner.py` | 总调度器，串联建图、评估、仲裁和报告产物。 |
+| `llm_client.py` | LLM 调用、JSON 抽取、缓存、token 统计。 |
+| `schema_atomic_pipeline.py` | 表格合并、评估原子登记、元素增量合并、限制清洗。 |
+| `schema_supplement_hints.py` | 本地生成二次补图/补表的缺口提示。 |
+| `schema_final_tightener.py` | 最终本地收紧：修终止空触发、主线/条件混乱、硬限制重复等。 |
+| `schema_linter.py` | 图表结构检查。 |
+| `schema_compiler.py` | 把 JSON 图表编译成本地可执行结构。 |
+| `element_engine.py` | 语义元素级命中引擎。 |
+| `graph_evaluator.py` | 激活子图评分、节点/关系/上下文综合评估。 |
+| `knowledge_judge.py` | 知识表的对象召回、正确事实、错误事实和数值判断。 |
+| `constraint_judge.py` | 硬/软限制判断。 |
+| `dataset_interface.py` | 正负包严格验收。 |
+| `oracle_router.py` | 生成本地灰区候选。 |
+| `local_second_filter.py` | 仲裁前本地二筛、过滤、合并。 |
+| `llm_verifier.py` | LLM 局部仲裁。 |
+| `report_explainer.py` / `report_html.py` | 中文报告解释与 HTML 输出。 |
 
-`runs/merchant_example/` 和 `runs/ridder_example/` 保存演示报告例子，包括：
-
-- `report.html`：当前选择的报告入口；
-- `report_simple.html`：简版结果报告；
-- `report_detail.html`：详细过程报告；
-- `all_reports_merged.json`：所有样本的结构化评估结果；
-- `llm_verifier_summary.json`：二级判断统计；
-- `run_token_usage.json`：LongCat token 使用记录；
-- `run_timing_summary.json`：运行耗时统计；
-- `upload_bundle.zip`：一次运行结果的压缩包。
-
-这些 example 体现的是：LongCat-Flash-Lite 负责离线建图和可选二次仲裁，本地 evaluator 负责批量评估和生成中文可解释报告。
-
-## 9. `scripts/`：命令行入口
-
-```text
-scripts/run_offline_graph.py
-```
-
-当前清理版只保留一个命令行入口，用于离线 graph 评估。这样可以减少展示时的入口混乱。
-
-基本命令：
-
-```bash
-PYTHONPATH=src python scripts/run_offline_graph.py \
-  --graph runs/graphs_offline/course_publish_upgrade_v1.json \
-  --dialogues data/dialogues \
-  --pack all \
-  --llm-mode off
-```
-
-常用参数：
-
-| 参数 | 说明 |
-| --- | --- |
-| `--graph` | 离线状态图路径。 |
-| `--dialogues` | 对话数据根目录。 |
-| `--pack` | `all`、`positive` 或 `negative`。 |
-| `--max` | 只评估前 N 条，便于快速演示。 |
-| `--llm-mode` | `off`、`shadow` 或 `assist`。 |
-
-## 10. `src/sceg2/`：核心评估代码
-
-`src/sceg2/` 是项目的核心。它包含：
-
-- LongCat 客户端；
-- schema 编译和检查；
-- 对话加载和证据抽取；
-- 节点匹配、知识判断、限制判断、上下文转场；
-- 正负包验收；
-- 本地二筛和可选 LongCat 仲裁；
-- 报告解释和 HTML 生成。
-
-核心原则是：本地代码只实现通用结构化评估逻辑，业务事实都来自 graph/schema。
-
-## 11. `tools/`：质量检查工具
+## 6. `tools/`：质量检查与回归工具
 
 ```text
 tools/
 ├─ hardcode_guard.py
 ├─ anti_leak_guard.py
-└─ negative_purity_check.py
+├─ negative_purity_check.py
+├─ pre_llm_simulation_audit.py
+├─ negative_miss_audit.py
+├─ activation_scope_smoke.py
+├─ element_bug_regression_smoke.py
+├─ role_aware_element_smoke.py
+├─ final_tightener_smoke.py
+└─ ...
 ```
 
-三个工具分别用于：
+推荐交付前运行：
 
-| 工具 | 作用 |
+```bash
+PYTHONPATH=src python tools/hardcode_guard.py
+PYTHONPATH=src python tools/anti_leak_guard.py
+PYTHONPATH=src python tools/negative_purity_check.py data/dialogues/negative_pack
+PYTHONPATH=src python tools/role_aware_element_smoke.py
+PYTHONPATH=src python tools/activation_scope_smoke.py
+PYTHONPATH=src python tools/final_tightener_smoke.py
+```
+
+这些工具分别检查业务硬编码、负包泄漏、负包标注纯净性、角色感知元素扩张、激活范围和最终图表收紧逻辑。
+
+## 7. `runs/`：图、报告和运行产物
+
+GitHub 清洁包默认清空 `runs/`，只保留占位文件。运行 `app.py`、`app_offline.py` 或命令行评估后，系统才会在 `runs/` 下生成图、报告和统计文件。
+
+常见输出包括：
+
+| 文件 | 说明 |
 | --- | --- |
-| `hardcode_guard.py` | 检查核心代码是否混入业务硬编码。 |
-| `anti_leak_guard.py` | 检查 `wrong_statement`、`evidence_span` 等负包答案字段是否被编译进判分逻辑。 |
-| `negative_purity_check.py` | 检查负包是否保留明确的预设错误和结构化验收字段。 |
+| `graph.json` | 本次使用或生成的图表。 |
+| `report.html` | 当前报告入口。 |
+| `report_simple.html` | 简版结果报告。 |
+| `report_detail.html` | 详细过程报告。 |
+| `all_reports_merged.json` | 所有样本结构化评估结果。 |
+| `run_token_usage.json` | LLM 调用与 token 使用记录。 |
+| `run_timing_summary.json` | 建图、评估、仲裁耗时。 |
+| `llm_verifier_summary.json` | 仲裁统计。 |
 
-我们设立这些工具，都是为了确保我们项目是具有高度泛化性的，虽然我们在调试时仅使用官方给的两种复杂指令示例，但是我们一切代码设计不迎合具体的任务和具体的数据集。
-```
+## 8. 从零开始运行
 
-## 12. 从零开始运行项目
+### 8.1 创建虚拟环境
 
-### 12.1 创建虚拟环境
-
-Windows PowerShell：
+Windows：
 
 ```powershell
 python -m venv .venv
@@ -260,86 +214,57 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 12.2 设置 LongCat 参数
+### 8.2 配置 LLM
 
-如果只跑离线图评估且关闭二级判断，可以不设置 API Key。
+只跑离线图评估且关闭仲裁时，可以不设置 API Key。在线建图或开启辅助仲裁时设置：
 
-如果要在线建图或开启二级判断，需要设置：
+```bash
+export LLM_API_KEY="你的 LLM API Key"
+export LLM_BASE_URL="你的 LLM BASE URL"
+export LLM_MODEL="你的LLM NAME"
+```
 
 Windows PowerShell：
 
 ```powershell
-$env:LONGCAT_API_KEY="你的 LongCat API Key"
-$env:LONGCAT_BASE_URL="https://api.longcat.chat/openai"
-$env:LONGCAT_MODEL="LongCat-Flash-Lite"
+$env:LLM_API_KEY="你的 LLM API Key"
+$env:LLM_BASE_URL="你的 LLM BASE URL"
+$env:LLM_MODEL="你的LLM NAME"
 ```
 
-Linux / macOS：
-
-```bash
-export LONGCAT_API_KEY="你的 LongCat API Key"
-export LONGCAT_BASE_URL="https://api.longcat.chat/openai"
-export LONGCAT_MODEL="LongCat-Flash-Lite"
-```
-
-API Key 只应放在本地环境变量或界面输入框中，不要写进代码、配置文件、报告或压缩包。
-
-### 12.3 跑离线图评估 demo
-
-图形界面：
+### 8.3 跑离线评估
 
 ```bash
 python app_offline.py
 ```
 
-命令行快速验证商家包：
+或使用命令行：
 
 ```bash
+# 商家示例图
 PYTHONPATH=src python scripts/run_offline_graph.py \
-  --graph runs/graphs_offline/course_publish_upgrade_v1.json \
+  --graph example/merchant_graph_example.json \
+  --dialogues data/dialogues \
+  --pack all \
+  --llm-mode off
+
+# 骑手示例图
+PYTHONPATH=src python scripts/run_offline_graph.py \
+  --graph example/rider_graph_example.json \
   --dialogues data/dialogues \
   --pack all \
   --llm-mode off
 ```
 
-命令行快速验证骑手包：
-
-```bash
-PYTHONPATH=src python scripts/run_offline_graph.py \
-  --graph runs/graphs_offline/flyleg_rider_call_v1.json \
-  --dialogues data/dialogues \
-  --pack all \
-  --llm-mode off
-```
-
-### 12.4 跑在线建图 + 评估
+### 8.4 跑在线建图
 
 ```bash
 python app.py
 ```
 
-在界面中粘贴复杂客服指令，填写 LongCat API Key，选择建图模式、评估数据包和二级判断模式。系统会把运行产物写入 `runs/longcat_latest__时间戳/`。
+在界面中粘贴复杂客服指令，填写 LLM API Key，选择建图模式、评估数据包和仲裁模式。系统会把图表、报告、token 统计和耗时统计写入 `runs/` 下对应运行目录。
 
-### 12.5 查看输出
 
-一次运行结束后，重点查看：
+## 9. 报告查看说明
 
-| 文件 | 说明 |
-| --- | --- |
-| `report.html` | 当前选择的报告入口。 |
-| `report_simple.html` | 面向评委的简版结果报告。 |
-| `report_detail.html` | 面向技术评审的详细过程报告。 |
-| `all_reports_merged.json` | 所有样本的结构化评估明细。 |
-| `graph.json` | 本次使用的状态图。 |
-| `run_manifest.json` | 本次运行索引。 |
-| `run_token_usage.json` | LongCat 调用和 token 统计。 |
-| `run_timing_summary.json` | LongCat 建图、本地评估等耗时统计。 |
-
-## 13. 推荐使用路径
-
-1. 打开 `app_offline.py`，选择 `runs/graphs_offline/course_publish_upgrade_v1.json`；
-2. 选择 `data/dialogues`，评估范围选择“全部数据”或“只跑前几条”；
-3. 二级判断先选择“关闭”，展示本地 evaluator 的速度和可解释性；
-4. 生成报告后打开 `report_simple.html`，展示通过率、分数和失分归因；
-5. 再打开 `report_detail.html`，展示节点命中、知识判断、限制判断、样本验收追踪；
-6. 最后说明：LongCat-Flash-Lite 的高成本语义理解只发生在离线建图和少量灰区仲裁阶段，大规模评估由本地结构化 evaluator 完成。
+评估完成后，进入 `runs/` 下对应运行目录，直接用浏览器打开 `report.html` 即可查看报告入口。若需要展示完整证据链，可以打开 `report_detail.html`；若只看通过情况、总分和主要归因，可以打开 `report_simple.html`。GitHub 清洁包初始没有现成报告，报告需要运行后生成。

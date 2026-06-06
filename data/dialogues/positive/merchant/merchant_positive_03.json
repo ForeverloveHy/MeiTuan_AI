@@ -1,0 +1,207 @@
+{
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "merchant_positive_03",
+  "scenario": "price_sensitive_no_discount_promise",
+  "personality": "价格敏感",
+  "difficulty": "中等难度",
+  "baseline_index": 3,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，主要关心费用。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "和我们现在发课有什么关系？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先确认一下，您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么这么改？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，所以后台先临时开启。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面页面怎么显示？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "先说标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "大班课选标准直播比较合适。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟贵多少？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "更适合小班课和实操课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "费用会略高，因为带宽和节点保障更强。"
+    },
+    {
+      "speaker": "user",
+      "text": "能不能给点优惠？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "优惠这块我不能承诺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "具体请以页面费用规则为准。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在能看到低延迟选项吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "还没看到。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以按路径看一下，先点【我的】。"
+    },
+    {
+      "speaker": "user",
+      "text": "点了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "user",
+      "text": "进去了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】。"
+    },
+    {
+      "speaker": "user",
+      "text": "好了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "到【服务产品】里勾选低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "勾好了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "按页面提示保存，后续按课程需要选择。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要调吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否也适用于低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "在哪里确认？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "到【教务/财务设置】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，后面谁联系？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "可以。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "positive_validation": {
+    "expected_result": "本地通过",
+    "knowledge_events": [],
+    "constraint_events": [],
+    "injected_errors": [],
+    "notes": "价格敏感型正包，商家追问费用与优惠，客服说明费用略高原因并拒绝优惠承诺，流程完整合规。",
+    "audit_revision": "小修：价格敏感场景补强“不承诺优惠、以页面费用规则为准”。"
+  }
+}

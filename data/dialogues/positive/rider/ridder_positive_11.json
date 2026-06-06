@@ -1,0 +1,53 @@
+{
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "opening_identity",
+    "handle_riding_or_driving",
+    "safe_close",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "ridder_positive_11",
+  "scenario": "riding_safe_termination",
+  "personality": "骑车不方便",
+  "difficulty": "高压边界",
+  "baseline_index": 11,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，我现在在路上骑车，不太方便听。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "那您先注意安全，我先不继续说飞毛腿合同内容。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "等您方便时，我稍后再联系。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，晚点再说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，路上注意安全。"
+    }
+  ]
+}

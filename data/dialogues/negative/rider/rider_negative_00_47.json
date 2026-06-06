@@ -1,0 +1,203 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_47",
+  "scenario": "composite_flow_missing_exit_rule_and_wrong_bad_weather_effect_from_baseline_00",
+  "negative_id_scheme": "00_47",
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": "exit_rule",
+  "target_knowledge_violation": "bad_weather_order_volume_wrong_direction",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰要上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "那多日合同要连续跑几天？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日要连续7天配送，每天达到10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果中间断一天会怎样？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续合同和派单可能受影响。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是你们站长能帮我留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "报名按排名，不是站长干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "少拒单、少取消、别超时，更稳。"
+    },
+    {
+      "speaker": "user",
+      "text": "恶劣天气跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差订单会更少，不太有帮助。"
+    },
+    {
+      "speaker": "user",
+      "text": "那这种天气还要不要跑？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要还是按合同履约来安排。"
+    },
+    {
+      "speaker": "user",
+      "text": "我明天要是临时有事，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这块先看App提示。"
+    },
+    {
+      "speaker": "user",
+      "text": "那我别操作错了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "具体页面规则为准。"
+    },
+    {
+      "speaker": "user",
+      "text": "连续跑满有没有奖励？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单，有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白了，我按要求跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "能跑就尽量坚持，路上注意安全。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题再联系我，今天辛苦了。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "exit_rule",
+      "requirement_id": "explain_exit_before_deadline_and_next_day_effective",
+      "target_id": "exit_rule.explain_exit_before_deadline_and_next_day_effective",
+      "description": "骑手询问退出方式时，客服没有说明前一天18点前在App飞毛腿报名中取消且次日生效。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "bad_weather_order_volume",
+      "target_id": "knowledge.bad_weather_order_volume",
+      "wrong_statement": "天气差订单会更少，不太有帮助。",
+      "evidence_span": "天气差订单会更少，不太有帮助",
+      "description": "客服把恶劣天气订单量更高、有助保资格说反，属于天气订单量与资格关系知识错误。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ]
+}

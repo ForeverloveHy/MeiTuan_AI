@@ -37,10 +37,19 @@
     "站长代取消",
     "费用",
     "价格",
-    "直播"
+    "直播",
+    "合同",
+    "课程",
+    "退出",
+    "报名",
+    "排名",
+    "配送",
+    "资格",
+    "收益"
   ],
   "allowed_files": [
     "prompts/instructions/merchant_instruction.txt",
-    "prompts/instructions/rider_instruction.txt"
+    "prompts/instructions/rider_instruction.txt",
+    "tools/method_contract_guard.py"
   ]
 }

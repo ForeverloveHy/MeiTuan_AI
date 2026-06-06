@@ -1,0 +1,193 @@
+{
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {},
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "sync_quality_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_features",
+    "low_latency_features",
+    "price_difference_reason",
+    "publish_method_check",
+    "third_party_enable_low_latency",
+    "student_fee_check",
+    "student_fee_setting_entry",
+    "wechat_followup",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "merchant_positive_06",
+  "scenario": "third_party_system_enable",
+  "personality": "配合追问",
+  "difficulty": "中等难度",
+  "baseline_index": 6,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是机构负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "是，我们用第三方系统发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "跟您同步直播产品升级，这次新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "后台已经改了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后台已经临时走低延迟，您知道吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先改？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，所以后台临时开启。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面发布页会怎么变？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "标准直播什么特点？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "更适合小班课和实操课。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用差别呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播费用会略高，因为带宽和节点保障更强。"
+    },
+    {
+      "speaker": "user",
+      "text": "SaaS系统B里没看到低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示，可以手动开通。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先点【我的】。"
+    },
+    {
+      "speaker": "user",
+      "text": "点了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "user",
+      "text": "看到了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "再选择【直播平台】。"
+    },
+    {
+      "speaker": "user",
+      "text": "选好了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "到【服务产品】里勾选低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "勾完保存就行？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "按页面提示保存，后续按课程类型选择。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用会跟着变吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认已设费用是否也适用于低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "在哪里确认费用？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "到【教务/财务设置】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "后续有问题找谁？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，我通过。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝您课程顺利，招生满满。"
+    }
+  ],
+  "positive_validation": {
+    "expected_result": "本地通过",
+    "knowledge_events": [],
+    "constraint_events": [],
+    "injected_errors": [],
+    "notes": "第三方系统型正包，用户一开始就说明使用第三方系统，客服仍完成身份、升级、原因、两种直播区别、第三方开通、费用确认和企微收束。",
+    "audit_revision": "小修：第三方开通样本补完整背景与“如果未显示则手动开通”，避免像默认已可开。"
+  }
+}

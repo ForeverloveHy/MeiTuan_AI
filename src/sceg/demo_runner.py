@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .graph_language import assert_chinese_context
 
 import copy
 import hashlib
@@ -16,7 +17,7 @@ from .dialogue_loader import load_dialogues
 from .evidence_extractor import EvidenceExtractor
 from .graph_evaluator import GraphEvaluator
 from .io_utils import read_json, write_json, write_text
-from .longcat_client import LongCatClient
+from .llm_client import LLMClient
 from .llm_verifier import apply_llm_verifier
 from .oracle_router import OracleRouter
 from .report_explainer import ReportExplainer
@@ -26,7 +27,26 @@ from .version import CORE_VERSION, runtime_version_info
 from .score_adjuster import apply_dataset_score_adjustments
 from .schema_compiler import compile_state_graph
 from .schema_linter import lint_and_repair_schema
-from .schema_repair_audit import audit_schema_repair_need, build_repair_instruction
+from .schema_repair_audit import audit_schema_repair_need, parse_binding_hints
+from .schema_supplement_hints import (
+    build_core_supplement_hints,
+    build_knowledge_supplement_hints,
+    build_constraint_supplement_hints,
+    instruction_hard_constraint_requirement,
+)
+from .schema_atomic_pipeline import (
+    build_atom_registry,
+    build_atom_transport,
+    merge_constraint_tables,
+    merge_element_anchor_delta,
+    merge_knowledge_table,
+    remove_old_runtime_tables,
+    strip_graph_core,
+    assign_element_anchor_ids,
+    normalize_executable_groups,
+    sanitize_constraint_tables,
+    merge_constraint_supplement,
+)
 
 
 def _now_id() -> str:
@@ -52,10 +72,259 @@ def _stable_hash(value: Any) -> str:
 
 
 def _graph_cache_path(root: Path, key_data: dict[str, Any]) -> Path:
-    cache_dir = root / "runs" / "graphs_longcat" / "_cache"
+    cache_dir = root / "runs" / "graphs_llm" / "_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir / ("graph_" + _stable_hash(key_data) + ".json")
 
+
+def _unwrap_stage_output(raw: dict[str, Any], *keys: str) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        return {}
+    for key in keys:
+        val = raw.get(key)
+        if isinstance(val, dict):
+            return val
+    return raw
+
+
+def _table_output_nonempty(raw: dict[str, Any], key: str) -> bool:
+    if not isinstance(raw, dict):
+        return False
+    val = raw.get(key)
+    return isinstance(val, list) and any(isinstance(x, dict) for x in val)
+
+
+
+
+def _safe_llm_stage_json(client: LLMClient, user_payload: str, prompt_text: str, *, purpose: str, default: dict[str, Any], emit_phase=None, phase: str = "llm", label: str = "") -> dict[str, Any]:
+    """Call LLM JSON stage without letting optional stages kill the build.
+
+    Used for second-pass supplements and element batches.  Core graph/table
+    first-pass stages still call client.generate_json directly and fail fast.
+    This keeps the pipeline reproducible while preventing one malformed optional
+    batch from discarding an otherwise usable graph.
+    """
+    try:
+        return client.generate_json(user_payload, prompt_text, purpose=purpose)
+    except Exception as exc:
+        if emit_phase is not None:
+            try:
+                emit_phase(phase, "warning", "%s JSON 解析失败，已跳过该可选阶段/批次：%s" % (label or purpose, str(exc).split("\n")[0][:260]))
+            except Exception:
+                pass
+        out = copy.deepcopy(default)
+        out.setdefault("_stage_skipped_due_to_invalid_json", True)
+        out.setdefault("_stage_purpose", purpose)
+        out.setdefault("_stage_error", str(exc)[:800])
+        return out
+
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        value = int(str(raw).strip())
+    except ValueError:
+        return default
+    return max(minimum, value)
+
+
+def _split_atom_transport(registry: dict[str, Any], *, batch_size: int | None = None) -> list[dict[str, Any]]:
+    """Split the atom transport into deterministic LLM batches.
+
+    This is schema-generic and prevents the element stages from asking the
+    model to emit a single very long JSON object.  Batches are grouped by
+    source_kind first, then chunked by a small size.
+    """
+    entries = [x for x in (registry.get("entries") or []) if isinstance(x, dict)]
+    if not entries:
+        return [copy.deepcopy(registry)]
+    batch_size = batch_size or len(entries)
+    order = ["activation", "node_atom", "knowledge", "hard_constraint", "soft_constraint"]
+    grouped: dict[str, list[dict[str, Any]]] = {k: [] for k in order}
+    extra: dict[str, list[dict[str, Any]]] = {}
+    for e in entries:
+        kind = str(e.get("source_kind") or "unknown")
+        (grouped[kind] if kind in grouped else extra.setdefault(kind, [])).append(e)
+    batches: list[dict[str, Any]] = []
+    all_groups = [(k, grouped[k]) for k in order if grouped.get(k)] + [(k, v) for k, v in sorted(extra.items()) if v]
+    for kind, vals in all_groups:
+        for start in range(0, len(vals), batch_size):
+            chunk = vals[start:start + batch_size]
+            b = copy.deepcopy(registry)
+            b["entries"] = copy.deepcopy(chunk)
+            b["entry_count"] = len(chunk)
+            b["batch"] = {
+                "source_kind": kind,
+                "start": start,
+                "end": start + len(chunk),
+                "total_for_source_kind": len(vals),
+            }
+            batches.append(b)
+    total = len(batches)
+    for idx, b in enumerate(batches, start=1):
+        b.setdefault("batch", {})["batch_index"] = idx
+        b.setdefault("batch", {})["batch_total"] = total
+    return batches
+
+
+def _split_atom_registry(registry: dict[str, Any], *, batch_size: int | None = None) -> list[dict[str, Any]]:
+    # Backward-compatible internal alias.
+    return _split_atom_transport(registry, batch_size=batch_size)
+
+
+
+_GENERIC_FALLBACK_STOPWORDS = {
+    "请问", "您好", "你好", "谢谢", "麻烦", "稍后", "好的", "进入", "点击", "选择", "保存",
+    "说明", "告知", "询问", "确认", "提醒", "引导", "回复", "结束语", "处理", "分支",
+}
+_GENERIC_UNIT_RE = re.compile(r"\d+(?:\.\d+)?\s*(?:单|天|元|秒|点|分钟|小时|次|%)")
+_GENERIC_BRACKET_RE = re.compile(r"[【\[（(\"“]([^【】\[\]（）()\"“”]{1,16})[】\]）)\"”]")
+_GENERIC_PHRASE_SPLIT_RE = re.compile(r"[，,。；;：:\n\r\t、/]|然后|并且|以及|或者|或|和|与")
+
+
+def _fallback_clean_phrase(value: Any) -> str:
+    s = str(value or "").strip()
+    s = re.sub(r"[*#`]+", "", s)
+    s = re.sub(r"^[\-\d\.\s]+", "", s)
+    s = re.sub(r"[。！？!?；;，,：:\s]+$", "", s)
+    s = s.replace("【", "").replace("】", "").replace("“", "").replace("”", "").replace('"', "")
+    return s.strip()
+
+
+def _fallback_terms(*values: Any, max_terms: int = 3) -> list[str]:
+    """Generic last-resort element extraction from existing schema text.
+
+    This is intentionally task-agnostic: it never injects business words from
+    code; it only shortens phrases already present in LLM's own schema.
+    It is used when a batched element call skips an atom, so the local
+    executor still has a minimal recall object instead of an empty atom.
+    """
+    out: list[str] = []
+    def add(term: Any) -> None:
+        t = _fallback_clean_phrase(term)
+        if not t or t in _GENERIC_FALLBACK_STOPWORDS:
+            return
+        if len(t) < 2 or len(t) > 14:
+            return
+        if t not in out:
+            out.append(t)
+    joined = " ".join(str(v or "") for v in values)
+    for m in _GENERIC_BRACKET_RE.findall(joined):
+        add(m)
+    for m in _GENERIC_UNIT_RE.findall(joined):
+        add(m.replace(" ", ""))
+    for raw in values:
+        for part in _GENERIC_PHRASE_SPLIT_RE.split(str(raw or "")):
+            part = _fallback_clean_phrase(part)
+            if not part:
+                continue
+            # Prefer the compact action/object phrase from names, but avoid
+            # entire long explanatory sentences.
+            if len(part) <= 14:
+                add(part)
+            else:
+                # Keep a short head phrase if it is the only material.
+                add(part[:10])
+            if len(out) >= max_terms:
+                return out[:max_terms]
+    return out[:max_terms]
+
+
+def _fallback_group(terms: list[str], *, fact_values: set[str] | None = None, max_main: int = 2) -> list[dict[str, Any]]:
+    elems: list[dict[str, Any]] = []
+    fact_values = fact_values or set()
+    for i, t in enumerate(terms):
+        is_fact = t in fact_values
+        elems.append({"value": t, "main": (i < max_main and not is_fact), "fact": bool(is_fact), "pool": []})
+    return [{"elements": elems}] if elems else []
+
+
+def _has_group_material(obj: dict[str, Any], *keys: str) -> bool:
+    for key in keys:
+        val = obj.get(key)
+        if isinstance(val, list) and val:
+            return True
+        if isinstance(val, dict) and val:
+            return True
+    return False
+
+
+def _fill_minimal_element_fallbacks(graph: dict[str, Any]) -> dict[str, Any]:
+    """Fill skipped atom elements with minimal generic elements.
+
+    Long outputs can cause the model to skip a few anchors even when JSON is
+    valid.  The fallback is schema-derived and does not add facts or business
+    rules; it only turns existing name/text/trigger_hint into short recall
+    elements.  LLM output still wins whenever it provided executable groups.
+    """
+    changed: list[str] = []
+    for node in graph.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        nid = str(node.get("id") or node.get("node_id") or node.get("name") or "node")
+        activation = node.get("activation") if isinstance(node.get("activation"), dict) else {}
+        mode = str(activation.get("mode") or "always")
+        if mode in {"condition", "user_triggered"} and not _has_group_material(activation, "trigger_groups", "element_groups", "primary_elements", "trigger_object"):
+            terms = _fallback_terms(activation.get("trigger_hint"), node.get("name"), max_terms=2)
+            if terms:
+                activation["trigger_groups"] = _fallback_group(terms, max_main=2)
+                changed.append(f"activation:{nid}")
+        for atom in node.get("atoms") or []:
+            if not isinstance(atom, dict):
+                continue
+            if atom.get("required", True) is False:
+                continue
+            if not _has_group_material(atom, "element_groups", "primary_elements", "positive_elements", "positive_object", "element_rule"):
+                terms = _fallback_terms(atom.get("name"), atom.get("text"), max_terms=3)
+                if terms:
+                    atom["element_groups"] = _fallback_group(terms, max_main=2)
+                    changed.append(str(atom.get("id") or atom.get("atom_id") or nid))
+    def iter_atoms(table: Any, parent_key: str):
+        for item in table or []:
+            if not isinstance(item, dict):
+                continue
+            atoms = item.get("atoms")
+            if isinstance(atoms, list) and atoms:
+                for atom in atoms:
+                    if isinstance(atom, dict):
+                        yield item, atom
+            else:
+                yield item, item
+    for parent, atom in iter_atoms(graph.get("knowledge_table") or [], "knowledge_id"):
+        aid = str(atom.get("id") or atom.get("atom_id") or parent.get("id") or parent.get("knowledge_id") or "knowledge")
+        if not _has_group_material(atom, "selector_groups", "primary_elements", "element_groups"):
+            terms = _fallback_terms(atom.get("name"), atom.get("text"), max_terms=2)
+            if terms:
+                atom["selector_groups"] = _fallback_group(terms, max_main=2)
+                changed.append(f"knowledge:{aid}:selector")
+        if not _has_group_material(atom, "correct_groups", "positive_elements"):
+            vc = atom.get("value_check") if isinstance(atom.get("value_check"), dict) else {}
+            expected = _fallback_clean_phrase(vc.get("expected_value") or vc.get("expected"))
+            terms = _fallback_terms(atom.get("name"), atom.get("text"), max_terms=2)
+            if expected and terms:
+                all_terms = terms[:1] + [expected]
+                atom["correct_groups"] = _fallback_group(all_terms, fact_values={expected}, max_main=1)
+                changed.append(f"knowledge:{aid}:correct")
+    for parent, atom in iter_atoms(graph.get("hard_constraint_table") or graph.get("constraint_table") or [], "constraint_id"):
+        if not isinstance(atom, dict):
+            continue
+        aid = str(atom.get("id") or atom.get("atom_id") or parent.get("id") or parent.get("constraint_id") or "constraint")
+        if not _has_group_material(atom, "negative_groups", "negative_elements", "negative_object", "primary_elements"):
+            terms = _fallback_terms(atom.get("name"), atom.get("text"), parent.get("name"), max_terms=2)
+            if terms:
+                atom["negative_groups"] = _fallback_group(terms, max_main=2)
+                changed.append(f"hard:{aid}:negative")
+    if changed:
+        meta = graph.setdefault("metadata", {})
+        meta.setdefault("element_fallback_repair", {})["filled_atoms"] = changed[:80]
+        meta["element_fallback_repair"]["count"] = len(changed)
+
+    return graph
+
+
+# Hard constraints are intentionally not synthesized locally.
+# Empty hard tables must be fixed by prompt/model iteration so the graph remains reproducible.
 
 def _zip_dir(src_dir: Path, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -90,11 +359,16 @@ def _legacy_to_latest(raw: dict[str, Any]) -> dict[str, Any]:
     nodes = []
     for node in flow.get("nodes", []) or []:
         activation = node.get("activation") or {}
+        if not isinstance(activation, dict):
+            activation = {"mode": str(activation or "start"), "seed_intents": []}
         mode = str(activation.get("mode") or "start")
         latest_mode = "always" if mode in {"start", "always"} else "user_triggered"
         trigger_texts = []
         for key in ("seed_intents", "positive_examples"):
-            trigger_texts.extend(activation.get(key) or [])
+            trigger_values = activation.get(key) or []
+            if isinstance(trigger_values, str):
+                trigger_values = [trigger_values]
+            trigger_texts.extend(trigger_values)
         reqs = []
         for ridx, req in enumerate(node.get("requirements", []) or [], start=1):
             text = req.get("text") or req.get("expected") or req.get("description") or ""
@@ -202,7 +476,21 @@ def _legacy_to_latest(raw: dict[str, Any]) -> dict[str, Any]:
             }
         )
     constraints = []
-    for idx, item in enumerate(raw.get("constraint_table", []) or [], start=1):
+    raw_constraints = []
+    for key, enforcement, default_kind in (
+        ("hard_constraint_table", "hard", "semantic_object"),
+        ("soft_constraint_table", "soft", "fuzzy_quality"),
+    ):
+        for item in raw.get(key, []) or []:
+            if isinstance(item, dict):
+                cloned = dict(item)
+                cloned.setdefault("enforcement", enforcement)
+                cloned.setdefault("constraint_kind", default_kind)
+                raw_constraints.append(cloned)
+    for item in raw.get("constraint_table", []) or []:
+        if isinstance(item, dict):
+            raw_constraints.append(dict(item))
+    for idx, item in enumerate(raw_constraints, start=1):
         cid = str(item.get("id") or f"c_{idx}")
         pats = item.get("prohibited") or item.get("patterns") or []
         prohibited = pats if pats and isinstance(pats[0], dict) else _pattern_from_texts(pats, "assistant")
@@ -213,17 +501,29 @@ def _legacy_to_latest(raw: dict[str, Any]) -> dict[str, Any]:
                 "node_id": item.get("node_id"),
                 "severity": item.get("severity", "high"),
                 "description": str(item.get("description") or item.get("rule") or ""),
+                "enforcement": item.get("enforcement") or ("soft" if item.get("constraint_kind") == "fuzzy_quality" else "hard"),
+                "constraint_kind": item.get("constraint_kind") or item.get("constraint_type") or ("fuzzy_quality" if item.get("enforcement") == "soft" else "semantic_object"),
+                "trigger_policy": item.get("trigger_policy") or ("global_style" if item.get("enforcement") == "soft" else ("requires_user_trigger" if item.get("trigger") else "self_sufficient")),
+                "negative_object": item.get("negative_object") or {},
+                "detection_scope": item.get("detection_scope") or {},
+                "verdict_logic": item.get("verdict_logic") or "",
                 "trigger": item.get("trigger") if isinstance(item.get("trigger"), list) else [],
                 "safe_context": item.get("safe_context") or [],
                 "prohibited": prohibited,
                 "unresolved": item.get("unresolved") or item.get("grey_zone") or [],
+                "violation_scope": item.get("violation_scope") or {},
+                "soft_rule": item.get("soft_rule") or {},
+                "quality_dimension": item.get("quality_dimension") or "",
+                "evaluation_basis": item.get("evaluation_basis") or {},
+                "score_effect": item.get("score_effect") or {},
                 "requires_resolution": bool(item.get("requires_resolution", False)),
+                "allow_multiple": bool(item.get("allow_multiple", False)),
             }
         )
     return {
-        "graph_id": str(raw.get("graph_id") or raw.get("flow_id") or "longcat_graph"),
-        "name": str(raw.get("name") or raw.get("flow_id") or "LongCat 状态图"),
-        "metadata": {"domain": raw.get("domain") or (raw.get("metadata") or {}).get("domain") or "general", "generated_by": "longcat"},
+        "graph_id": str(raw.get("graph_id") or raw.get("flow_id") or "llm_graph"),
+        "name": str(raw.get("name") or raw.get("flow_id") or "LLM 状态图"),
+        "metadata": {"domain": raw.get("domain") or (raw.get("metadata") or {}).get("domain") or "general", "generated_by": "llm"},
         "nodes": nodes,
         "edges": edges,
         "relation_groups": groups,
@@ -237,10 +537,561 @@ def _load_prompt(root: Path, name: str = "latest_schema_graph_prompt.md") -> str
     prompt_path = root / "prompts" / name
     if prompt_path.exists():
         return prompt_path.read_text(encoding="utf-8")
-    raise RuntimeError(f"缺少 LongCat 提示词：{prompt_path}")
+    raise RuntimeError(f"缺少 LLM 提示词：{prompt_path}")
 
 
-def build_graph_with_longcat(
+def _load_stage_prompt(root: Path, name: str) -> str:
+    """Load one stage prompt with the shared SCEG method memory prepended.
+
+    The memory prompt is a compact method lexicon: it explains atom/element,
+    main/fact/pool and the graph/table responsibility split once, before every
+    stage.  Stage prompts remain short and stage-specific.
+    """
+    memory_path = root / "prompts" / "sceg_method_memory_prompt.md"
+    stage = _load_prompt(root, name)
+    if not memory_path.exists():
+        return stage
+    memory = memory_path.read_text(encoding="utf-8").strip()
+    return memory + "\n\n【本阶段专门提示词】\n" + stage.strip()
+
+
+def _compact_schema_for_stage2(graph: dict[str, Any]) -> dict[str, Any]:
+    """Return a compact atom skeleton for required element细化.
+
+    Stage 2 must be fast: it should not ask LLM to rewrite the full graph.
+    The model receives ids, names, atom texts and any existing element hints, and
+    returns a small refinement delta keyed by existing ids.
+    """
+    def keep(d: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
+        return {k: copy.deepcopy(d.get(k)) for k in keys if k in d and d.get(k) not in (None, [], {})}
+
+    nodes: list[dict[str, Any]] = []
+    for node in graph.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        n = keep(node, ("id", "name", "type", "required", "activation", "atom_relations"))
+        atoms = []
+        for atom in node.get("atoms") or []:
+            if isinstance(atom, dict):
+                atoms.append(keep(atom, ("id", "name", "text", "atom_type", "object_role", "required", "weight", "primary_elements", "positive_elements", "negative_elements", "element_groups", "positive_element_groups", "negative_element_groups", "match_policy")))
+        n["atoms"] = atoms
+        nodes.append(n)
+
+    def compact_items(name: str, keys: tuple[str, ...]) -> list[dict[str, Any]]:
+        out = []
+        for item in graph.get(name) or []:
+            if isinstance(item, dict):
+                out.append(keep(item, keys))
+        return out
+
+    return {
+        "graph_id": graph.get("graph_id"),
+        "name": graph.get("name"),
+        "nodes": nodes,
+        "edges": copy.deepcopy(graph.get("edges") or []),
+        "relation_groups": copy.deepcopy(graph.get("relation_groups") or []),
+        "knowledge_table": compact_items("knowledge_table", ("id", "name", "node_id", "judge_type", "severity", "positive_elements", "negative_elements", "match_policy")),
+        "hard_constraint_table": compact_items("hard_constraint_table", ("id", "name", "node_id", "constraint_kind", "severity", "trigger_policy", "trigger_object", "negative_object", "negative_elements", "positive_elements", "match_policy")),
+        "soft_constraint_table": compact_items("soft_constraint_table", ("id", "name", "quality_dimension", "global_elements", "metric", "score_effect", "description")),
+        "terminal_policies": copy.deepcopy(graph.get("terminal_policies") or {}),
+    }
+
+
+def _compact_schema_for_stage3(graph: dict[str, Any]) -> dict[str, Any]:
+    """Return only ids and primary elements needed for element扩张."""
+    compact = _compact_schema_for_stage2(graph)
+    # Stage 3 only needs existing primary/global/positive/negative/zero elements
+    # and existing secondary pools.  It does not need metadata, reports, or old
+    # compatibility fields.
+    return compact
+
+
+def _compact_graph_core_for_tables(graph: dict[str, Any]) -> dict[str, Any]:
+    """Small graph view used by knowledge/constraint generation.
+
+    Knowledge and constraint tables do not need compiler metadata, old runtime
+    compatibility fields or generated elements.  Passing only state names, atom
+    texts and topology keeps LLM table calls shorter and reduces accidental
+    schema drift.
+    """
+    nodes: list[dict[str, Any]] = []
+    for node in graph.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        activation = node.get("activation") if isinstance(node.get("activation"), dict) else {}
+        atoms: list[dict[str, Any]] = []
+        for atom in node.get("atoms") or []:
+            if not isinstance(atom, dict):
+                continue
+            atoms.append({
+                "atom_id": atom.get("atom_id") or atom.get("id"),
+                "name": atom.get("name"),
+                "text": atom.get("text"),
+                "required": atom.get("required", True),
+                "weight": atom.get("weight", 1),
+            })
+        nodes.append({
+            "node_id": node.get("node_id") or node.get("id"),
+            "name": node.get("name"),
+            "node_type": node.get("node_type") or node.get("type"),
+            "required": node.get("required", True),
+            "activation": {
+                "mode": activation.get("mode"),
+                "trigger_hint": activation.get("trigger_hint") or activation.get("description") or activation.get("hint"),
+            },
+            "atoms": atoms,
+            "atom_relations": node.get("atom_relations") or [],
+        })
+    return {
+        "graph_id": graph.get("graph_id"),
+        "name": graph.get("name"),
+        "nodes": nodes,
+        "edges": graph.get("edges") or [],
+        "relation_groups": graph.get("relation_groups") or [],
+        "terminal_policies": graph.get("terminal_policies") or {},
+    }
+
+
+def _compact_knowledge_index(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in graph.get("knowledge_table") or []:
+        if not isinstance(item, dict):
+            continue
+        atoms = item.get("atoms")
+        if isinstance(atoms, list):
+            rows.append({
+                "knowledge_id": item.get("knowledge_id") or item.get("id"),
+                "name": item.get("name"),
+                "atoms": [
+                    {"atom_id": a.get("atom_id") or a.get("id"), "name": a.get("name"), "text": a.get("text"), "value_check": a.get("value_check")}
+                    for a in atoms if isinstance(a, dict)
+                ],
+            })
+        else:
+            rows.append({"knowledge_id": item.get("knowledge_id") or item.get("id"), "name": item.get("name"), "text": item.get("text"), "value_check": item.get("value_check")})
+    return rows
+
+
+def _build_element_refinement_instruction(instruction: str, graph: dict[str, Any], audit: dict[str, Any], binding_hints: str | None) -> str:
+    payload = {
+        "task": "stage2_element_refinement_delta_only",
+        "original_complex_instruction": instruction,
+        "atom_schema_skeleton": _compact_schema_for_stage2(graph),
+        "local_refinement_hints": audit,
+        "binding_hints_tail": parse_binding_hints(binding_hints),
+        "return_contract": {
+            "output_type": "delta_only_not_full_schema",
+            "allowed_top_level_keys": [
+                "node_refinements",
+                "knowledge_refinements",
+                "hard_constraint_refinements",
+                "soft_constraint_refinements",
+                "terminal_policy_refinement",
+            ],
+            "notes": [
+                "Do not return full nodes/edges/relation_groups/metadata.",
+                "Use existing ids only. Missing ids are ignored by local merge.",
+                "Fill element_groups first; use primary_elements/positive_elements/negative_elements only as flat compatibility fields where needed.",
+            ],
+        },
+    }
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
+def _build_element_expansion_instruction(instruction: str, graph: dict[str, Any]) -> str:
+    """Build third-phase delta payload for secondary element expansion.
+
+    Stage 3 should be much faster than full graph generation: it receives a
+    compact element skeleton and returns only secondary-pool deltas.
+    """
+    payload = {
+        "task": "stage3_element_expansion_delta_only",
+        "instruction": instruction,
+        "element_schema_skeleton": _compact_schema_for_stage3(graph),
+        "requirements": [
+            "return only secondary expression pool deltas keyed by existing ids",
+            "do not return full schema, metadata, nodes, edges, relation_groups, or unchanged fields",
+            "do not change primary_elements, positive_elements, negative_elements, match_policy, business facts, numbers, times, fees, or rule conclusions",
+            "zero_level_elements are deprecated and must not be generated",
+        ],
+        "return_contract": {
+            "output_type": "secondary_delta_only_not_full_schema",
+            "allowed_top_level_keys": [
+                "node_refinements",
+                "knowledge_refinements",
+                "hard_constraint_refinements",
+                "soft_constraint_refinements",
+            ],
+        },
+    }
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
+def _update_allowed(target: dict[str, Any], source: dict[str, Any], keys: tuple[str, ...]) -> None:
+    if not isinstance(target, dict) or not isinstance(source, dict):
+        return
+    for key in keys:
+        if key in source and source.get(key) is not None:
+            target[key] = copy.deepcopy(source.get(key))
+
+
+def _iter_delta_nodes(delta: dict[str, Any]) -> list[dict[str, Any]]:
+    if isinstance(delta.get("node_refinements"), list):
+        return [x for x in delta.get("node_refinements") or [] if isinstance(x, dict)]
+    if isinstance(delta.get("nodes"), list):
+        return [x for x in delta.get("nodes") or [] if isinstance(x, dict)]
+    return []
+
+
+def _delta_items(delta: dict[str, Any], delta_key: str, full_key: str) -> list[dict[str, Any]]:
+    items = delta.get(delta_key)
+    if not isinstance(items, list):
+        items = delta.get(full_key)
+    return [x for x in (items or []) if isinstance(x, dict)] if isinstance(items, list) else []
+
+
+def _merge_stage2_refinement_delta(base: dict[str, Any], delta: dict[str, Any]) -> dict[str, Any]:
+    """Merge stage-2 element细化 deltas into the base graph.
+
+    The merge is deliberately conservative: it accepts element rules and
+    decision policies for existing ids, but it does not accept structural graph
+    changes such as new node ids, relation rewrites, or metadata rewrites.
+    """
+    if not isinstance(delta, dict):
+        return base
+    merged = copy.deepcopy(base)
+    delta_nodes = {str(n.get("node_id") or n.get("id")): n for n in _iter_delta_nodes(delta) if n.get("node_id") or n.get("id")}
+    for node in merged.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        src_node = delta_nodes.get(str(node.get("id"))) or {}
+        if src_node:
+            if isinstance(src_node.get("activation"), dict):
+                node.setdefault("activation", {})
+                _update_allowed(node["activation"], src_node["activation"], ("trigger_hint", "trigger_object", "primary_elements", "element_groups", "trigger_groups", "trigger_element_groups", "secondary_elements", "match_policy"))
+            src_atoms_list = src_node.get("atom_refinements") if isinstance(src_node.get("atom_refinements"), list) else src_node.get("atoms")
+            src_atoms = {str(a.get("atom_id") or a.get("id")): a for a in (src_atoms_list or []) if isinstance(a, dict) and (a.get("atom_id") or a.get("id"))}
+            for atom in node.get("atoms") or []:
+                if not isinstance(atom, dict):
+                    continue
+                src_atom = src_atoms.get(str(atom.get("id"))) or {}
+                _update_allowed(atom, src_atom, ("primary_elements", "positive_elements", "negative_elements", "element_groups", "positive_element_groups", "negative_element_groups", "secondary_elements", "secondary_pools", "match_policy", "required", "weight"))
+
+    def merge_table(table_name: str, delta_key: str, keys: tuple[str, ...]) -> None:
+        src = {str(x.get("id")): x for x in _delta_items(delta, delta_key, table_name) if x.get("id")}
+        for item in merged.get(table_name) or []:
+            if isinstance(item, dict):
+                _update_allowed(item, src.get(str(item.get("id"))) or {}, keys)
+
+    merge_table("knowledge_table", "knowledge_refinements", ("judge_type", "severity", "selector_groups", "correct_groups", "wrong_groups", "selector_element_groups", "correct_element_groups", "wrong_element_groups", "positive_elements", "negative_elements", "secondary_elements", "negation_rule", "value_check", "match_policy"))
+    merge_table("hard_constraint_table", "hard_constraint_refinements", ("constraint_kind", "severity", "trigger_policy", "trigger_groups", "negative_groups", "safe_groups", "trigger_element_groups", "negative_element_groups", "positive_element_groups", "trigger_object", "negative_object", "negative_elements", "positive_elements", "secondary_elements", "match_policy", "verdict_logic", "allow_multiple"))
+    merge_table("soft_constraint_table", "soft_constraint_refinements", ("quality_dimension", "global_elements", "secondary_elements", "metric", "score_effect", "description"))
+    if isinstance(delta.get("terminal_policy_refinement"), dict):
+        merged["terminal_policies"] = copy.deepcopy(delta.get("terminal_policy_refinement"))
+    merged.setdefault("metadata", {})["stage2_merge_policy"] = "element_refinement_delta_only"
+    return merged
+
+def _copy_secondary_only(target: dict[str, Any], source: dict[str, Any]) -> None:
+    """Copy only secondary expression pools from source into target.
+
+    This guard makes stage 3 logically strict: element扩张 may enrich wording
+    variants, aliases, templates and negative examples, but it cannot change
+    ids, atoms, primary elements, facts, constraints, relations or weights.
+    """
+    if not isinstance(target, dict) or not isinstance(source, dict):
+        return
+    for key in ("secondary_elements", "secondary_pools"):
+        if isinstance(source.get(key), dict):
+            target[key] = source.get(key)
+    # Nested target objects may also hold secondary pools.
+    for key in ("trigger_object", "positive_object", "negative_object", "soft_rule"):
+        if isinstance(target.get(key), dict) and isinstance(source.get(key), dict):
+            _copy_secondary_only(target[key], source[key])
+
+
+def _by_id(items: Any) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    if isinstance(items, list):
+        for item in items:
+            if isinstance(item, dict) and item.get("id"):
+                out[str(item.get("id"))] = item
+    return out
+
+
+
+def _merge_stage3_secondary_pools(base: dict[str, Any], expanded: dict[str, Any]) -> dict[str, Any]:
+    """Return base schema enriched only with stage-3 secondary pools.
+
+    Accepts both the new delta-only contract and accidental full-schema output.
+    In all cases, only secondary_elements / secondary_pools fields are copied.
+    """
+    merged = copy.deepcopy(base)
+    if not isinstance(expanded, dict):
+        return merged
+
+    expanded_nodes = {str(n.get("node_id") or n.get("id")): n for n in _iter_delta_nodes(expanded) if n.get("node_id") or n.get("id")}
+    for node in merged.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        src_node = expanded_nodes.get(str(node.get("id"))) or {}
+        if isinstance(node.get("activation"), dict) and isinstance(src_node.get("activation"), dict):
+            _copy_secondary_only(node["activation"], src_node["activation"])
+        src_atoms_list = src_node.get("atom_refinements") if isinstance(src_node.get("atom_refinements"), list) else src_node.get("atoms")
+        src_atoms = {str(a.get("atom_id") or a.get("id")): a for a in (src_atoms_list or []) if isinstance(a, dict) and (a.get("atom_id") or a.get("id"))}
+        for atom in node.get("atoms") or []:
+            if isinstance(atom, dict):
+                _copy_secondary_only(atom, src_atoms.get(str(atom.get("id"))) or {})
+        src_reqs = _by_id(src_node.get("requirements"))
+        for req in node.get("requirements") or []:
+            if isinstance(req, dict):
+                _copy_secondary_only(req, src_reqs.get(str(req.get("id"))) or {})
+
+    table_specs = (
+        ("knowledge_table", "knowledge_refinements"),
+        ("hard_constraint_table", "hard_constraint_refinements"),
+        ("soft_constraint_table", "soft_constraint_refinements"),
+        ("constraint_table", "constraint_refinements"),
+    )
+    for table_name, delta_key in table_specs:
+        src_items = {str(x.get("id")): x for x in _delta_items(expanded, delta_key, table_name) if x.get("id")}
+        for item in merged.get(table_name) or []:
+            if isinstance(item, dict):
+                _copy_secondary_only(item, src_items.get(str(item.get("id"))) or {})
+    merged.setdefault("metadata", {})["stage3_merge_policy"] = "secondary_pools_delta_only"
+    return merged
+
+
+def _has_group_elements(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    for group in value:
+        if not isinstance(group, dict):
+            continue
+        elems = group.get("elements") or group.get("primary_elements") or group.get("required_elements") or []
+        if isinstance(elems, list):
+            for elem in elems:
+                if isinstance(elem, dict) and str(elem.get("value") or elem.get("v") or elem.get("text") or elem.get("name") or "").strip():
+                    return True
+                if isinstance(elem, str) and elem.strip():
+                    return True
+    return False
+
+
+def _has_executable_elements(item: dict[str, Any], *keys: str) -> bool:
+    for key in keys:
+        value = item.get(key)
+        if _has_group_elements(value):
+            return True
+        if isinstance(value, list) and value:
+            # Flat element lists are still accepted for legacy graphs.
+            for row in value:
+                if isinstance(row, dict) and str(row.get("value") or row.get("v") or row.get("text") or row.get("name") or "").strip():
+                    return True
+                if isinstance(row, str) and row.strip():
+                    return True
+        if isinstance(value, dict):
+            for nested_key in (
+                "primary_elements", "required_elements", "surface_forms",
+                "semantic_equivalents", "aliases", "evidence_phrases",
+                "elements", "any", "all",
+            ):
+                nested = value.get(nested_key)
+                if _has_group_elements(nested):
+                    return True
+                if isinstance(nested, list) and nested:
+                    return True
+                if isinstance(nested, str) and nested.strip():
+                    return True
+    return False
+
+
+def _activation_has_trigger_material(activation: dict[str, Any]) -> bool:
+    if not isinstance(activation, dict):
+        return False
+    if activation.get("patterns") or activation.get("trigger_object") or activation.get("primary_elements"):
+        return True
+    if str(activation.get("trigger_hint") or activation.get("description") or activation.get("hint") or "").strip():
+        return True
+    return any(_has_group_elements(activation.get(key)) for key in ("trigger_groups", "trigger_element_groups", "element_groups"))
+
+
+def _iter_parent_atoms(items: Any, *, id_key: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for idx, item in enumerate(items or [], start=1):
+        if not isinstance(item, dict):
+            continue
+        atoms = item.get("atoms")
+        if not isinstance(atoms, list):
+            rows.append(item)
+            continue
+        parent = {k: v for k, v in item.items() if k != "atoms"}
+        parent_id = str(parent.get(id_key) or parent.get("id") or f"{id_key}_{idx}")
+        for j, atom in enumerate(atoms, start=1):
+            if not isinstance(atom, dict):
+                continue
+            row = copy.deepcopy(parent)
+            row.update(copy.deepcopy(atom))
+            row.setdefault(id_key, parent_id)
+            row.setdefault("id", atom.get("atom_id") or atom.get("id") or f"{parent_id}_atom_{j:02d}")
+            rows.append(row)
+    return rows
+
+
+def _knowledge_rule_executable(item: dict[str, Any]) -> bool:
+    # New clean contract: selector_groups identify the fact object; correct/wrong
+    # groups and value_check make the fact executable.  A single row with only
+    # selector material is not enough to judge support/refute.
+    has_selector = _has_executable_elements(item, "selector_groups", "selector_element_groups", "element_groups", "primary_elements")
+    has_value_side = (
+        _has_executable_elements(item, "correct_groups", "correct_element_groups", "positive_element_groups", "positive_elements")
+        or _has_executable_elements(item, "wrong_groups", "wrong_element_groups", "negative_element_groups", "negative_elements")
+        or bool(item.get("value_check"))
+        or bool(item.get("claims") or item.get("support_patterns") or item.get("conflict_patterns") or item.get("refute_patterns"))
+    )
+    return bool(has_selector and has_value_side)
+
+
+def _hard_constraint_rule_executable(item: dict[str, Any]) -> bool:
+    # Structural hard constraints are executable via metric.  Semantic hard
+    # constraints need a negative side; trigger/safe groups are optional unless
+    # the constraint is context-dependent.
+    if isinstance(item.get("metric"), dict) and item.get("metric"):
+        return True
+    return _has_executable_elements(
+        item,
+        "negative_groups", "negative_element_groups", "negative_elements",
+        "negative_object", "element_groups", "primary_elements", "prohibited",
+    )
+
+
+
+def _graph_has_constraint_boundary(graph: dict[str, Any]) -> bool:
+    """Legacy coarse signal kept for diagnostics only.
+
+    Earlier builds used this broad graph/knowledge scan as a blocking rule.  That
+    was too aggressive: ordinary facts such as 生效状态、申请排序、页面入口、数量周期 can look like
+    rule/system boundaries but do not necessarily require hard constraints.  The
+    actual hard-table requirement must be derived from the original instruction
+    via instruction_hard_constraint_requirement().
+    """
+    text_parts: list[str] = []
+    for node in graph.get("nodes") or []:
+        if isinstance(node, dict):
+            text_parts.append(str(node.get("name") or ""))
+            text_parts.append(str(node.get("type") or node.get("node_type") or ""))
+            for atom in node.get("atoms") or []:
+                if isinstance(atom, dict):
+                    text_parts.append(str(atom.get("name") or ""))
+                    text_parts.append(str(atom.get("text") or ""))
+    for item in graph.get("knowledge_table") or []:
+        if isinstance(item, dict):
+            text_parts.append(str(item.get("name") or ""))
+            text_parts.append(str(item.get("text") or ""))
+    text = " ".join(text_parts)
+    diagnostic_terms = ("职责", "越权", "承诺", "保证", "代操作", "人工修改", "安全", "隐私", "敏感")
+    return any(t in text for t in diagnostic_terms)
+
+def _stage2_quality_gate(graph: dict[str, Any], instruction: str | None = None) -> dict[str, Any]:
+    """Check whether mandatory element细化 produced executable local rules.
+
+    The gate is structural and schema-driven.  It does not inspect dialogue
+    answer keys; it only verifies that required atoms, knowledge facts and hard
+    constraints have enough element-side material for the local evaluator.
+    """
+    required_atoms = 0
+    missing_atom_elements: list[str] = []
+    missing_activation_triggers: list[str] = []
+    for node in graph.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        activation = node.get("activation") if isinstance(node.get("activation"), dict) else {}
+        mode = str(activation.get("mode") or "always")
+        if mode in {"user_triggered", "condition"}:
+            if not _activation_has_trigger_material(activation):
+                missing_activation_triggers.append(str(node.get("id") or node.get("node_id") or node.get("name") or "node"))
+        atoms = [a for a in node.get("atoms") or [] if isinstance(a, dict)]
+        reqs = [r for r in node.get("requirements") or [] if isinstance(r, dict)]
+        for atom in atoms or reqs:
+            # In the atom-only graph, node atoms are executable scoring units;
+            # object_role can be rider/contract/enrollment, not just
+            # positive_object.  Count all required node atoms except explicitly
+            # negative/constraint atoms.
+            role = str(atom.get("object_role") or atom.get("role") or "positive_object")
+            if role in {"negative_object", "constraint", "hard_constraint", "soft_constraint"}:
+                continue
+            if atom.get("required", True) is False:
+                continue
+            required_atoms += 1
+            if not _has_executable_elements(atom, "element_groups", "primary_elements", "positive_elements", "positive_object", "element_rule") and not atom.get("evidence_groups"):
+                missing_atom_elements.append(str(atom.get("id") or atom.get("atom_id") or f"{node.get('id')}.atom"))
+    required_atoms = max(required_atoms, 0)
+    missing_ratio = len(missing_atom_elements) / max(1, required_atoms)
+
+    knowledge_rows = _iter_parent_atoms(graph.get("knowledge_table") or [], id_key="knowledge_id")
+    knowledge_total = 0
+    weak_knowledge: list[str] = []
+    for item in knowledge_rows:
+        if not isinstance(item, dict):
+            continue
+        knowledge_total += 1
+        if not _knowledge_rule_executable(item):
+            weak_knowledge.append(str(item.get("id") or item.get("atom_id") or item.get("knowledge_id") or "knowledge"))
+
+    hard_rows = _iter_parent_atoms((graph.get("hard_constraint_table") or graph.get("constraint_table") or []), id_key="constraint_id")
+    hard_total = 0
+    weak_hard: list[str] = []
+    for item in hard_rows:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("enforcement") or "hard") == "soft":
+            continue
+        hard_total += 1
+        if not _hard_constraint_rule_executable(item):
+            weak_hard.append(str(item.get("id") or item.get("atom_id") or item.get("constraint_id") or "constraint"))
+
+    blocking_reasons: list[str] = []
+    warnings: list[str] = []
+    hard_requirement = instruction_hard_constraint_requirement(instruction or "")
+    if required_atoms and missing_ratio > 0.40:
+        blocking_reasons.append("required atom executable element missing ratio %.2f > 0.40" % missing_ratio)
+    if missing_activation_triggers:
+        blocking_reasons.append("condition/user_triggered nodes missing trigger material: " + ", ".join(missing_activation_triggers[:10]))
+    if hard_total == 0 and hard_requirement.get("required"):
+        msg = "hard_constraint_table is empty although original instruction contains explicit hard-boundary signals"
+        if str(os.getenv("SCEG_BLOCK_EMPTY_HARD_WHEN_EXPLICIT", "0")).lower().strip() in {"1", "true", "yes", "on"}:
+            blocking_reasons.append(msg)
+        else:
+            warnings.append(msg)
+    elif hard_total == 0 and _graph_has_constraint_boundary(graph):
+        warnings.append("hard_constraint_table is empty; graph has boundary-like wording, but original instruction did not prove a hard constraint")
+    if hard_total and len(weak_hard) == hard_total:
+        blocking_reasons.append("all hard constraints lack executable negative groups or metrics")
+    if knowledge_total and len(weak_knowledge) == knowledge_total:
+        blocking_reasons.append("all knowledge atoms lack executable selector/value rules")
+    return {
+        "passed": not blocking_reasons,
+        "blocking_reasons": blocking_reasons,
+        "warnings": warnings,
+        "hard_constraint_required_by_instruction": hard_requirement,
+        "required_atoms": required_atoms,
+        "missing_atom_elements": missing_atom_elements[:30],
+        "missing_atom_element_ratio": round(missing_ratio, 4),
+        "missing_activation_triggers": missing_activation_triggers[:30],
+        "knowledge_total": knowledge_total,
+        "weak_knowledge": weak_knowledge[:30],
+        "hard_constraint_total": hard_total,
+        "weak_hard_constraints": weak_hard[:30],
+    }
+
+
+def _enforce_stage2_quality_gate(graph: dict[str, Any], instruction: str | None = None) -> dict[str, Any]:
+    report = _stage2_quality_gate(graph, instruction)
+    graph.setdefault("metadata", {})["stage2_element_quality_gate"] = report
+    if not report.get("passed") and str(os.getenv("SCEG_ALLOW_WEAK_STAGE2", "0")).lower().strip() not in {"1", "true", "yes", "on"}:
+        raise RuntimeError("第二阶段 element细化质量门槛未通过：" + "; ".join(report.get("blocking_reasons") or []))
+    return report
+
+def build_graph_with_llm(
     instruction: str,
     project_root: str | Path,
     api_key: str,
@@ -249,13 +1100,16 @@ def build_graph_with_longcat(
     timeout: int | None = None,
     binding_hints: str | None = None,
     progress_callback=None,
-    repair_mode: str = "blocking",
+    repair_mode: str = "required",
+    refine_mode: str | None = None,
     use_cache: bool = True,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    # 第二阶段 element细化是必要建图阶段；外部传入的旧模式只保留兼容，不再改变执行分支。
+    repair_mode = "required"
     root = Path(project_root)
-    client = LongCatClient(api_key=api_key, base_url=base_url, model=model, timeout=timeout)
+    client = LLMClient(api_key=api_key, base_url=base_url, model=model, timeout=timeout)
     if not client.enabled():
-        raise RuntimeError("缺少 LongCat API Key，无法离线生成状态图。")
+        raise RuntimeError("缺少 LLM API Key，无法离线生成状态图。")
 
     def emit_phase(phase: str, event: str, message: str, **extra: Any) -> None:
         if progress_callback:
@@ -264,98 +1118,324 @@ def build_graph_with_longcat(
             progress_callback(rec)
 
     phase_timing: dict[str, Any] = {
-        "longcat_build_graph_seconds": None,
-        "longcat_repair_graph_seconds": None,
-        "longcat_repair_triggered": False,
+        "llm_build_graph_seconds": None,
+        "llm_element_refinement_seconds": None,
+        "llm_element_refinement_triggered": False,
+        "llm_element_expansion_seconds": None,
+        "llm_element_expansion_triggered": False,
     }
 
-    prompt = _load_prompt(root)
-    repair_prompt_text = _load_prompt(root, "schema_graph_repair_prompt.md")
-    if binding_hints:
-        prompt += "\n\n" + binding_hints
+    # New default build mode: one graph + two tables + atom-registry element passes.
+    # LLM no longer creates a monolithic schema in one shot.  The local code
+    # first assembles a clean graph/table skeleton, then builds a canonical atom
+    # registry and asks LLM to generate elements only against those anchors.
+    core_prompt = _load_stage_prompt(root, "schema_core_graph_prompt.md")
+    knowledge_prompt = _load_stage_prompt(root, "schema_knowledge_table_prompt.md")
+    constraint_prompt = _load_stage_prompt(root, "schema_constraint_tables_prompt.md")
+    element_prompt = _load_stage_prompt(root, "schema_atom_element_refinement_prompt.md")
+    element_expansion_prompt_text = _load_stage_prompt(root, "schema_element_expansion_prompt.md")
+    # Graph/table generation must read only the complex instruction.
+    # Dataset binding hints are intentionally ignored in the LLM build path.
+
+    element_batch_size = _env_int("SCEG_ELEMENT_BATCH_SIZE", 8, minimum=1)
 
     cache_key = {
         "instruction": instruction,
-        "build_prompt": prompt,
-        "repair_prompt": repair_prompt_text,
-        "binding_hints": binding_hints or "",
+        "core_prompt": core_prompt,
+        "knowledge_prompt": knowledge_prompt,
+        "constraint_prompt": constraint_prompt,
+        "element_prompt": element_prompt,
+        "element_expansion_prompt": element_expansion_prompt_text,
+        "binding_hints": "ignored_for_independent_graph_table_generation",
         "model": model or client.model,
-        "repair_mode": str(repair_mode or "blocking"),
-        "schema_cache_version": "fix68_cache_after_compiler_and_oracle_payload_v1",
+        "element_batch_size": element_batch_size,
+        "schema_cache_signature": "method_memory_prompt_v10_element_quality_source_text",
     }
     cache_path = _graph_cache_path(root, cache_key)
     if use_cache and cache_path.exists():
         cached = read_json(cache_path)
-        cached.setdefault("metadata", {})["longcat_cache_hit"] = True
-        cached["metadata"]["longcat_cache_path"] = str(cache_path)
-        phase_timing["longcat_build_graph_seconds"] = 0.0
-        phase_timing["longcat_repair_graph_seconds"] = "cached"
-        phase_timing["longcat_repair_triggered"] = bool(((cached.get("metadata") or {}).get("schema_repair_runs") or []))
-        emit_phase("longcat_build_graph", "skipped", "命中本地 LongCat 图缓存：跳过第一次建图")
-        emit_phase("longcat_repair_graph", "skipped", "命中本地 LongCat 图缓存：跳过二次补图")
+        cached.setdefault("metadata", {})["llm_cache_hit"] = True
+        cached["metadata"]["llm_cache_path"] = str(cache_path)
+        phase_timing = {
+            "llm_core_graph_seconds": 0.0,
+            "llm_knowledge_table_seconds": "cached",
+            "llm_constraint_tables_seconds": "cached",
+            "llm_atom_element_refinement_seconds": "cached",
+            "llm_element_expansion_seconds": "cached",
+            # Compatibility aliases for existing UI/report code.
+            "llm_build_graph_seconds": 0.0,
+            "llm_element_refinement_seconds": "cached",
+            "llm_element_refinement_triggered": True,
+            "llm_element_expansion_triggered": True,
+        }
+        emit_phase("llm_core_graph", "skipped", "命中本地 LLM 图缓存：跳过主图生成")
+        emit_phase("llm_knowledge_table", "skipped", "命中本地 LLM 图缓存：跳过知识表生成")
+        emit_phase("llm_constraint_tables", "skipped", "命中本地 LLM 图缓存：跳过限制表生成")
+        emit_phase("llm_atom_element_refinement", "skipped", "命中本地 LLM 图缓存：跳过一级元素生成")
+        emit_phase("llm_element_expansion", "skipped", "命中本地 LLM 图缓存：跳过二级元素扩张")
         usage = {
             "total": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "calls": 0},
             "cache": {"hit": True, "path": str(cache_path)},
             "phase_timing_seconds": phase_timing,
         }
-        cached["metadata"]["longcat_phase_timing_seconds"] = phase_timing
-        cached["metadata"]["longcat_token_usage"] = usage
+        cached["metadata"]["llm_phase_timing_seconds"] = phase_timing
+        cached["metadata"]["llm_token_usage"] = usage
         return cached, usage
 
-    emit_phase("longcat_build_graph", "start", "第一次 LongCat 建图开始：生成状态主图、知识表和限制表")
-    t_build = time.perf_counter()
-    raw = client.generate_json(instruction, prompt, purpose="build_graph")
-    build_elapsed = time.perf_counter() - t_build
-    phase_timing["longcat_build_graph_seconds"] = round(build_elapsed, 3)
-    emit_phase("longcat_build_graph", "done", "第一次 LongCat 建图完成，用时 %.1f 秒" % build_elapsed, elapsed_seconds=build_elapsed)
+    phase_timing: dict[str, Any] = {
+        "llm_core_graph_seconds": None,
+        "llm_knowledge_table_seconds": None,
+        "llm_constraint_tables_seconds": None,
+        "llm_atom_element_refinement_seconds": None,
+        "llm_element_expansion_seconds": None,
+        # Compatibility aliases consumed by existing UI/report code.
+        "llm_build_graph_seconds": None,
+        "llm_element_refinement_seconds": None,
+        "llm_element_refinement_triggered": True,
+        "llm_element_expansion_triggered": False,
+    }
 
-    raw_latest = _legacy_to_latest(raw)
-    compiled = compile_state_graph(raw_latest, legacy_dialogue_root=root / "data" / "dialogues")
+    emit_phase("llm_core_graph", "start", "第一步 LLM 主图生成开始：只生成 nodes / atoms / edges，不生成知识表和限制表")
+    t_core = time.perf_counter()
+    raw_core = client.generate_json(instruction, core_prompt, purpose="core_graph_only")
+    if str(os.getenv("SCEG_CORE_SUPPLEMENT", "on")).lower().strip() not in {"0", "off", "false", "skip"}:
+        core_seed = strip_graph_core(_legacy_to_latest(_unwrap_stage_output(raw_core, "graph_core")))
+        core_supp_payload = json.dumps({
+            "task": "supplement_core_graph_only",
+            "original_complex_instruction": instruction,
+            "current_graph_core": core_seed,
+            "local_supplement_hints": build_core_supplement_hints(instruction, core_seed),
+            "return_contract": {
+                "output": "full_corrected_graph_core",
+                "allowed_top_level_keys": ["graph_id", "name", "metadata", "nodes", "edges", "relation_groups", "terminal_policies"],
+                "hint_policy": "local_supplement_hints are task-agnostic gap hints only; use them to inspect missing graph functions, not to invent unsupported content",
+                "do_not_output": ["knowledge_table", "hard_constraint_table", "soft_constraint_table", "constraint_table", "element_groups"],
+            },
+        }, ensure_ascii=False, separators=(",", ":"))
+        emit_phase("llm_core_graph", "progress", "第一步二次补图开始：只读取复杂指令和当前主图，补漏主图结构")
+        raw_core_supp = _safe_llm_stage_json(client, core_supp_payload, core_prompt, purpose="core_graph_supplement_only", default={}, emit_phase=emit_phase, phase="llm_core_graph", label="主图二次补图")
+        if isinstance(raw_core_supp, dict) and (raw_core_supp.get("nodes") or isinstance(raw_core_supp.get("graph_core"), dict)):
+            raw_core = _unwrap_stage_output(raw_core_supp, "graph_core")
+    core_elapsed = time.perf_counter() - t_core
+    phase_timing["llm_core_graph_seconds"] = round(core_elapsed, 3)
+    phase_timing["llm_build_graph_seconds"] = round(core_elapsed, 3)
+    emit_phase("llm_core_graph", "done", "第一步主图生成与二次补图完成，用时 %.1f 秒" % core_elapsed, elapsed_seconds=core_elapsed)
+
+    graph_core = strip_graph_core(_legacy_to_latest(_unwrap_stage_output(raw_core, "graph_core")))
+    graph_core = remove_old_runtime_tables(graph_core)
+    compiled = compile_state_graph(graph_core, legacy_dialogue_root=None)
     compiled, lint_report = lint_and_repair_schema(compiled)
+    compiled = remove_old_runtime_tables(compiled)
 
-    # Generic LLM补图链路：本地只做 schema gap 审计，不直接写入业务事实。
-    # 如果 ID 绑定、知识表、限制表或终止策略有缺口，把审计结果和当前图交给
-    # LongCat 二次生成完整 schema。无 API 的测试环境可以用
-    # SCEG_SIMULATED_LONGCAT_DIR 回放“模拟 LongCat 返回”，但生产路径仍然是
-    # LongCat 调用，而不是本地补图。
-    repair_audit = audit_schema_repair_need(compiled, binding_hints, repair_mode=repair_mode)
-    repair_runs: list[dict[str, Any]] = []
-    if repair_audit.get("needs_repair"):
-        phase_timing["longcat_repair_triggered"] = True
-        repair_prompt = repair_prompt_text
-        repair_payload = build_repair_instruction(instruction, compiled, repair_audit, binding_hints)
-        emit_phase("longcat_repair_graph", "start", "第二次 LongCat repair 建图开始：根据 schema gap 审计补全图结构")
-        t_repair = time.perf_counter()
-        repaired_raw = client.generate_json(repair_payload, repair_prompt, purpose="repair_schema_by_audit")
-        repair_elapsed = time.perf_counter() - t_repair
-        phase_timing["longcat_repair_graph_seconds"] = round(repair_elapsed, 3)
-        emit_phase("longcat_repair_graph", "done", "第二次 LongCat repair 建图完成，用时 %.1f 秒" % repair_elapsed, elapsed_seconds=repair_elapsed)
-        repaired_latest = _legacy_to_latest(repaired_raw)
-        compiled = compile_state_graph(repaired_latest, legacy_dialogue_root=root / "data" / "dialogues")
+    knowledge_payload = json.dumps({
+        "task": "generate_knowledge_table_only",
+        "original_complex_instruction": instruction,
+        "return_contract": {
+            "top_level_key": "knowledge_table",
+            "atom_fields": ["atom_id", "name", "text", "severity", "selector_groups", "correct_groups", "wrong_groups", "value_check", "negation_rule"],
+            "independence": "read only original_complex_instruction; do not rely on graph_core or constraint tables",
+        },
+    }, ensure_ascii=False, separators=(",", ":"))
+    emit_phase("llm_knowledge_table", "start", "第二步 LLM 知识表生成开始：只读复杂指令，只生成 knowledge_table")
+    t_knowledge = time.perf_counter()
+    raw_knowledge = client.generate_json(knowledge_payload, knowledge_prompt, purpose="knowledge_table_only")
+    if str(os.getenv("SCEG_KNOWLEDGE_SUPPLEMENT", "on")).lower().strip() not in {"0", "off", "false", "skip"}:
+        current_knowledge_table = raw_knowledge.get("knowledge_table") if isinstance(raw_knowledge, dict) else []
+        knowledge_supp_payload = json.dumps({
+            "task": "supplement_knowledge_table_only",
+            "original_complex_instruction": instruction,
+            "current_knowledge_table": current_knowledge_table,
+            "local_supplement_hints": build_knowledge_supplement_hints(instruction, current_knowledge_table),
+            "return_contract": {
+                "output": "full_corrected_knowledge_table",
+                "top_level_key": "knowledge_table",
+                "hint_policy": "local_supplement_hints identify generic fact-slot shapes only; values must be grounded in original_complex_instruction",
+                "independence": "read only original_complex_instruction and current_knowledge_table; do not read graph or constraints",
+            },
+        }, ensure_ascii=False, separators=(",", ":"))
+        emit_phase("llm_knowledge_table", "progress", "第二步二次补表开始：只读取复杂指令和当前知识表，补漏知识 atom")
+        raw_knowledge_supp = _safe_llm_stage_json(client, knowledge_supp_payload, knowledge_prompt, purpose="knowledge_table_supplement_only", default={"knowledge_table": raw_knowledge.get("knowledge_table") if isinstance(raw_knowledge, dict) else []}, emit_phase=emit_phase, phase="llm_knowledge_table", label="知识表二次补表")
+        if _table_output_nonempty(raw_knowledge_supp, "knowledge_table"):
+            raw_knowledge = raw_knowledge_supp
+    knowledge_elapsed = time.perf_counter() - t_knowledge
+    phase_timing["llm_knowledge_table_seconds"] = round(knowledge_elapsed, 3)
+    emit_phase("llm_knowledge_table", "done", "第二步知识表生成与二次补表完成，用时 %.1f 秒" % knowledge_elapsed, elapsed_seconds=knowledge_elapsed)
+    compiled = merge_knowledge_table(compiled, raw_knowledge)
+    compiled, lint_report = lint_and_repair_schema(compiled)
+    compiled = remove_old_runtime_tables(compiled)
+
+    constraint_payload = json.dumps({
+        "task": "generate_hard_and_soft_constraint_tables_only",
+        "original_complex_instruction": instruction,
+        "return_contract": {
+            "top_level_keys": ["hard_constraint_table", "soft_constraint_table"],
+            "hard_atom_fields": ["atom_id", "name", "text", "severity", "trigger_groups", "negative_groups", "safe_groups"],
+            "structural_metric_fields": ["constraint_id", "name", "enforcement", "constraint_kind", "severity", "metric"],
+            "independence": "read only original_complex_instruction; do not rely on graph_core or knowledge_table",
+        },
+    }, ensure_ascii=False, separators=(",", ":"))
+    emit_phase("llm_constraint_tables", "start", "第三步 LLM 限制表生成开始：只读复杂指令，硬限制和软限制分表输出")
+    t_constraints = time.perf_counter()
+    raw_constraints = client.generate_json(constraint_payload, constraint_prompt, purpose="constraint_tables_only")
+    if str(os.getenv("SCEG_CONSTRAINT_SUPPLEMENT", "on")).lower().strip() not in {"0", "off", "false", "skip"}:
+        current_hard_constraint_table = raw_constraints.get("hard_constraint_table") if isinstance(raw_constraints, dict) else []
+        current_soft_constraint_table = raw_constraints.get("soft_constraint_table") if isinstance(raw_constraints, dict) else []
+        constraint_supp_payload = json.dumps({
+            "task": "supplement_hard_and_soft_constraint_tables_only",
+            "original_complex_instruction": instruction,
+            "current_hard_constraint_table": current_hard_constraint_table,
+            "current_soft_constraint_table": current_soft_constraint_table,
+            "local_supplement_hints": build_constraint_supplement_hints(instruction, current_hard_constraint_table, current_soft_constraint_table),
+            "return_contract": {
+                "output": "patch_only_not_full_rewrite",
+                "top_level_keys": ["hard_candidate_decisions", "add_hard_constraint_table", "add_soft_constraint_table", "remove_constraint_ids"],
+                "max_new_hard": 3,
+                "max_total_hard_after_merge": 10,
+                "hint_policy": "local_supplement_hints identify generic boundary or quality shapes only; if required=true, each signal must have a hard_candidate_decision and empty hard patch is valid only when all signals are rejected with reasons",
+                "independence": "read only original_complex_instruction and current constraint tables; do not read graph or knowledge table",
+            },
+        }, ensure_ascii=False, separators=(",", ":"))
+        emit_phase("llm_constraint_tables", "progress", "第三步二次补表开始：只读取复杂指令和当前限制表，补漏硬/软限制")
+        raw_constraints_supp = _safe_llm_stage_json(client, constraint_supp_payload, constraint_prompt, purpose="constraint_tables_supplement_only", default={"hard_constraint_table": raw_constraints.get("hard_constraint_table") if isinstance(raw_constraints, dict) else [], "soft_constraint_table": raw_constraints.get("soft_constraint_table") if isinstance(raw_constraints, dict) else []}, emit_phase=emit_phase, phase="llm_constraint_tables", label="限制表二次补表")
+        raw_constraints = merge_constraint_supplement(raw_constraints, raw_constraints_supp, instruction)
+    constraints_elapsed = time.perf_counter() - t_constraints
+    phase_timing["llm_constraint_tables_seconds"] = round(constraints_elapsed, 3)
+    emit_phase("llm_constraint_tables", "done", "第三步限制表生成与二次补表完成，用时 %.1f 秒" % constraints_elapsed, elapsed_seconds=constraints_elapsed)
+    raw_constraints = sanitize_constraint_tables(raw_constraints, instruction)
+    compiled = merge_constraint_tables(compiled, raw_constraints)
+    # Hard constraints must be produced by LLM from the semantic prompt contract.
+    # Do not synthesize business restrictions locally; empty hard tables are a prompt/model issue to fix, not a scoring fallback.
+    compiled = assign_element_anchor_ids(compiled)
+    compiled, lint_report = lint_and_repair_schema(compiled)
+    compiled = normalize_executable_groups(remove_old_runtime_tables(assign_element_anchor_ids(compiled)))
+
+    atom_transport = build_atom_transport(compiled, instruction)
+    element_batches = _split_atom_transport(atom_transport, batch_size=element_batch_size)
+    emit_phase("llm_atom_element_refinement", "start", "第四步 LLM 一级元素生成开始：基于本地 atom 传输层分批生成")
+    t_elements = time.perf_counter()
+    primary_runs: list[dict[str, Any]] = []
+    for batch_idx, batch_registry in enumerate(element_batches, start=1):
+        batch_meta = dict(batch_registry.get("batch") or {})
+        element_payload = json.dumps({
+            "task": "split_atom_semantics_into_elements",
+            "atom_transport": batch_registry,
+            "batch_contract": {
+                "current_batch": batch_idx,
+                "total_batches": len(element_batches),
+                "only_return_atom_ids_in_current_batch": True,
+            },
+            "generation_contract": {
+                "top_level_key": "element_refinements",
+                "keyed_by": "atom_id",
+                "input_visibility": "atom_id + atom_source + parent_id + atom_name + atom_text + requested_slots only",
+                "element_shape": {"value": "short semantic phrase", "main": True, "fact": False, "pool": []},
+                "role_aware_policy": {
+                    "assistant_side": "先根据 atom_text 生成客服最可能的自然答话，再从这句话拆 element",
+                    "user_trigger_side": "先生成大量可能用户说法，再抽触发 element；activation trigger 可以在第一阶段写入用户表达 pool",
+                    "knowledge_side": "先生成客服最可能正确事实答话，再拆 selector/correct",
+                    "hard_side": "分别想象违规客服说法和安全客服说法，再拆 negative/safe"
+                },
+            },
+        }, ensure_ascii=False, separators=(",", ":"))
+        emit_phase("llm_atom_element_refinement", "progress", "第四步一级元素生成批次 %d/%d：%s，%d 个 atom" % (batch_idx, len(element_batches), batch_meta.get("source_kind", "mixed"), batch_registry.get("entry_count", 0)))
+        raw_elements = _safe_llm_stage_json(client, element_payload, element_prompt, purpose="atom_element_primary_%02d" % batch_idx, default={"element_refinements": []}, emit_phase=emit_phase, phase="llm_atom_element_refinement", label="一级元素批次 %d/%d" % (batch_idx, len(element_batches)))
+        compiled = merge_element_anchor_delta(compiled, raw_elements, secondary_only=False)
+        primary_runs.append({
+            "batch_index": batch_idx,
+            "batch_total": len(element_batches),
+            "source_kind": batch_meta.get("source_kind"),
+            "entry_count": batch_registry.get("entry_count", 0),
+            "merge_policy": "primary_elements_by_atom_id_only",
+        })
+    elements_elapsed = time.perf_counter() - t_elements
+    phase_timing["llm_atom_element_refinement_seconds"] = round(elements_elapsed, 3)
+    phase_timing["llm_element_refinement_seconds"] = round(elements_elapsed, 3)
+    emit_phase("llm_atom_element_refinement", "done", "第四步一级元素分批生成完成，共 %d 批，用时 %.1f 秒" % (len(element_batches), elements_elapsed), elapsed_seconds=elements_elapsed)
+    compiled, lint_report = lint_and_repair_schema(compiled)
+    compiled = remove_old_runtime_tables(assign_element_anchor_ids(compiled))
+    compiled = _fill_minimal_element_fallbacks(compiled)
+    compiled = remove_old_runtime_tables(assign_element_anchor_ids(compiled))
+    stage2_quality_report = _enforce_stage2_quality_gate(compiled, instruction)
+
+    expansion_runs: list[dict[str, Any]] = []
+    if str(os.getenv("SCEG_ELEMENT_EXPANSION", "on")).lower().strip() not in {"0", "off", "false", "skip", "disabled"}:
+        phase_timing["llm_element_expansion_triggered"] = True
+        expansion_transport = build_atom_transport(compiled, instruction)
+        expansion_batches = _split_atom_transport(expansion_transport, batch_size=element_batch_size)
+        emit_phase("llm_element_expansion", "start", "第五步 LLM 二级元素扩张开始：按 atom 批次扩表达池，不改事实和结构")
+        t_expand = time.perf_counter()
+        for batch_idx, batch_registry in enumerate(expansion_batches, start=1):
+            batch_meta = dict(batch_registry.get("batch") or {})
+            expansion_payload = json.dumps({
+                "task": "expand_element_pools_for_atom_batch",
+                "atom_transport": batch_registry,
+                "batch_contract": {
+                    "current_batch": batch_idx,
+                    "total_batches": len(expansion_batches),
+                    "only_return_atom_ids_in_current_batch": True,
+                },
+                "generation_contract": {
+                    "top_level_key": "secondary_expansions",
+                    "keyed_by": "atom_id",
+                    "task": "expand pool for existing elements only",
+                    "element_shape": {"value": "existing value", "main": True, "fact": False, "pool": ["equivalent expressions"]},
+                    "role_aware_pool_policy": {
+                        "activation": "用户触发表达开放度高，每个 trigger element 尽量给 8-15 个严格同意图口语 pool",
+                        "assistant": "客服侧表达趋同，每个 element 给 2-6 个等价说法即可",
+                        "fact": "fact=true 只能扩格式等价，不能改数值、时间、极性或条件",
+                        "coverage": "必须尽量覆盖每个已有 element；不能只返回少数示例"
+                    },
+                },
+            }, ensure_ascii=False, separators=(",", ":"))
+            emit_phase("llm_element_expansion", "progress", "第五步二级元素扩张批次 %d/%d：%s，%d 个 atom" % (batch_idx, len(expansion_batches), batch_meta.get("source_kind", "mixed"), batch_registry.get("entry_count", 0)))
+            expanded_raw = _safe_llm_stage_json(client, expansion_payload, element_expansion_prompt_text, purpose="atom_element_secondary_%02d" % batch_idx, default={"secondary_expansions": []}, emit_phase=emit_phase, phase="llm_element_expansion", label="二级元素扩张批次 %d/%d" % (batch_idx, len(expansion_batches)))
+            compiled = merge_element_anchor_delta(compiled, expanded_raw, secondary_only=True)
+            expansion_runs.append({
+                "expansion_source": "llm_api",
+                "batch_index": batch_idx,
+                "batch_total": len(expansion_batches),
+                "source_kind": batch_meta.get("source_kind"),
+                "entry_count": batch_registry.get("entry_count", 0),
+                "merge_policy": "secondary_pools_by_atom_id_only",
+            })
+        expand_elapsed = time.perf_counter() - t_expand
+        phase_timing["llm_element_expansion_seconds"] = round(expand_elapsed, 3)
+        emit_phase("llm_element_expansion", "done", "第五步二级元素分批扩张完成，共 %d 批，用时 %.1f 秒" % (len(expansion_batches), expand_elapsed), elapsed_seconds=expand_elapsed)
         compiled, lint_report = lint_and_repair_schema(compiled)
-        repair_runs.append({"audit_before_repair": repair_audit, "repair_source": "longcat_or_simulated_longcat", "elapsed_seconds": round(repair_elapsed, 3)})
-        repair_audit = audit_schema_repair_need(compiled, binding_hints, repair_mode=repair_mode)
+        compiled = remove_old_runtime_tables(assign_element_anchor_ids(compiled))
+        compiled = _fill_minimal_element_fallbacks(compiled)
+        compiled = remove_old_runtime_tables(assign_element_anchor_ids(compiled))
     else:
-        if str(repair_mode or "blocking").lower().strip() in {"off", "none", "skip", "disabled"}:
-            msg = "第二次 LongCat repair 建图未触发：已选择只建一次/跳过补图"
-        elif repair_audit.get("quality_repair_needed") and repair_audit.get("quality_warnings_kept_as_advisory"):
-            msg = "第二次 LongCat repair 建图未触发：快速模式只补硬缺口，质量提示已保留为 advisory"
-        else:
-            msg = "第二次 LongCat repair 建图未触发：schema gap 审计未发现必须补图项"
-        emit_phase("longcat_repair_graph", "skipped", msg)
+        phase_timing["llm_element_expansion_seconds"] = "未触发"
+        emit_phase("llm_element_expansion", "skipped", "第五步二级元素扩张未触发：环境变量已关闭")
 
-    compiled.setdefault("metadata", {})["graph_source"] = "longcat_with_schema_repair" if repair_runs else "longcat"
-    compiled["metadata"]["longcat_model"] = client.model
+    compiled = normalize_executable_groups(compiled)
+    final_registry = build_atom_registry(compiled, instruction)
+    compiled.setdefault("metadata", {})["schema_generation_mode"] = "one_graph_two_tables_atom_registry_elements"
+    compiled["metadata"]["graph_source"] = "llm_one_graph_two_tables_atom_elements"
+    compiled["metadata"]["llm_model"] = client.model
     compiled["metadata"]["schema_linter_report"] = lint_report
-    compiled["metadata"]["schema_repair_audit"] = repair_audit
-    compiled["metadata"]["schema_repair_runs"] = repair_runs
-    compiled["metadata"]["longcat_phase_timing_seconds"] = phase_timing
+    compiled["metadata"]["stage2_element_quality_gate"] = stage2_quality_report
+    compiled["metadata"]["schema_element_refinement_runs"] = [{
+        "source": "llm_api",
+        "mode": "atom_registry_primary_elements_batched",
+        "elapsed_seconds": phase_timing["llm_atom_element_refinement_seconds"],
+        "quality_gate": stage2_quality_report,
+        "atom_registry_entry_count": final_registry.get("entry_count"),
+        "batch_size": element_batch_size,
+        "batches": primary_runs,
+    }]
+    compiled["metadata"]["schema_element_expansion_runs"] = expansion_runs
+    compiled["metadata"]["atom_registry_summary"] = {k: final_registry.get(k) for k in ("schema_mode", "id_policy", "entry_count")}
+    compiled["metadata"]["llm_phase_timing_seconds"] = phase_timing
     usage = client.usage_summary()
     usage["phase_timing_seconds"] = phase_timing
     usage.setdefault("cache", {"hit": False, "path": str(cache_path)})
-    compiled["metadata"]["longcat_token_usage"] = usage
-    compiled["metadata"]["longcat_cache_hit"] = False
-    compiled["metadata"]["longcat_cache_path"] = str(cache_path)
+    compiled["metadata"]["llm_token_usage"] = usage
+    compiled["metadata"]["llm_cache_hit"] = False
+    compiled["metadata"]["llm_cache_path"] = str(cache_path)
+    if str(os.getenv("SCEG_GRAPH_LANGUAGE_GATE", "on")).lower().strip() not in {"0", "off", "false", "skip"}:
+        assert_chinese_context(compiled)
     if use_cache:
         write_json(cache_path, compiled)
     return compiled, usage
@@ -391,7 +1471,7 @@ def _char_ngrams(text: str) -> set[str]:
     """Small, local compatibility signal used only to avoid cross-task mixing.
 
     It is not a business dictionary: the tokens are derived from the current
-    LongCat graph and the candidate dialogue files themselves.
+    LLM graph and the candidate dialogue files themselves.
     """
     compact = re.sub(r"\s+", "", text)
     compact = re.sub(r"[\W_]+", "", compact, flags=re.UNICODE)
@@ -493,7 +1573,7 @@ def _sample_turn_texts(dialogue: dict[str, Any], speaker: str, limit: int = 3) -
 
 
 def _build_binding_hints(dialogues: list[dict[str, Any]], selected_domain: str | None, max_items: int = 64) -> tuple[str, dict[str, Any]]:
-    """Build compact, non-answer-key binding hints for LongCat.
+    """Build compact, non-answer-key binding hints for LLM.
 
     These hints are *schema alignment anchors*, not business facts.  They never
     include dialogue turns, evidence spans, wrong statements, or injected
@@ -654,7 +1734,7 @@ def _domain_compatibility_filter(dialogues: list[dict[str, Any]], graph: StateGr
             "best_score": round(best_score, 4),
             "second_score": round(second_score, 4),
             "skipped": len(dialogues) - len(matched),
-            "note": "检测到一个 LongCat 状态图对应多个 domain 的对话目录，已按状态图与对话文本的结构兼容度自动保留最匹配的一组。",
+            "note": "检测到一个 LLM 状态图对应多个 domain 的对话目录，已按状态图与对话文本的结构兼容度自动保留最匹配的一组。",
         })
         graph.metadata["auto_selected_dialogue_domain"] = best_domain
         graph.metadata["dialogue_filter_method"] = "schema_dialogue_overlap"
@@ -663,7 +1743,7 @@ def _domain_compatibility_filter(dialogues: list[dict[str, Any]], graph: StateGr
         "method": "ambiguous_overlap",
         "best_score": round(best_score, 4),
         "second_score": round(second_score, 4),
-        "note": "发现多个 domain，但状态图兼容度差异不足，未自动过滤。建议指定对话目录或在 LongCat 输出 metadata.domain。",
+        "note": "发现多个 domain，但状态图兼容度差异不足，未自动过滤。建议指定对话目录或在 LLM 输出 metadata.domain。",
     })
     return dialogues, info
 
@@ -685,9 +1765,9 @@ def _recompile_graph_for_selected_dialogues(
     selected_root: Path,
     filter_info: dict[str, Any],
 ) -> tuple[dict[str, Any], StateGraph]:
-    """Bind generated LongCat schema to the selected dialogue package.
+    """Bind generated LLM schema to the selected dialogue package.
 
-    LongCat may generate fresh node IDs and a natural-language domain label on
+    LLM may generate fresh node IDs and a natural-language domain label on
     every run. The latest positive/negative package may still carry legacy
     injected_error ids. This pass is not a business dictionary: it recompiles
     the schema using only the selected package's metadata as aliases, so local
@@ -699,7 +1779,7 @@ def _recompile_graph_for_selected_dialogues(
     original_domain = str(meta.get("domain") or "")
     if selected_domain:
         if original_domain and original_domain != selected_domain:
-            meta["longcat_domain_label"] = original_domain
+            meta["llm_domain_label"] = original_domain
         meta["domain"] = selected_domain
         meta["dialogue_domain"] = selected_domain
     compiled = compile_state_graph(data, legacy_dialogue_root=selected_root)
@@ -714,13 +1794,16 @@ def _recompile_graph_for_selected_dialogues(
 
 def _evaluate_records(graph: StateGraph, dialogues: list[dict[str, Any]], runtime: dict[str, Any], progress_callback=None) -> list[dict[str, Any]]:
     extractor = EvidenceExtractor()
-    evaluator = GraphEvaluator(graph, runtime, extractor)
     accepter = DatasetInterface(runtime)
     explainer = ReportExplainer()
     oracle_router = OracleRouter(runtime)
     records: list[dict[str, Any]] = []
     total = len(dialogues)
     for idx, dialogue in enumerate(dialogues, start=1):
+        # Keep graph execution stateless across a large mixed pack.  The evaluator
+        # is label-free and cheap to recreate; rebuilding it per dialogue avoids
+        # cross-dialogue element/ledger growth from affecting later samples.
+        evaluator = GraphEvaluator(copy.deepcopy(graph), copy.deepcopy(runtime), extractor)
         evaluation = evaluator.evaluate(dialogue)
         acceptance = accepter.accept(dialogue, evaluation)
         apply_dataset_score_adjustments(dialogue, evaluation, acceptance, runtime)
@@ -746,10 +1829,10 @@ def _evaluate_records(graph: StateGraph, dialogues: list[dict[str, Any]], runtim
 def run_project(
     instruction: str,
     project_root: str | Path,
-    longcat_api_key: str | None = None,
-    longcat_base_url: str | None = None,
-    longcat_model: str | None = None,
-    longcat_timeout: int | None = None,
+    llm_api_key: str | None = None,
+    llm_base_url: str | None = None,
+    llm_model: str | None = None,
+    llm_timeout: int | None = None,
     dialogue_root: str | Path | None = None,
     max_dialogues: int | None = None,
     pack_type: str | None = None,
@@ -757,13 +1840,16 @@ def run_project(
     llm_verifier_max_items: int | None = None,
     report_mode: str = "simple",
     progress_callback=None,
-    repair_mode: str = "blocking",
+    repair_mode: str = "required",
+    refine_mode: str | None = None,
     use_graph_cache: bool = True,
 ) -> dict[str, Any]:
+    # 第二阶段 element细化必跑；旧 refine_mode 参数只保留接口兼容。
+    repair_mode = "required"
     root = Path(project_root).resolve()
     runs_dir = _ensure(root / "runs")
-    graph_dir = _ensure(runs_dir / "graphs_longcat")
-    run_id = "longcat_latest__" + _now_id()
+    graph_dir = _ensure(runs_dir / "graphs_llm")
+    run_id = "llm_latest__" + _now_id()
     run_dir = _ensure(runs_dir / run_id)
 
     def emit(stage: str, current: int, total: int, message: str, **extra: Any) -> None:
@@ -783,30 +1869,31 @@ def run_project(
     binding_hint_info["runtime_version"] = runtime_version_info()
     write_json(run_dir / "schema_binding_hints_info.json", binding_hint_info)
 
-    emit("build_graph", 2, 7, "正在用 LongCat 离线生成 schema 状态图")
-    debug_dir = _ensure(run_dir / "longcat_debug")
-    old_debug_dir = os.environ.get("SCEG_LONGCAT_DEBUG_DIR")
-    os.environ["SCEG_LONGCAT_DEBUG_DIR"] = str(debug_dir)
+    emit("build_graph", 2, 7, "正在用 LLM 离线生成 schema 状态图")
+    debug_dir = _ensure(run_dir / "llm_debug")
+    old_debug_dir = os.environ.get("SCEG_LLM_DEBUG_DIR")
+    os.environ["SCEG_LLM_DEBUG_DIR"] = str(debug_dir)
     try:
-        graph_data, token_usage = build_graph_with_longcat(
+        graph_data, token_usage = build_graph_with_llm(
             instruction,
             root,
-            longcat_api_key or "",
-            longcat_base_url,
-            longcat_model,
-            timeout=longcat_timeout,
+            llm_api_key or "",
+            llm_base_url,
+            llm_model,
+            timeout=llm_timeout,
             binding_hints=binding_hints,
             progress_callback=progress_callback,
             repair_mode=repair_mode,
+            refine_mode="required",
             use_cache=use_graph_cache,
         )
     finally:
         if old_debug_dir is None:
-            os.environ.pop("SCEG_LONGCAT_DEBUG_DIR", None)
+            os.environ.pop("SCEG_LLM_DEBUG_DIR", None)
         else:
-            os.environ["SCEG_LONGCAT_DEBUG_DIR"] = old_debug_dir
+            os.environ["SCEG_LLM_DEBUG_DIR"] = old_debug_dir
     graph = StateGraph.from_dict(graph_data)
-    graph_slug = _slug(graph.graph_id, "longcat_graph")
+    graph_slug = _slug(graph.graph_id, "llm_graph")
     graph_path = graph_dir / f"{graph_slug}.json"
     write_json(graph_path, graph_data)
     write_json(run_dir / "graph.json", graph_data)
@@ -815,11 +1902,11 @@ def run_project(
     dialogues, filter_info = _filter_dialogues(all_loaded_dialogues, graph, pack_type)
 
     # Recompile after the domain/task package has been selected. This solves the
-    # common LongCat issue where generated schema IDs differ from the injected
+    # common LLM issue where generated schema IDs differ from the injected
     # error IDs in the newest formal positive/negative package. The binding is
     # derived from selected package metadata only; no task words are embedded in code.
     graph_data, graph = _recompile_graph_for_selected_dialogues(graph_data, selected_root, filter_info)
-    graph_slug = _slug(graph.graph_id, "longcat_graph")
+    graph_slug = _slug(graph.graph_id, "llm_graph")
     graph_path = graph_dir / f"{graph_slug}.json"
     write_json(graph_path, graph_data)
     write_json(run_dir / "graph.json", graph_data)
@@ -840,7 +1927,7 @@ def run_project(
         write_json(run_dir / "dialogue_filter_info.json", filter_info)
     if not dialogues:
         write_json(run_dir / "dialogue_load_debug.json", {"dialogue_root": str(selected_root), "graph_domain": graph.metadata.get("domain"), "pack_type": pack_type, "filter_info": filter_info})
-        raise RuntimeError("没有找到可评估的对话 JSON。请检查 data/dialogues 下的正负包，或确认 LongCat 输出的 metadata.domain 与样本 domain 能对应。")
+        raise RuntimeError("没有找到可评估的对话 JSON。请检查 data/dialogues 下的正负包，或确认 LLM 输出的 metadata.domain 与样本 domain 能对应。")
 
     runtime_path = root / "config" / "default_runtime.json"
     runtime = read_json(runtime_path)
@@ -855,9 +1942,9 @@ def run_project(
         llm_budget = llm_verifier_max_items if llm_verifier_max_items is not None else (oracle_budget.get("max_batch_candidates") or 36)
     llm_summary = apply_llm_verifier(
         records,
-        api_key=longcat_api_key or "",
-        base_url=longcat_base_url,
-        model=longcat_model,
+        api_key=llm_api_key or "",
+        base_url=llm_base_url,
+        model=llm_model,
         mode=llm_verifier_mode or "off",
         max_items=int(llm_budget) if llm_budget is not None else None,
     )
@@ -872,7 +1959,7 @@ def run_project(
     write_json(merged_path, records)
     token_usage_path = run_dir / "run_token_usage.json"
     timing_path = run_dir / "run_timing_summary.json"
-    longcat_phase_timing = token_usage.get("phase_timing_seconds") or {}
+    llm_phase_timing = token_usage.get("phase_timing_seconds") or {}
     combined_usage = {
         "total": {
             "prompt_tokens": int((token_usage.get("total") or {}).get("prompt_tokens") or 0) + int(((llm_summary.get("token_usage") or {}).get("total") or {}).get("prompt_tokens") or 0),
@@ -886,10 +1973,10 @@ def run_project(
     write_json(token_usage_path, combined_usage)
     write_json(timing_path, {
         "runtime_version": runtime_version_info(),
-        "longcat_phase_timing_seconds": longcat_phase_timing,
-        "repair_mode": repair_mode,
+        "llm_phase_timing_seconds": llm_phase_timing,
+        "refine_mode": "required",
         "use_graph_cache": use_graph_cache,
-        "notes": "LongCat 分段计时：第一次为初始 schema 建图；第二次只在所选 repair_mode 需要时补图。快速模式只补硬缺口，质量提示保留为 advisory。",
+        "notes": "LLM 分段计时：Pass 1 主图、Pass 2 知识表、Pass 3 硬软限制表、Pass 4 一级元素、Pass 5 二级元素扩张。",
     })
 
     emit("html_reports", 6, 7, "正在生成中文 HTML 报告")
@@ -919,16 +2006,16 @@ def run_project(
         "run_token_usage": str(token_usage_path),
         "run_timing_summary": str(timing_path),
         "llm_verifier_summary": str(run_dir / "llm_verifier_summary.json"),
-        "repair_mode": repair_mode,
+        "refine_mode": "required",
         "use_graph_cache": use_graph_cache,
-        "longcat_cache_hit": bool(((graph_data.get("metadata") or {}).get("longcat_cache_hit"))),
+        "llm_cache_hit": bool(((graph_data.get("metadata") or {}).get("llm_cache_hit"))),
         "dialogue_root": str(selected_root),
         "dialogue_count": len(records),
         "skipped_dialogue_count": max(0, len(all_loaded_dialogues) - len(dialogues)),
         "dialogue_filter_info": str(run_dir / "dialogue_filter_info.json"),
         "schema_linter_report": str(run_dir / "schema_linter_report.json"),
         "schema_binding_hints_info": str(run_dir / "schema_binding_hints_info.json"),
-        "graph_source": "longcat",
+        "graph_source": "llm",
         "pack_filter": pack_type,
         "llm_verifier_summary": str(run_dir / "llm_verifier_summary.json"),
     }
@@ -950,15 +2037,15 @@ def run_offline_project(
     pack_type: str | None = None,
     llm_verifier_mode: str | None = None,
     llm_verifier_max_items: int | None = None,
-    longcat_api_key: str | None = None,
-    longcat_base_url: str | None = None,
-    longcat_model: str | None = None,
+    llm_api_key: str | None = None,
+    llm_base_url: str | None = None,
+    llm_model: str | None = None,
     report_mode: str = "detail",
     progress_callback=None,
 ) -> dict[str, Any]:
     """Evaluate dialogues with an existing graph JSON, without graph building.
 
-    This is the offline demo path: it never calls LongCat for graph generation.
+    This is the offline demo path: it never calls LLM for graph generation.
     Optional LLM verification is still available after local evaluation when the
     caller explicitly provides a key and selects shadow/assist mode.
     """
@@ -1036,9 +2123,9 @@ def run_offline_project(
         llm_budget = llm_verifier_max_items if llm_verifier_max_items is not None else (oracle_budget.get("max_batch_candidates") or 36)
     llm_summary = apply_llm_verifier(
         records,
-        api_key=longcat_api_key or "",
-        base_url=longcat_base_url,
-        model=longcat_model,
+        api_key=llm_api_key or "",
+        base_url=llm_base_url,
+        model=llm_model,
         mode=llm_verifier_mode or "off",
         max_items=int(llm_budget) if llm_budget is not None else None,
     )

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-CORE_VERSION = "fix70"
+# Stable kernel label for reports.  This is not a historical version stamp; it
+# identifies the current method contract used by the local evaluator.
+CORE_VERSION = "element-contract-kernel"
 CORE_VERSION_NOTE = (
-    "fix70: preserves transcript evidence for arbitration, adds an offline graph "
-    "evaluation demo app, and keeps version-stamped reports."
+    "一图两表 + Atom/Element Groups + main/pool recall + fact/value_check + "
+    "trigger-driven branches + local second filter arbitration."
 )
 
 

@@ -18,8 +18,17 @@ runs/
 data/graphs*/
 data/outputs*/
 data/generated*/
-data/simulated_longcat*/
+data/simulated_llm*/
 
 # OS/editor noise
 .DS_Store
 Thumbs.db
+# Runtime outputs
+runs/*
+!runs/.gitkeep
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.env
+.env.*

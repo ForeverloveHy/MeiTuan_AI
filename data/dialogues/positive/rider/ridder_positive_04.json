@@ -1,0 +1,155 @@
+{
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "ridder_positive_04",
+  "scenario": "bad_weather_and_safety_followup",
+  "personality": "焦虑",
+  "difficulty": "中等难度",
+  "baseline_index": 4,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，我今天看天气不好。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "能跑，但有点担心下雨路滑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "理解，安全第一。我先把规则说清楚。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差跑单有用吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，有助保住资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但不要为了赶单冒险，路况不安全就先保证安全。"
+    },
+    {
+      "speaker": "user",
+      "text": "那多日要连跑多久？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日要连续7天配送，每天都要达到10单。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果断一天呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是站长能留？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "少拒单、取消、超时会更稳。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果明天不方便怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "跑满有没有奖励？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "例如比单日每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白，我会看路况跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，能安全配送再跑，路上注意安全。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题随时联系我。"
+    }
+  ],
+  "positive_validation": {
+    "expected_result": "本地通过",
+    "knowledge_events": [],
+    "constraint_events": [],
+    "injected_errors": [],
+    "notes": "天气追问型正包，既说明恶劣天气订单量和资格关系，也保留安全边界，没有催促冒险配送。",
+    "audit_revision": "中修：天气焦虑场景强化“安全第一”，避免“能跑就坚持”像轻微施压。"
+  }
+}

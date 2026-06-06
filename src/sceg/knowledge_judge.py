@@ -1,649 +1,41 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
 import re
+from typing import Any, Literal
 
-from .evidence_matcher import EvidenceMatcher
+from .element_engine import ElementEngine, DialogueAtom, ElementMatch, SemanticElement, match_side, text_hit, compact, _drop_cn_modal_fillers
 from .evidence_units import EvidenceUnit
-from .schema import KnowledgeClaim, KnowledgeItem
+from .schema import KnowledgeItem
+
+KnowledgeVerdict = Literal["支持", "冲突", "证据不足", "未提及"]
 
 
-
-def _compact(text: object) -> str:
-    return "".join(str(text or "").lower().split())
-
-def _pattern_values(patterns: list[dict[str, Any]]) -> list[str]:
-    values: list[str] = []
-    for pat in patterns or []:
-        for key in ("all", "any"):
-            for value in pat.get(key, []) or []:
-                t = str(value or "").strip()
-                if t:
-                    values.append(t)
-        for value in pat.get("regex_any", []) or []:
-            t = str(value or "").strip()
-            if t:
-                values.append(t)
-    out: list[str] = []
-    seen: set[str] = set()
-    for v in values:
-        if v not in seen:
-            seen.add(v)
-            out.append(v)
-    return out
-
-
-
-
-_DIRECTION_LOW_MARKERS = (
-    "更便宜", "较便宜", "便宜", "成本更低", "更低", "较低", "低一些",
-)
-_DIRECTION_HIGH_MARKERS = (
-    "更贵", "较贵", "贵一些", "略高", "更高", "较高", "高一些",
-)
-
-
-def _direction_polarities(text: object) -> set[str]:
-    """Return coarse comparative direction signals from Chinese schema/text.
-
-    The markers are generic comparative adjectives, not business objects.  We
-    deliberately avoid treating a bare single character such as ``低`` or ``高``
-    as a direction, because product names may contain those characters.
-    """
-    t = _compact(text)
-    out: set[str] = set()
-    if any(_compact(m) and _compact(m) in t for m in _DIRECTION_LOW_MARKERS):
-        out.add("low")
-    if any(_compact(m) and _compact(m) in t for m in _DIRECTION_HIGH_MARKERS):
-        out.add("high")
-    return out
-
-
-def _opposite_direction(a: set[str], b: set[str]) -> bool:
-    return ("low" in a and "high" in b) or ("high" in a and "low" in b)
-
-def _numeric_ranges_from_text(text: object) -> list[tuple[float, float]]:
-    """Extract numeric ranges from schema values or dialogue text.
-
-    This is intentionally generic and unit-agnostic.  It only compares numbers
-    after the surrounding claim/object anchor has already been matched by the
-    schema.  Examples: ``5到10秒``, ``5-10秒``, ``1~2``.
-    """
-    raw = str(text or "")
-    compact = _compact(raw)
-    out: list[tuple[float, float]] = []
-    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*(?:到|至|[-~～—－])\s*(\d+(?:\.\d+)?)", raw):
-        a = float(m.group(1))
-        b = float(m.group(2))
-        if a > b:
-            a, b = b, a
-        out.append((a, b))
-    # Some sources normalize spaces/dashes away before reaching the judge.
-    if not out:
-        for m in re.finditer(r"(\d+(?:\.\d+)?)(?:到|至|[-~～—－])(\d+(?:\.\d+)?)", compact):
-            a = float(m.group(1))
-            b = float(m.group(2))
-            if a > b:
-                a, b = b, a
-            out.append((a, b))
-    seen: set[tuple[float, float]] = set()
-    unique: list[tuple[float, float]] = []
-    for r in out:
-        if r not in seen:
-            seen.add(r)
-            unique.append(r)
-    return unique
-
-
-def _range_overlaps(a: tuple[float, float], b: tuple[float, float], *, tolerance: float = 0.0) -> bool:
-    return not (a[1] < b[0] - tolerance or b[1] < a[0] - tolerance)
-
-
-def _is_numeric_or_unit_term(text: str) -> bool:
-    t = _compact(text)
-    if not t:
-        return True
-    if any(ch.isdigit() for ch in t):
-        return True
-    return len(t) <= 1
-
-def _symbolic_unit_terms(value: object) -> set[str]:
-    """Extract generic placeholder+unit terms from schema or dialogue text.
-
-    LongCat schemas often use anonymized placeholders such as X/Y/W plus a
-    Chinese unit.  In natural Chinese there may be no delimiter after the unit
-    (for example a following verb is attached).  Keep the full match and also
-    short placeholder+unit prefixes so different placeholder values with the same unit can conflict even when the
-    sentence continues immediately after the unit.
-    """
-    text = _compact(value)
-    out: set[str] = set()
-    for m in re.finditer(r"(?<![a-z0-9_])([a-z])([一-鿿]{1,4})", text):
-        prefix, unit = m.group(1), m.group(2)
-        out.add(prefix + unit)
-        if unit:
-            out.add(prefix + unit[:1])
-        if len(unit) >= 2:
-            out.add(prefix + unit[:2])
-    return out
-
-
-def _has_symbolic_unit_mismatch(support_values: list[object], text: str) -> bool:
-    support_terms: set[str] = set()
-    bare_support_values = {_compact(v) for v in support_values if _compact(v)}
-    for value in support_values:
-        support_terms.update(_symbolic_unit_terms(value))
-    if not support_terms:
+def _value_check_has_comparable_runtime(vc: Any) -> bool:
+    if not isinstance(vc, dict) or not vc:
         return False
-    text_terms = _symbolic_unit_terms(text)
-    if not text_terms:
-        return False
-    support_units = {re.sub(r"^[a-z][a-z0-9_]{0,3}", "", term) for term in support_terms}
-    # If the schema also lists the bare unit as acceptable evidence, a different
-    # placeholder with the same unit may belong to a neighboring condition in the
-    # same sentence.  Do not turn that ambiguous case into a hard conflict.
-    if any(unit and unit in bare_support_values for unit in support_units):
-        return False
-    for term in text_terms:
-        if term in support_terms:
+    candidates = []
+    for value, unit in [(vc.get("expected_value"), vc.get("unit")), (vc.get("expected"), vc.get("unit")), (vc.get("normalized_expected"), vc.get("unit"))]:
+        candidates.append((value, unit))
+    checks = vc.get("checks") or vc.get("value_checks") or []
+    if isinstance(checks, dict):
+        checks = [checks]
+    if isinstance(checks, list):
+        for c in checks:
+            if isinstance(c, dict):
+                for value in [c.get("expected_value"), c.get("expected"), c.get("normalized_expected")]:
+                    candidates.append((value, c.get("unit") or vc.get("unit")))
+    for value, unit in candidates:
+        text = str(value or "").strip()
+        if not text:
             continue
-        unit = re.sub(r"^[a-z][a-z0-9_]{0,3}", "", term)
-        if unit and unit in support_units:
+        if _build_fact_profile(text, str(unit or "")).get("has_comparable"):
             return True
     return False
-
-
-
-
-def _has_alternative_placeholder_without_support(support_values: list[object], text: str) -> bool:
-    """Detect a placeholder value asserted where the support placeholder is absent.
-
-    This is weaker than same-unit mismatch and is only used when the schema does
-    not also accept the bare unit as evidence.  It handles generic anonymized
-    cases where a claim expects one placeholder token, but the utterance anchors
-    the claim and asserts a different placeholder condition instead.
-    """
-    support_terms: set[str] = set()
-    bare_support_values = {_compact(v) for v in support_values if _compact(v)}
-    for value in support_values:
-        support_terms.update(_symbolic_unit_terms(value))
-    if not support_terms:
-        return False
-    support_units = {re.sub(r"^[a-z][a-z0-9_]{0,3}", "", term) for term in support_terms}
-    if any(unit and unit in bare_support_values for unit in support_units):
-        return False
-    text_terms = _symbolic_unit_terms(text)
-    if not text_terms:
-        return False
-    if any(term in text_terms for term in support_terms):
-        return False
-    support_prefixes = {re.match(r"^[a-z][a-z0-9_]{0,3}", term).group(0) for term in support_terms if re.match(r"^[a-z][a-z0-9_]{0,3}", term)}
-    for term in text_terms:
-        m = re.match(r"^[a-z][a-z0-9_]{0,3}", term)
-        if m and m.group(0) not in support_prefixes:
-            return True
-    return False
-
-def _safe_anchor_variants(term: str) -> list[str]:
-    """Build generic object anchors from schema terms.
-
-    No business words are stored here.  For a schema object such as a four-char
-    Chinese label, the first/last two chars are useful when the dialogue uses a
-    shortened form.  Attribute/value terms are mostly short or numeric and are
-    filtered before this function is called.
-    """
-    t = _compact(term)
-    if not t:
-        return []
-    out = [t]
-    if re.fullmatch(r"[\u4e00-\u9fff]{4,}", t):
-        # The prefix often carries the differentiating object label; the suffix
-        # is frequently a generic category word and can over-bind siblings.
-        out.append(t[:2])
-    return [x for i, x in enumerate(out) if x and x not in out[:i]]
-
-
-
-def _split_schema_phrase(value: str) -> list[str]:
-    """Split a schema phrase into reusable semantic fragments.
-
-    The fragments are derived from the schema phrase itself.  This is not a
-    business dictionary; it only lets table values match separated wording
-    when those values are already supplied by the current schema.
-    """
-    t = _compact(value)
-    if not t:
-        return []
-    # ASCII / variable tokens and symbolic placeholders are preserved by a
-    # simple mixed segmentation pass.
-    parts = re.findall(r"[A-Za-z]+\d*|[A-Z]?\$|[XYZW]\s*[单天点]?|\d+|[\u4e00-\u9fff]{1,4}", str(value or ""), flags=re.I)
-    out: list[str] = []
-    for part in parts:
-        c = _compact(part)
-        if not c or len(c) <= 1:
-            continue
-        if re.fullmatch(r"[\u4e00-\u9fff]{4}", c):
-            out.extend([c[:2], c[2:]])
-        else:
-            out.append(c)
-    # Also keep frequent compact two-character chunks from longer Chinese
-    # phrases.  These chunks come from the schema value itself.
-    if re.search(r"[\u4e00-\u9fff]", t) and len(t) >= 4:
-        for i in range(0, len(t) - 1, 2):
-            out.append(t[i:i+2])
-    seen: set[str] = set()
-    return [x for x in out if x and not (x in seen or seen.add(x))]
-
-
-_CONTRASTIVE_OPERATOR_GROUPS = (
-    ("前", "后"),
-    ("上", "下"),
-    ("高", "低"),
-    ("多", "少"),
-    ("早", "晚"),
-    ("内", "外"),
-    ("有", "无"),
-    ("可", "不可"),
-    ("能", "不能"),
-    ("会", "不会"),
-    ("已", "未"),
-)
-
-
-def _contrastive_operators_preserved(value: str, text: str) -> bool:
-    """Guard loose schema matching against direction/polarity inversions.
-
-    LongCat may generate short refute values such as "A 后 B" while the safe
-    support sentence says "A 前 B".  A loose matcher that only counts shared
-    fragments would see A+B and accidentally ignore the opposite operator.  The
-    operator set below is generic Chinese contrast structure, not a business
-    dictionary.  Exact substring matches still pass before this guard is used.
-    """
-    v = _compact(value)
-    t = _compact(text)
-    if not v or not t:
-        return False
-    for group in _CONTRASTIVE_OPERATOR_GROUPS:
-        present = [op for op in group if op in v]
-        if not present:
-            continue
-        for op in present:
-            # For composite forms such as "不能" and "不可", preserve the full
-            # form when it appears in the schema value.  A bare "能" in the
-            # dialogue should not satisfy "不能" by loose fragments.
-            if len(op) > 1 and op not in t:
-                return False
-        # If the value explicitly contains one side of a binary operator pair,
-        # the loose match must contain that same side; otherwise "前" and "后"
-        # or "高" and "低" can be collapsed by shared surrounding words.
-        single_ops = [op for op in present if len(op) == 1]
-        if single_ops and not all(op in t for op in single_ops):
-            return False
-    return True
-
-
-_TEMPORAL_OPERATOR_GROUPS = (
-    ("当天", "当日", "今天"),
-    ("次日", "第二天", "翌日", "明天"),
-    ("立即", "马上", "即刻", "现在就"),
-    ("随时",),
-)
-
-
-def _temporal_operators_preserved(value: str, text: str) -> bool:
-    """Keep loose phrase matching from erasing temporal polarity.
-
-    The terms are generic time/effect operators.  They are not business labels.
-    A long refute phrase such as "same-day handling takes effect same day" must
-    not be matched by fragments "handling" + "takes effect" in a safe sentence
-    that actually says "before the deadline, next day effective".
-    """
-    v = _compact(value)
-    t = _compact(text)
-    if not v or not t:
-        return False
-    for group in _TEMPORAL_OPERATOR_GROUPS:
-        value_hits = [m for m in group if m in v]
-        if value_hits and not any(m in t for m in group):
-            return False
-    # "before/after" can be a single character in Chinese.  Preserve it only
-    # when the schema phrase is clearly temporal, otherwise object labels with
-    # these characters would become too strict.
-    temporal_scope = any(x in v for x in ("生效", "有效", "取消", "处理", "完成", "截止", "时间", "点"))
-    if temporal_scope:
-        if "之前" in v and not ("之前" in t or "前" in t):
-            return False
-        if "之后" in v and not ("之后" in t or "后" in t):
-            return False
-    return True
-
-
-def _split_strong_clauses(text: str) -> list[str]:
-    clauses = [x.strip() for x in re.split(r"[。；;！？!?\n]+", str(text or "")) if x.strip()]
-    return clauses or [str(text or "")]
-
-
-def _schema_phrase_loose_match(value: str, text: str) -> bool:
-    v = _compact(value)
-    t = _compact(text)
-    if not v or not t:
-        return False
-    neg_markers = ("不", "没", "无", "非", "不用", "不影响", "没关系", "不会", "无需")
-    value_has_neg = any(m in v for m in neg_markers)
-    text_has_neg = any(m in t for m in neg_markers)
-    if value_has_neg and not text_has_neg:
-        return False
-    if v in t:
-        return True
-    # Do not let loose fragments erase temporal polarity such as 当天/次日 or
-    # 立即/延后.  Exact substring matching above still accepts a literal hit.
-    if not _temporal_operators_preserved(value, text):
-        return False
-    # Very short Chinese schema phrases are usually atomic predicates, not
-    # bags of two-character fragments.  For example, a refute phrase shaped
-    # like "A生效/取消" must not be satisfied by finding "A" in one part of the
-    # sentence and "取消" in another.  Keep loose matching for longer schema
-    # phrases where inserted function words are common.
-    if re.fullmatch(r"[\u4e00-\u9fff]{2,4}", v):
-        return False
-    if not _contrastive_operators_preserved(value, text):
-        return False
-    parts = [x for x in _split_schema_phrase(value) if len(x) >= 2]
-    if value_has_neg:
-        parts = [x for x in parts if any(m in x for m in neg_markers) or len(x) >= 3]
-
-    if len(parts) < 2:
-        return False
-    hits = sum(1 for x in parts if x in t)
-    return hits >= min(len(parts), 2) and hits / max(1, len(parts)) >= 0.5
-
-
-def _schema_gate_match(value: str, text: str) -> bool:
-    """Match a schema object/condition gate with safe abbreviation support.
-
-    LongCat sometimes writes a full object label in the graph while natural
-    dialogue uses a shortened label.  The abbreviations are derived only from
-    the current schema value.  They are used as gates for numeric/direction
-    contradiction checks, not as stand-alone business rules.
-    """
-    if _schema_phrase_loose_match(value, text):
-        return True
-    t = _compact(text)
-    for variant in _safe_anchor_variants(value):
-        cv = _compact(variant)
-        if len(cv) >= 2 and cv in t:
-            return True
-    return False
-
-
-_GENERIC_NEGATION_MARKERS = (
-    "不用", "不需要", "无需", "不必", "不看", "不管", "不会", "不能", "无法", "没法", "不适合", "不支持", "不符合", "不影响",
-    "没影响", "没有影响", "没关系", "无所谓", "没帮助", "没有帮助", "不帮", "没做到",
-    "不用做到", "不要求", "不用完成", "不算", "不是", "非", "随时", "口头", "代办", "代处理",
-)
-_GENERIC_WRONG_TIME_MARKERS = ("立即", "马上", "当天", "今天", "现在就", "过了", "前也能", "前就", "保存前", "配置前")
-_GENERIC_ONLY_MARKERS = ("只要", "只需", "只看", "只用", "就够")
-_GENERIC_STRONG_WRONG_MARKERS = (
-    "不影响", "没影响", "不会影响", "不会", "没关系", "没帮助", "没有帮助", "不用", "不需要", "无需", "不看", "不管",
-    "随时", "立即", "马上", "当天", "口头", "代办", "代处理", "只要", "只需", "只看", "就够",
-)
-
-
-def _negates_schema_value(value: str, text: str) -> bool:
-    """Return whether a generic negation appears close to a schema value."""
-    v = _compact(value)
-    t = _compact(text)
-    if not v or not t:
-        return False
-    # Use compact variants derived from the value itself.
-    candidates = [v, *_split_schema_phrase(value)]
-    candidates = [c for c in candidates if len(c) >= 2]
-    negs = [m for m in _GENERIC_NEGATION_MARKERS if m in t]
-    if not negs:
-        return False
-    for c in candidates:
-        pos = t.find(c)
-        if pos < 0:
-            continue
-        for m in negs:
-            mpos = t.find(m)
-            while mpos >= 0:
-                # Negation must be close to the value or form a common
-                # "not need/look/complete + value" expression.
-                if abs(mpos - pos) <= max(4, len(c) + 2):
-                    return True
-                mpos = t.find(m, mpos + 1)
-    return False
-
-
-
-def _looks_like_safe_boundary_statement(text: str) -> bool:
-    t = _compact(text)
-    if not t:
-        return False
-    boundary = ("不能保证", "不保证", "无法保证", "不能承诺", "不承诺", "无法承诺")
-    reference = ("为准", "以页面", "以系统", "按页面", "按系统", "按配置", "实际展示")
-    return any(x in t for x in boundary) and (any(x in t for x in reference) or "为准" in t)
-
-
-def _looks_like_corrective_support(text: str) -> bool:
-    t = _compact(text)
-    # Corrective form: "不能/不是 A，要/按/是 B".  This is a safe correction,
-    # not an endorsement of A.
-    return any(x in t for x in ("不能", "不是", "不可以", "不可", "无法", "不只")) and any(x in t for x in ("要", "按", "是", "来"))
-
-
-def _has_support_after_correction_pivot(support_values: list[object], text: str) -> bool:
-    t = _compact(text)
-    if not t:
-        return False
-    neg_positions = [t.find(m) for m in _GENERIC_NEGATION_MARKERS if t.find(m) >= 0]
-    if not neg_positions:
-        return False
-    first_neg = min(neg_positions)
-    pivot = -1
-    for p in ("要", "按", "是", "来"):
-        start = 0
-        while True:
-            pos = t.find(p, start)
-            if pos < 0:
-                break
-            # Do not treat the character inside "不是/没是/..." as a positive
-            # correction pivot.  We only want the B side that appears after the
-            # negated part, e.g. "不是 A，是 B" or "不能 A，要按 B".
-            if pos > first_neg and (pos == 0 or t[pos - 1] not in {"不", "没", "无", "非"}):
-                pivot = max(pivot, pos)
-            start = pos + 1
-    if pivot < 0:
-        return False
-    tail = t[pivot + 1 :]
-    for value in support_values:
-        cv = _compact(value)
-        if cv and cv in tail:
-            return True
-        for part in _split_schema_phrase(str(value)):
-            cp = _compact(part)
-            if len(cp) >= 2 and cp in tail:
-                return True
-    return False
-
-
-
-
-
-
-
-
-def _is_disjunctive_choice_inquiry(pattern: dict[str, Any], text: str) -> bool:
-    """Whether a matched refute pattern is only listing alternatives.
-
-    Some graphs express a wrong combination as all(A)+any(B).  A normal
-    clarifying question may mention both A and B as alternatives, e.g.
-    "A 还是 B?".  That is not an assertion of the wrong combination.  The
-    gate is purely linguistic and pattern-driven: it requires a choice marker
-    in the utterance and matched values from the current schema pattern on the
-    two sides of that marker.
-    """
-    t = _compact(text)
-    if not t:
-        return False
-    markers = ("还是", "或者", "或是", "还是说", "哪种", "哪一类", "哪边", "确认一下")
-    if not any(m in t for m in markers):
-        return False
-    values = [str(v or "") for v in _pattern_values([pattern]) if str(v or "").strip()]
-    matched = [v for v in values if _schema_phrase_loose_match(v, text)]
-    if len(matched) < 2:
-        return False
-    # Strong assertion markers override the choice guard only when they appear
-    # outside a plain question/listing context.  A bare "直接" inside a schema
-    # value such as "直接使用" should not matter unless that value itself is hit.
-    if "?" in str(text) or "？" in str(text):
-        return True
-    # Require at least one matched value before and one after a choice marker.
-    for marker in ("还是", "或者", "或是", "还是说"):
-        pos = t.find(marker)
-        if pos < 0:
-            continue
-        before = t[:pos]
-        after = t[pos + len(marker):]
-        before_hit = any(_compact(v) and (_compact(v) in before or any(part in before for part in _split_schema_phrase(v) if len(part) >= 2)) for v in matched)
-        after_hit = any(_compact(v) and (_compact(v) in after or any(part in after for part in _split_schema_phrase(v) if len(part) >= 2)) for v in matched)
-        if before_hit and after_hit:
-            return True
-    # "确认一下/哪种" style is also a choice question when several schema
-    # values are merely enumerated.
-    return any(m in t for m in ("确认一下", "哪种", "哪一类", "哪边"))
-
-
-def _wrong_alias_fragments(alias: object) -> set[str]:
-    """Extract generic fragments from schema aliases that explicitly mark a wrong form.
-
-    The alias must itself carry a wrongness marker in its leading label, such as
-    ``误说`` or ``错误``.  This keeps ordinary descriptive aliases from becoming
-    executable business dictionaries.
-    """
-    head = str(alias or "").strip().split()[0] if str(alias or "").strip() else ""
-    if not head or not any(m in head for m in ("误说", "错误", "违规", "冲突")):
-        return set()
-    label = head
-    for m in ("误说", "错误", "违规", "冲突"):
-        label = label.replace(m, "")
-    compact = _compact(label)
-    out: set[str] = set()
-    if re.search(r"[一-鿿]", compact):
-        for n in (2, 3):
-            for i in range(0, max(0, len(compact) - n + 1)):
-                frag = compact[i : i + n]
-                if len(frag) == n:
-                    out.add(frag)
-    for token in re.findall(r"[a-z][a-z0-9_]{2,}", compact):
-        out.add(token)
-    generic = {"知识", "错误", "违规", "冲突", "流程", "规则", "条件", "节点", "说明", "要求", "口径"}
-    return {x for x in out if x and x not in generic}
-
-
-def _refute_pattern_is_negated(pattern: dict[str, Any], text: str) -> bool:
-    """Return True when the utterance is rejecting, not asserting, a refute pattern.
-
-    This is schema-driven: it only inspects the refute pattern's own all/any
-    values and its safe ``none`` guards.  It does not know domain-specific
-    business terms.
-    """
-    t = _compact(text)
-    for value in list(pattern.get("none") or []):
-        cv = _compact(value)
-        if cv and cv in t:
-            return True
-    for value in list(pattern.get("all") or []) + list(pattern.get("any") or []):
-        if value and _negates_schema_value(str(value), text):
-            return True
-    return False
-
-
-def _refute_fragment_hit(value: str, text: str) -> bool:
-    t = _compact(text)
-    parts = [x for x in _split_schema_phrase(value) if len(x) >= 2]
-    if not parts:
-        return False
-    # One strong fragment can be enough only for refute phrases.  Safe negation
-    # around that fragment means the speaker is rejecting the wrong statement.
-    for part in parts:
-        if part in t and not _negates_schema_value(part, text):
-            return True
-    return False
-
-
-
-def _refute_non_anchor_fragment_hit(value: str, text: str, anchors: list[str]) -> bool:
-    t = _compact(text)
-    anchor_text = " ".join(_compact(a) for a in anchors)
-    for part in _split_schema_phrase(value):
-        cp = _compact(part)
-        if len(cp) < 2:
-            continue
-        if cp in anchor_text or any(cp in a or a in cp for a in anchors):
-            continue
-        if cp in t and not _negates_schema_value(cp, text):
-            return True
-    return False
-
-
-def _schema_before_after_conflict(support_values: list[object], text: str) -> bool:
-    """Detect generic prerequisite timing reversal from schema support.
-
-    If the schema support contains an enabling action/value (e.g. save/configure)
-    and the utterance says it can take effect before that value, this is a
-    contradiction.  The enabling value itself comes from schema support; the
-    code only knows generic before/effect operators.
-    """
-    t = _compact(text)
-    if not t:
-        return False
-    before_effect = any(x in t for x in ("前也能", "前就")) and any(x in t for x in ("生效", "能用", "可用", "使用"))
-    if not before_effect:
-        return False
-    for value in support_values:
-        cv = _compact(value)
-        if len(cv) < 2:
-            continue
-        # The prerequisite value has to appear in the utterance; otherwise this
-        # could be an unrelated time phrase.
-        if cv in t or any(part in t for part in _split_schema_phrase(str(value)) if len(part) >= 2):
-            return True
-    return False
-
-
-def _schema_visibility_direct_conflict(claim_values: list[object], support_values: list[object], text: str) -> bool:
-    """Detect a generic visible/not-visible branch inversion.
-
-    Generated schemas often express a UI branch as "if visible then direct use;
-    if not visible then configure / check later".  If the utterance says "not
-    visible but direct use/publish" and the schema contains both the not-visible
-    branch and a configure/later branch, this is a contradiction.  These are
-    UI-control terms, not task/domain labels.
-    """
-    t = _compact(text)
-    schema_text = _compact(" ".join(str(v or "") for v in [*claim_values, *support_values]))
-    has_not_visible_schema = any(x in schema_text for x in ("未显示", "没显示", "没有显示", "看不到"))
-    has_repair_schema = any(x in schema_text for x in ("配置", "开通", "明天", "稍后", "再查看"))
-    says_not_visible = any(x in t for x in ("未显示", "没显示", "没有显示", "看不到"))
-    says_direct = "直接" in t and any(x in t for x in ("发布", "使用", "用", "能用", "可用"))
-    says_repair = any(x in t for x in ("配置", "开通", "明天", "稍后", "再查看"))
-    return has_not_visible_schema and has_repair_schema and says_not_visible and says_direct and not says_repair
-
-KnowledgeVerdict = Literal["支持", "冲突", "证据不足"]
 
 
 @dataclass(slots=True)
 class KnowledgeCheck:
-    """Tri-state local check for one knowledge claim.
-
-    The checker does not infer domain meaning. It only executes patterns supplied
-    by the graph-building stage and records whether those patterns support,
-    refute, or leave the claim under-specified.
-    """
-
     knowledge_id: str
     node_id: str | None
     name: str
@@ -654,6 +46,11 @@ class KnowledgeCheck:
     reason: str
     claim_id: str | None = None
     aliases: list[str] | None = None
+    evidence_flow: str = "dialogue_claim_to_knowledge_table"
+    positive_verdict: str = "miss"
+    negative_verdict: str = "miss"
+    requires_arbitration: bool = False
+    element_audit: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -667,835 +64,1100 @@ class KnowledgeCheck:
             "reason": self.reason,
             "claim_id": self.claim_id,
             "aliases": self.aliases or [],
+            "evidence_flow": self.evidence_flow,
+            "positive_verdict": self.positive_verdict,
+            "negative_verdict": self.negative_verdict,
+            "requires_arbitration": self.requires_arbitration,
+            "element_audit": self.element_audit or {},
         }
 
 
-# Compatibility alias: scoring only treats verdict == "冲突" as an error event.
 KnowledgeEvent = KnowledgeCheck
 
 
 class KnowledgeJudge:
-    """Schema-driven claim/evidence knowledge checker.
+    """Element-level knowledge verification.
 
-    The judge contains no business lexicon. It emits tri-state checks:
-    support / conflict / insufficient. Missing facts that are not claimed by
-    the dialogue are left to requirement coverage instead of being guessed here.
+    Knowledge is not a target-to-evidence completion check.  It starts from
+    assistant dialogue atoms and compares their elements against each knowledge
+    atom's positive and negative sides.  A deterministic support/refute result
+    requires both sides to be checked: positive hit + negative strict miss means
+    support; negative hit + positive strict miss means conflict; any mixed,
+    partial, or negation-scope case goes to review.  The negative-object
+    layer is intentionally not used here; it belongs to hard constraints only.
     """
 
-    def __init__(self) -> None:
-        self.matcher = EvidenceMatcher()
+    def __init__(self, engine: ElementEngine | None = None) -> None:
+        self.engine = engine or ElementEngine()
 
-    def judge(self, items: list[KnowledgeItem], units: list[EvidenceUnit]) -> list[KnowledgeCheck]:
+    def judge(self, items: list[KnowledgeItem], units: list[EvidenceUnit], atoms: list[DialogueAtom] | None = None) -> list[KnowledgeCheck]:
+        dialogue_atoms = atoms or self.engine.build_atoms(units)
+        assistant_atoms = [a for a in dialogue_atoms if a.speaker == "assistant"]
         checks: list[KnowledgeCheck] = []
-        assistant_units = [u for u in units if u.speaker == "assistant"]
-        # Per-dialogue schema context used only to prevent sibling/neighboring
-        # knowledge claims from contaminating each other.  It is rebuilt on
-        # every call and contains only graph-provided items/claims, not dataset
-        # answers or business dictionaries.
-        self._active_items = items
         for item in items:
-            if item.judge_type in {"claim_evidence", "claim_evidence_conflict"} or item.claims:
-                checks.extend(self._claim_evidence(item, assistant_units))
-            elif item.judge_type == "pattern_conflict":
-                checks.extend(self._pattern_conflicts(item, assistant_units))
-            elif item.judge_type == "numeric_range":
-                checks.extend(self._numeric_range(item, assistant_units))
-            elif item.judge_type == "option_set":
-                checks.extend(self._pattern_conflicts(item, assistant_units))
-            else:
-                checks.extend(self._pattern_conflicts(item, assistant_units))
+            check = self._judge_item(item, assistant_atoms)
+            if check is not None:
+                checks.append(check)
         return checks
 
+    def _judge_item(self, item: KnowledgeItem, atoms: list[DialogueAtom]) -> KnowledgeCheck | None:
+        selector_groups = list(getattr(item, "selector_element_groups", []) or [])
+        correct_groups = list(getattr(item, "correct_element_groups", []) or getattr(item, "positive_element_groups", []) or getattr(item, "element_groups", []) or [])
+        wrong_groups = list(getattr(item, "wrong_element_groups", []) or getattr(item, "negative_element_groups", []) or [])
+        pos_elements = list(item.positive_elements or item.primary_elements or [])
+        neg_elements = list(item.negative_elements or [])
+        if _value_check_has_comparable_runtime(getattr(item, "value_check", {})):
+            # Comparable facts must be judged by value_check only.  This prevents
+            # topic-selector hits plus model-emitted wrong_groups from turning
+            # correct numeric/time statements into conflicts.
+            wrong_groups = []
+            neg_elements = []
 
-    def _item_aliases(self, item: KnowledgeItem, claim: KnowledgeClaim | None = None) -> list[str]:
-        values = [item.id, item.name, *getattr(item, "aliases", [])]
-        if claim is not None:
-            values.extend([claim.id, claim.name, *getattr(claim, "aliases", [])])
-        out: list[str] = []
-        seen: set[str] = set()
-        for v in values:
-            s = str(v or "")
-            if s and s not in seen:
-                seen.add(s)
-                out.append(s)
-        return out
-
-    def _item_context_terms(self, item: KnowledgeItem, claim: KnowledgeClaim | None = None) -> list[str]:
-        """Return schema-derived object/context anchors for one knowledge item.
-
-        These anchors are used to decide whether a sentence is primarily about
-        a more specific neighboring claim.  They are extracted from the graph's
-        own item/claim labels and aliases only; no domain lexicon is embedded.
-        """
-        generic = {
-            "规则", "条件", "知识", "错误", "流程", "影响", "要求", "说明",
-            "口径", "节点", "事实", "声明", "claim", "knowledge",
-        }
-        values: list[object] = [item.id, item.name, *list(getattr(item, "aliases", []) or [])]
-        if claim is not None:
-            values.extend([claim.id, claim.name, *list(getattr(claim, "aliases", []) or [])])
-        out: list[str] = []
-        seen: set[str] = set()
-        for raw in values:
-            for part in re.findall(r"[\u4e00-\u9fff]{2,8}|[A-Za-z_]{3,}", str(raw or "")):
-                cp = _compact(part)
-                if not cp or cp in generic or _is_numeric_or_unit_term(cp):
-                    continue
-                if any(g in cp for g in generic) and len(cp) <= 4:
-                    continue
-                variant_seeds = [cp]
-                for suffix in ("条件", "规则", "知识", "说明", "口径", "节点"):
-                    if cp.endswith(suffix) and len(cp) > len(suffix) + 1:
-                        variant_seeds.append(cp[: -len(suffix)])
-                if re.fullmatch(r"[\u4e00-\u9fff]{4,}", cp):
-                    variant_seeds.append(cp[:4])
-                for seed in variant_seeds:
-                    for v in _safe_anchor_variants(seed):
-                        if v and v not in generic and v not in seen:
-                            seen.add(v)
-                            out.append(v)
-        return out
-
-    def _unit_has_more_specific_competing_support(self, current_item: KnowledgeItem, current_claim: KnowledgeClaim, unit: EvidenceUnit, units: list[EvidenceUnit]) -> bool:
-        """Suppress a refute hit when the sentence supports a more specific claim.
-
-        LongCat can generate neighboring facts that share a symbolic value or a
-        generic attribute.  For example, one generic rule may refute value A,
-        while a FAQ/reward/branch-specific rule supports the same value under a
-        narrower context.  If the utterance explicitly contains that narrower
-        schema context and satisfies its support pattern, the generic claim
-        should not turn the sentence into a conflict.
-
-        This is a schema disambiguation guard, not a task-specific exception:
-        the competing context and support evidence both come from the active
-        graph.
-        """
-        active_items = getattr(self, "_active_items", []) or []
-        text = _compact(unit.text)
-        if not text:
-            return False
-        # Use item-level context terms here, not claim-value terms.  A sentence
-        # may contain a value that is supported by a neighboring claim (for
-        # example the neighbor's number placeholder), but that alone does not
-        # prove the sentence is about the neighboring context.  Suppression is
-        # allowed only when the utterance names the neighboring schema item/FAQ
-        # context itself.
-        current_terms = set(self._item_context_terms(current_item, None))
-        for other_item in active_items:
-            if other_item.id == current_item.id:
-                continue
-            other_claims = other_item.claims or [
-                KnowledgeClaim(
-                    id=other_item.id + ".claim",
-                    name=other_item.name,
-                    support_patterns=other_item.support_patterns,
-                    refute_patterns=other_item.conflict_patterns,
-                    severity=other_item.severity,
-                )
-            ]
-            for other_claim in other_claims:
-                if other_item.id == current_item.id and other_claim.id == current_claim.id:
-                    continue
-                if not other_claim.support_patterns:
-                    continue
-                if not any(self._pattern_loose_match(p, unit, units) for p in other_claim.support_patterns):
-                    continue
-                other_terms = set(self._item_context_terms(other_item, None))
-                distinguishing_terms = [t for t in other_terms if t and t not in current_terms and t in text]
-                if not distinguishing_terms:
-                    continue
-                # Avoid using very generic overlapping terms as the only reason
-                # to suppress a conflict.  A short term is acceptable only when
-                # it is the exact label supplied by the competing graph item.
-                generic_short_context = {"规则", "条件", "知识", "说明", "流程", "要求", "完成", "每天", "连续", "影响", "节点", "误说"}
-                if any(len(t) >= 3 or (len(t) >= 2 and t not in generic_short_context) for t in distinguishing_terms):
-                    return True
-        return False
-
-    def _pattern_conflicts(self, item: KnowledgeItem, units: list[EvidenceUnit]) -> list[KnowledgeCheck]:
-        out: list[KnowledgeCheck] = []
-        for unit in units:
-            if any(self.matcher._match_pattern(pat, unit, units) for pat in item.conflict_patterns):
-                out.append(
-                    KnowledgeCheck(item.id, item.node_id, item.name, item.severity, "冲突", unit.text, unit.turn_index, "与知识表标准冲突", aliases=self._item_aliases(item))
-                )
-                break
-            if item.support_patterns and any(self.matcher._match_pattern(pat, unit, units) for pat in item.support_patterns):
-                out.append(
-                    KnowledgeCheck(item.id, item.node_id, item.name, item.severity, "支持", unit.text, unit.turn_index, "对话声明得到知识表支持", aliases=self._item_aliases(item))
-                )
-                break
-        return out
-
-    def _claim_evidence(self, item: KnowledgeItem, units: list[EvidenceUnit]) -> list[KnowledgeCheck]:
-        claims = item.claims or [
-            KnowledgeClaim(
-                id=item.id + ".claim",
-                name=item.name,
-                support_patterns=item.support_patterns,
-                refute_patterns=item.conflict_patterns,
-                severity=item.severity,
-            )
-        ]
-        out: list[KnowledgeCheck] = []
-        for claim in claims:
-            # Refute patterns are explicit contradiction evidence and should not
-            # be blocked by claim/topic gates. claim_patterns only identify grey
-            # areas or support contexts; they must not hide a clear conflict.
-            anchor_terms = self._claim_anchor_terms(claim)
-            for unit in units:
-                for pat in claim.refute_patterns:
-                    if not self._refute_context_allowed(pat, unit, anchor_terms):
-                        continue
-                    if _is_disjunctive_choice_inquiry(pat, unit.text):
-                        continue
-                    if _looks_like_corrective_support(unit.text):
-                        support_values_for_guard = _pattern_values(claim.support_patterns)
-                        # A corrective sentence can safely reject the graph's own
-                        # refute phrase and then restate a support-side fragment,
-                        # even when the support pattern is not fully matched.  For
-                        # example: "不是 A，是 B".  This remains schema-driven:
-                        # A comes from the current refute pattern and B from the
-                        # current claim's support patterns; no domain term or
-                        # sample text is embedded here.
-                        safe_correction = (
-                            _refute_pattern_is_negated(pat, unit.text)
-                            and _has_support_after_correction_pivot(support_values_for_guard, unit.text)
-                        )
-                        if safe_correction:
-                            continue
-                        if self._unit_has_claim_support(claim, unit, units) or self._unit_has_claim_partial_support(claim, unit):
-                            non_anchor_guard_values = []
-                            for value in support_values_for_guard:
-                                cv = _compact(value)
-                                if cv and any(cv in a or a in cv for a in anchor_terms):
-                                    continue
-                                non_anchor_guard_values.append(value)
-                    if self._refute_pattern_match(pat, unit, units):
-                        # If this utterance also satisfies a more specific
-                        # neighboring claim from the same schema, let that
-                        # specific support own the sentence instead of treating
-                        # a shared/refuted value as a generic conflict.
-                        if self._unit_has_more_specific_competing_support(item, claim, unit, units):
-                            continue
-                        out.append(
-                            KnowledgeCheck(
-                                item.id,
-                                item.node_id,
-                                item.name,
-                                claim.severity or item.severity,
-                                "冲突",
-                                unit.text,
-                                unit.turn_index,
-                                claim.reason or "对话中的事实声明被知识表反驳",
-                                claim.id,
-                                aliases=self._item_aliases(item, claim),
-                            )
-                        )
-                        break
-                if any(x.claim_id == claim.id for x in out):
-                    break
-            if any(x.claim_id == claim.id for x in out):
-                continue
-
-            # Schema-derived generic contradiction fallback.  This catches
-            # negated forms of support facts without copying dataset answers
-            # into the executable schema.
-            for unit in units:
-                if self._generic_conflict_detected(item, claim, unit):
-                    out.append(
-                        KnowledgeCheck(
-                            item.id,
-                            item.node_id,
-                            item.name,
-                            claim.severity or item.severity,
-                            "冲突",
-                            unit.text,
-                            unit.turn_index,
-                            claim.reason or "对话用否定/豁免/立即生效等表达推翻了知识表事实",
-                            claim.id,
-                            aliases=self._item_aliases(item, claim),
-                        )
-                    )
-                    break
-            if any(x.claim_id == claim.id for x in out):
-                continue
-
-            relevant_units = units
-            if claim.claim_patterns:
-                relevant_units = [u for u in units if any(self._pattern_loose_match(p, u, units) for p in claim.claim_patterns)]
-                if not relevant_units:
-                    continue
-
-            matched = False
-            for unit in relevant_units:
-                if claim.support_patterns and any(self._pattern_loose_match(p, unit, units) for p in claim.support_patterns):
-                    support_values_for_guard = _pattern_values(claim.support_patterns)
-                    if any(_negates_schema_value(str(v), unit.text) for v in support_values_for_guard):
-                        continue
-                    out.append(
-                        KnowledgeCheck(
-                            item.id,
-                            item.node_id,
-                            item.name,
-                            claim.severity or item.severity,
-                            "支持",
-                            unit.text,
-                            unit.turn_index,
-                            claim.reason or "对话中的事实声明得到知识表支持",
-                            claim.id,
-                            aliases=self._item_aliases(item, claim),
-                        )
-                    )
-                    matched = True
-                    break
-            if matched:
-                continue
-
-            # If the graph explicitly marks a claim as asserted but no
-            # support/refute pattern fired, it becomes an arbitration candidate.
-            if claim.claim_patterns and relevant_units:
-                u = relevant_units[0]
-                out.append(
-                    KnowledgeCheck(
-                        item.id,
-                        item.node_id,
-                        item.name,
-                        claim.severity or item.severity,
-                        "证据不足",
-                        u.text,
-                        u.turn_index,
-                        claim.reason or "对话触发了知识声明，但本地 schema 未形成支持或冲突结论",
-                        claim.id,
-                        aliases=self._item_aliases(item, claim),
-                    )
-                )
-        return out
-
-
-    def _claim_anchor_terms(self, claim: KnowledgeClaim) -> list[str]:
-        candidates: list[str] = []
-        generic_attr_markers = {"每天", "至少", "完成", "影响", "之前", "生效", "有助", "帮助", "连续", "要求", "条件"}
-
-        def add_value(value: object, *, allow_short: bool = False) -> None:
-            compact = _compact(value)
-            if not compact or _is_numeric_or_unit_term(compact):
-                return
-            if compact in generic_attr_markers:
-                return
-            if len(compact) >= 3 or allow_short:
-                candidates.append(compact)
-
-        # Claim name/id often contains the object label.  Extract Chinese chunks
-        # but drop generic attributes.
-        for raw in [claim.name, claim.id, *list(getattr(claim, "aliases", []) or [])]:
-            for part in re.findall(r"[\u4e00-\u9fff]{2,6}|[A-Za-z_]{3,}", str(raw or "")):
-                add_value(part, allow_short=True)
-
-        # Claim patterns are noisier: include only non-generic longer object
-        # phrases.  This keeps multi-character object anchors but drops generic attributes.
-        for value in _pattern_values(claim.claim_patterns):
-            compact = _compact(value)
-            if not compact or _is_numeric_or_unit_term(compact):
-                continue
-            if any(x in compact for x in generic_attr_markers) and len(compact) <= 4:
-                continue
-            if len(compact) >= 3:
-                candidates.append(compact)
-
-        out: list[str] = []
-        seen: set[str] = set()
-        for c in candidates:
-            for v in _safe_anchor_variants(c):
-                if v in generic_attr_markers:
-                    continue
-                if v not in seen:
-                    seen.add(v)
-                    out.append(v)
-        return out
-
-    def _refute_context_allowed(self, pattern: dict[str, Any], unit: EvidenceUnit, anchors: list[str]) -> bool:
-        if not anchors:
-            return True
-        unit_text = _compact(unit.text)
-
-        # If the refute pattern itself carries an explicit object/condition gate
-        # and the utterance satisfies that gate, allow it before consulting the
-        # broader claim anchor.  This remains schema-driven: the gate terms come
-        # only from the graph's own refute pattern.
-        all_values = list(pattern.get("all") or [])
-        if all_values and all(self._schema_phrase_loose_match(str(v), unit.text) for v in all_values):
-            return True
-
-        # Any-only refute patterns are easy to over-apply to sibling facts.
-        # Keep the conservative anchor gate here; graph-specific wrong phrases
-        # that should fire locally should be expressed with an explicit ``all``
-        # object/condition gate in the schema.
-        if pattern.get("any") and not pattern.get("all") and not pattern.get("regex_any"):
-            meaningful = [a for a in anchors if not (a.startswith("声明") or a.startswith("事实") or a in {"claim", "知识", "规则", "条件"})]
-            if not meaningful:
-                return True
-            return any(a and a in unit_text for a in meaningful)
-
-        # If the refute pattern itself already names the anchor, matching that
-        # pattern is sufficient.  Otherwise the candidate utterance must mention
-        # the anchored object too.  This prevents sibling facts such as A's
-        # correct value from being interpreted as B's conflict.
-        pat_text = _compact(" ".join(_pattern_values([pattern])))
-        if any(a and a in pat_text for a in anchors):
-            return True
-        return any(a and a in unit_text for a in anchors)
-
-
-
-    def _schema_phrase_loose_match(self, value: str, text: str) -> bool:
-        return _schema_phrase_loose_match(value, text)
-
-    def _refute_pattern_match(self, pattern: dict[str, Any], unit: EvidenceUnit, units: list[EvidenceUnit]) -> bool:
-        """Match refute patterns with clause-local precision.
-
-        Ordinary evidence groups may span a whole assistant turn, but knowledge
-        refutes are assertions.  For patterns shaped as all(object)+any(wrong
-        attribute), require the object and wrong attribute to co-occur in the
-        same strong clause.  This prevents a safe contrastive sentence like
-        "B fits X; A fits Y" from being read as "A fits X" just because the
-        whole turn contains A and X.
-        """
-        all_values = list(pattern.get("all") or [])
-        any_values = list(pattern.get("any") or [])
-        if all_values and any_values and not pattern.get("regex_any"):
-            for clause in _split_strong_clauses(unit.text):
-                scoped_unit = EvidenceUnit(
-                    turn_index=unit.turn_index,
-                    speaker=unit.speaker,
-                    text=clause,
-                    normalized=clause,
-                    kinds=set(unit.kinds),
-                    polarity=unit.polarity,
-                    numbers=list(unit.numbers),
-                    markers=dict(unit.markers),
-                )
-                if self._pattern_loose_match(pattern, scoped_unit, [scoped_unit]):
-                    return True
-            return False
-        return self._pattern_loose_match(pattern, unit, units)
-
-
-    def _pattern_loose_match(self, pattern: dict[str, Any], unit: EvidenceUnit, units: list[EvidenceUnit]) -> bool:
-        """Exact first, then schema-derived loose phrase matching.
-
-        This remains schema-driven: all values come from the graph.  It mainly
-        handles punctuation/inserted-word variants, not hidden answer strings.
-        """
-        if self.matcher._match_pattern(pattern, unit, units):
-            return True
-        speaker = pattern.get("speaker")
-        if speaker and unit.speaker != speaker:
-            return False
-        text = str(unit.text or "")
-        none_values = [str(x or "").lower() for x in list(pattern.get("none") or [])]
-        text_lc = text.lower()
-        if none_values and any(n and n in text_lc for n in none_values):
-            return False
-        all_values = list(pattern.get("all") or [])
-        any_values = list(pattern.get("any") or [])
-        if all_values and not all(self._schema_phrase_loose_match(str(v), text) for v in all_values):
-            return False
-        if any_values:
-            min_any_hits = int(pattern.get("min_any_hits") or 1)
-            hits = sum(1 for v in any_values if self._schema_phrase_loose_match(str(v), text))
-            if hits < min_any_hits:
-                return False
-        if pattern.get("regex_any"):
-            return False
-        return bool(all_values or any_values)
-
-    def _unit_has_claim_support(self, claim: KnowledgeClaim, unit: EvidenceUnit, units: list[EvidenceUnit] | None = None) -> bool:
-        units = units or [unit]
-        return bool(claim.support_patterns and any(self._pattern_loose_match(p, unit, units) for p in claim.support_patterns))
-
-    def _unit_has_claim_partial_support(self, claim: KnowledgeClaim, unit: EvidenceUnit) -> bool:
-        values = _pattern_values(claim.support_patterns)
-        return any(v and self._schema_phrase_loose_match(str(v), unit.text) for v in values)
-
-
-    def _wrong_alias_conflict(self, item: KnowledgeItem, claim: KnowledgeClaim, unit: EvidenceUnit, support_values: list[object], anchors: list[str]) -> bool:
-        text = _compact(unit.text)
-        if not text:
-            return False
-        if _looks_like_corrective_support(unit.text) and _has_support_after_correction_pivot(support_values, unit.text):
-            return False
-        has_alternative_marker = (("比" in text and "更" in text) or any(x in text for x in ("替代", "代替")))
-        if not has_alternative_marker:
-            return False
-        support_text = _compact(" ".join(str(v or "") for v in support_values))
-        anchor_text = _compact(" ".join(str(a or "") for a in anchors))
-        aliases = list(getattr(item, "aliases", []) or []) + list(getattr(claim, "aliases", []) or [])
-        for alias in aliases:
-            fragments = _wrong_alias_fragments(alias)
-            if not fragments:
-                continue
-            hits = [f for f in fragments if f in text]
-            if len(hits) < 2:
-                continue
-            specific_hits = [f for f in hits if f not in support_text and f not in anchor_text]
-            if specific_hits:
-                return True
-        return False
-
-
-    def _marked_wrong_alias_conflict(self, item: KnowledgeItem, claim: KnowledgeClaim, unit: EvidenceUnit, support_values: list[object], anchors: list[str]) -> bool:
-        """Use schema error-label aliases as a weak conflict signal.
-
-        LongCat/binding hints may provide category labels such as "A口径误说".
-        These are not sample answer spans, but schema-side error types.  When an
-        utterance is anchored to the claim object and hits multiple fragments
-        from such a wrongness-marked alias, treat it as a local conflict.  This
-        avoids hard-coding domain words while still using the graph's own error
-        taxonomy.
-        """
-        text = _compact(unit.text)
-        if not text:
-            return False
-        anchor_text = _compact(" ".join(str(a or "") for a in anchors))
-        support_text = _compact(" ".join(str(v or "") for v in support_values))
-        aliases = list(getattr(item, "aliases", []) or []) + list(getattr(claim, "aliases", []) or [])
-        for alias in aliases:
-            fragments = _wrong_alias_fragments(alias)
-            if not fragments:
-                continue
-            hits = [f for f in fragments if f in text]
-            if len(hits) < 2:
-                continue
-            non_anchor_hits = [f for f in hits if f not in anchor_text and f not in support_text]
-            if non_anchor_hits and any(a and a in text for a in anchors):
-                return True
-        return False
-
-
-
-    def _schema_qualitative_direction_conflict(self, claim: KnowledgeClaim, unit: EvidenceUnit, anchors: list[str]) -> bool:
-        """Detect object-anchored qualitative direction contradictions.
-
-        This fills a common LongCat schema gap: the schema may say object A is
-        "lower/cheaper" and object B is "higher/more expensive", but omit every
-        natural-language refute variant.  When the utterance is anchored to the
-        same support pattern's object gate and asserts the opposite comparative
-        direction, it is a local knowledge conflict.
-
-        No product/domain words are embedded here; object gates come from the
-        support pattern ``all`` values or claim anchors, and direction words are
-        generic comparative adjectives.
-        """
-        text_dirs = _direction_polarities(unit.text)
-        if not text_dirs:
-            return False
-        unit_text = _compact(unit.text)
-        anchor_hit = any(a and a in unit_text for a in anchors)
-        for pat in claim.support_patterns or []:
-            values = _pattern_values([pat])
-            support_dirs = _direction_polarities(" ".join(str(v or "") for v in values))
-            if not support_dirs:
-                continue
-            all_values = list(pat.get("all") or [])
-            non_numeric_gates = [v for v in all_values if not _numeric_ranges_from_text(v) and not _is_numeric_or_unit_term(str(v))]
-            if non_numeric_gates:
-                if not all(_schema_gate_match(str(v), unit.text) for v in non_numeric_gates):
-                    continue
-            elif not anchor_hit:
-                continue
-            # If the same sentence also explicitly states the supported
-            # direction for the same object, keep it out of hard conflict.
-            if not _opposite_direction(support_dirs, text_dirs):
-                continue
-            if support_dirs & text_dirs:
-                return False
-            return True
-        return False
-
-    def _schema_numeric_range_conflict(self, claim: KnowledgeClaim, unit: EvidenceUnit, anchors: list[str]) -> bool:
-        """Detect object-anchored numeric range contradictions from schema support.
-
-        A common schema gap is that LongCat writes a correct support range
-        (object + 5-10) but omits a complete refute list for other ranges.  When
-        the utterance is anchored to the same object and asserts a range that is
-        disjoint from every supported range, this is a local knowledge conflict.
-
-        The mechanism is schema-driven: object gates come from support pattern
-        ``all`` values or claim anchors, and numbers come from support pattern
-        values.  It does not contain business terms such as product names or
-        dialogue examples.
-        """
-        text_ranges = _numeric_ranges_from_text(unit.text)
-        if not text_ranges:
-            return False
-        unit_text = _compact(unit.text)
-        anchor_hit = any(a and a in unit_text for a in anchors)
-        for pat in claim.support_patterns or []:
-            support_ranges = _numeric_ranges_from_text(" ".join(str(v or "") for v in _pattern_values([pat])))
-            if not support_ranges:
-                continue
-            all_values = list(pat.get("all") or [])
-            non_numeric_gates = [v for v in all_values if not _numeric_ranges_from_text(v) and not _is_numeric_or_unit_term(str(v))]
-            if non_numeric_gates:
-                if not all(_schema_gate_match(str(v), unit.text) for v in non_numeric_gates):
-                    continue
-            elif not anchor_hit:
-                continue
-            # If the same sentence also contains a supported range for this
-            # object, treat it as support/ambiguous rather than conflict.
-            if any(_range_overlaps(tr, sr) for tr in text_ranges for sr in support_ranges):
-                return False
-            # Otherwise, a disjoint range tied to the same object contradicts
-            # the claim.
-            if all(not _range_overlaps(tr, sr) for tr in text_ranges for sr in support_ranges):
-                return True
-        return False
-
-    def _generic_conflict_detected(self, item: KnowledgeItem, claim: KnowledgeClaim, unit: EvidenceUnit) -> bool:
-        """Detect common contradiction forms with schema anchors.
-
-        The rule is intentionally generic: it needs a claim/object anchor from
-        the schema and a generic contradiction operator in the utterance.  It
-        does not contain task-specific business values.
-        """
-        text = _compact(unit.text)
-        if not text:
-            return False
-        if _looks_like_safe_boundary_statement(unit.text):
-            return False
-        anchors = self._claim_anchor_terms(claim)
-        item_name_text = " ".join([item.id, item.name])
-        for part in re.findall(r"[一-鿿]{2,6}|[A-Za-z_]{3,}", item_name_text):
-            cp = _compact(part)
-            if cp and cp not in {"规则", "条件", "知识", "错误", "流程", "影响"}:
-                for v in _safe_anchor_variants(cp):
-                    if v not in anchors and v not in {"规则", "条件", "知识", "错误", "流程", "影响"}:
-                        anchors.append(v)
-        claim_values = _pattern_values(claim.claim_patterns)
-        support_values = _pattern_values(claim.support_patterns)
-        refute_values = _pattern_values(claim.refute_patterns)
-        schema_values = claim_values + support_values + refute_values + [claim.name, claim.id]
-        support_values_for_guard = _pattern_values(claim.support_patterns)
-        if _looks_like_corrective_support(unit.text):
-            # Corrective forms such as "not A, use B" should not be converted
-            # into a conflict merely because A is listed in refute_patterns.  B
-            # is still checked only against the current schema's support side.
-            has_supporting_correction_tail = _has_support_after_correction_pivot(support_values_for_guard, unit.text)
-            safe_refute_correction = any(
-                _refute_pattern_is_negated(pat, unit.text)
-                for pat in claim.refute_patterns
-            ) and has_supporting_correction_tail
-            if safe_refute_correction or (has_supporting_correction_tail and not claim.refute_patterns):
-                return False
-
-            if self._unit_has_claim_support(claim, unit, [unit]) or self._unit_has_claim_partial_support(claim, unit):
-                # Do not suppress when the correction explicitly negates a required
-                # non-anchor value.  Negating a wrong predicate after the object
-                # anchor, then restating the support value, is a safe correction.
-                anchor_text = " ".join(anchors)
-                def _is_anchor_value(value: object) -> bool:
-                    cv = _compact(value)
-                    return bool(cv and any(cv in a or a in cv for a in anchors))
-                non_anchor_guard_values = [v for v in support_values_for_guard if not _is_anchor_value(v)]
-                if not any(_negates_schema_value(str(v), unit.text) for v in non_anchor_guard_values):
-                    return False
-
-        # Need a schema anchor for ordinary contradictions.  The only exception
-        # is a temporal claim that is explicitly contradicted by immediate/after-
-        # cutoff wording; this is handled below.
-        anchor_hit = any(a and a in text for a in anchors)
-        loose_schema_hits = [v for v in schema_values if v and self._schema_phrase_loose_match(str(v), unit.text)]
-
-        # If the utterance directly satisfies a support pattern and does not
-        # negate that support value, generic contradiction operators such as
-        # “即可/只需” should not turn the correct support sentence into a
-        # conflict.  The concrete support terms still come only from schema.
-        if self._unit_has_claim_support(claim, unit, [unit]):
-            support_values_for_guard = _pattern_values(claim.support_patterns)
-            if not any(_negates_schema_value(str(v), unit.text) for v in support_values_for_guard):
-                return False
-
-        if self._schema_numeric_range_conflict(claim, unit, anchors):
-            return True
-        if self._schema_qualitative_direction_conflict(claim, unit, anchors):
-            return True
-
-        if anchor_hit and self._wrong_alias_conflict(item, claim, unit, support_values, anchors):
-            return True
-        has_neg = any(m in text for m in _GENERIC_NEGATION_MARKERS)
-        has_only = any(m in text for m in _GENERIC_ONLY_MARKERS)
-        safe_only = any(safe in text for safe in ("不只", "不是只", "并不只"))
-        has_wrong_time = any(m in text for m in _GENERIC_WRONG_TIME_MARKERS)
-        temporal_support = any(any(x in _compact(v) for x in ("次日", "第二天", "之前")) for v in support_values)
-
-        # Explicit refute values may be separated by function words, but must be
-        # anchored to the claim object.  Without this, an attribute phrase in one
-        # sibling fact can contaminate another sibling fact.
-        # Explicit refute patterns are checked above with full pattern
-        # semantics.  Do not let individual fragments from those patterns fire
-        # here; otherwise a safe corrective sentence such as “要在 App 里取消”
-        # can be confused with a wrong pattern from a neighboring claim.
-        support_value_negated = any(_negates_schema_value(str(v), unit.text) for v in support_values)
-        claim_text_for_scope = _compact(" ".join([claim.id, claim.name, item.name, *claim_values, *support_values]))
-        consequence_markers = ("影响", "帮助", "有助", "结果", "生效", "有效", "条件", "要求")
-        if support_value_negated and any(x in claim_text_for_scope for x in consequence_markers):
-            # A negated operation phrase may share an object word with a
-            # consequence claim.  Example shape: "cannot do X" should not refute
-            # a separate claim "X affects Y" unless the utterance also talks
-            # about the consequence/effect dimension.  These markers are generic
-            # consequence operators, not task-specific objects.
-            if not any(x in text for x in consequence_markers):
-                return False
-        if _schema_before_after_conflict(support_values, unit.text):
-            return True
-        placeholder_mismatch = anchor_hit and (
-            _has_symbolic_unit_mismatch(support_values, unit.text)
-            or _has_alternative_placeholder_without_support(support_values, unit.text)
-        )
-        if placeholder_mismatch:
-            # A different anonymized value with the same unit is not, by
-            # itself, a contradiction.  LongCat graphs may contain neighboring
-            # facts such as one day-count for a base rule and another day-count
-            # for an extra reward.  Treat placeholder mismatch as a hard local
-            # conflict only when the utterance also has a contradiction operator
-            # (negation/only/immediate/after-cutoff) or when an explicit refute
-            # pattern has already fired above.  Otherwise leave it to support/
-            # insufficient evidence instead of killing positive samples.
-            if has_neg or (has_only and not safe_only) or (temporal_support and has_wrong_time):
-                return True
-        if support_value_negated:
-            # A negated support value is only a hard conflict when the utterance
-            # is anchored to this claim's object.  Otherwise sibling facts can
-            # contaminate each other: a correct correction about object A may
-            # negate a generic attribute also used by object B.  Claims with no
-            # meaningful anchor keep the legacy behavior because there is no
-            # safer object gate available.
-            meaningful_anchors = [a for a in anchors if not (a.startswith("声明") or a.startswith("事实") or a in {"claim", "知识", "规则", "条件"})]
-            if anchor_hit or not meaningful_anchors:
-                return True
-            strong_negated_consequence = any(x in text for x in ("不影响", "没影响", "不会影响", "没关系", "不算", "不需要", "不用", "无需"))
-            if strong_negated_consequence and not _looks_like_corrective_support(unit.text):
-                return True
-
-        if safe_only and not support_value_negated:
-            # "not only / not just" is usually a corrective expansion, not a
-            # waiver of the schema value.  If the utterance did not actually
-            # negate a support value, keep it out of hard conflict.
-            return False
-        if not (has_neg or has_only or (temporal_support and has_wrong_time)):
-            return False
-
-        # Claims with temporal support are contradicted by immediate/after-cutoff
-        # markers only when the utterance is actually about the temporal claim.
-        # A broad entity anchor can occur in neighboring facts: e.g. a dialogue
-        # may say "today the contract is effective" while another FAQ claim says
-        # "cancelling takes effect next day". The latter must not be refuted by
-        # the former merely because both contain the same entity and an effect
-        # word. Require either the claim gate itself or a non-temporal support
-        # value supplied by the schema to appear in the utterance.
-        if temporal_support:
-            def _temporal_specific_value(value: object) -> bool:
-                cv = _compact(value)
-                if not cv or _is_numeric_or_unit_term(cv):
-                    return False
-                temporal_markers = (
-                    "当天", "当日", "今天", "次日", "第二天", "翌日", "明天",
-                    "立即", "马上", "即刻", "现在就", "随时", "生效", "有效",
-                    "之前", "之后", "前一天", "后一天", "时间", "截止",
-                )
-                return not any(m in cv for m in temporal_markers)
-
-            temporal_claim_gate_hit = bool(
-                claim.claim_patterns
-                and any(self._pattern_loose_match(p, unit, [unit]) for p in claim.claim_patterns)
-            )
-            temporal_support_topic_hit = any(
-                _temporal_specific_value(v) and self._schema_phrase_loose_match(str(v), unit.text)
-                for v in support_values
-            )
-            temporal_context_hit = temporal_claim_gate_hit or temporal_support_topic_hit
-            if anchor_hit and temporal_context_hit and (has_wrong_time or "随时" in text or "过了" in text):
-                return True
-            if temporal_context_hit and any(x in text for x in ("立即", "马上", "过了")):
-                return True
-        if not anchor_hit:
-            return False
-
-        claim_text = _compact(" ".join([claim.id, claim.name, item.name, *claim_values, *support_values]))
-        if "影响" in claim_text and not any(x in text for x in ("影响", "帮助", "有助", "没关系", "不影响", "不会影响", "没影响", "没帮助", "没有帮助")):
-            return False
-
-        placeholder_mismatch = anchor_hit and (
-            _has_symbolic_unit_mismatch(support_values, unit.text)
-            or _has_alternative_placeholder_without_support(support_values, unit.text)
-        )
-        if placeholder_mismatch and (has_neg or (has_only and not safe_only) or (temporal_support and has_wrong_time)):
-            return True
-
-        # Contradict a support claim when the sentence mentions a required value
-        # but negates/waives it.
-        if support_values:
-            value_hits = [v for v in support_values if not _is_numeric_or_unit_term(str(v)) and self._schema_phrase_loose_match(str(v), unit.text)]
-            def is_anchor_value(v: object) -> bool:
-                cv = _compact(v)
-                return any(cv and (cv in a or a in cv) for a in anchors)
-            non_anchor_hits = [v for v in value_hits if not is_anchor_value(v)]
-            negated_value_hits = [v for v in non_anchor_hits if _negates_schema_value(str(v), unit.text)]
-            if negated_value_hits:
-                return True
-            # Some claims use the object itself as the required value, e.g.
-            # "App" as the required exit entry.  Negating that anchored value
-            # ("不用进App") is a conflict, but a corrective sentence
-            # ("不能代取消，要按App") is suppressed above.
-            if value_hits and any(_negates_schema_value(str(v), unit.text) for v in value_hits):
-                return True
-            # "only/just" forms often contradict quota/condition claims even
-            # when the omitted expected value is not adjacent to the marker.
-            if non_anchor_hits and has_only and not safe_only:
-                return True
-            if anchor_hit and has_only and not safe_only:
-                return True
-
-        # If the claim itself is about impact/help/qualification, generic
-        # "no impact/no help" utterances are contradictions once anchored.
-        claim_text = _compact(" ".join([claim.id, claim.name, item.name, *claim_values, *support_values]))
-        if any(x in claim_text for x in ("影响", "帮助", "有助", "条件", "要求")):
-            if any(x in text for x in _GENERIC_STRONG_WRONG_MARKERS):
-                return True
-        return False
-
-    def _numeric_range(self, item: KnowledgeItem, units: list[EvidenceUnit]) -> list[KnowledgeCheck]:
-        expected = item.expected
-        target_patterns = expected.get("target_patterns") or []
-        min_v = expected.get("min")
-        max_v = expected.get("max")
-        out: list[KnowledgeCheck] = []
-        for unit in units:
-            if target_patterns and not any(str(p).lower() in str(unit.text or "").lower() for p in target_patterns):
-                continue
-            if not unit.numbers:
-                out.append(KnowledgeCheck(item.id, item.node_id, item.name, item.severity, "证据不足", unit.text, unit.turn_index, "命中知识目标，但没有可比较的数值证据", aliases=self._item_aliases(item)))
-                continue
-            conflict = False
-            support = False
-            for num in unit.numbers:
-                values = [num.get("value")] if num.get("type") == "number" else [num.get("start"), num.get("end")]
-                values = [v for v in values if v is not None]
-                if not values:
-                    continue
-                ok = True
-                for v in values:
-                    if (min_v is not None and float(v) < float(min_v)) or (max_v is not None and float(v) > float(max_v)):
-                        ok = False
-                if ok:
-                    support = True
+        # New knowledge flow: dialogue atoms select knowledge atoms by selector;
+        # only selected facts are checked against correct/wrong value sides.
+        if selector_groups:
+            selector = match_side(self.engine, item.id + ".selector", "knowledge_selector", [], item.secondary_elements, [], item.match_policy, atoms, element_groups=selector_groups)
+            if selector.verdict == "miss":
+                # Comparable / directional negative samples often state the
+                # target with a shorthand object. Do not create a verdict from
+                # labels; still run the graph's own value/direction checks over
+                # assistant atoms with strict object/value trunk binding.
+                value_based = self._judge_value_check(item, atoms)
+                if value_based is not None:
+                    return value_based
+                directional_based = self._judge_directional_fact_conflict(item, atoms)
+                if directional_based is not None:
+                    return directional_based
+                if wrong_groups:
+                    negative_all = match_side(self.engine, item.id + ".wrong_all", "knowledge_negative", neg_elements, item.secondary_elements, [], _side_policy(item.match_policy, neg_elements), atoms, element_groups=wrong_groups)
+                    negative_all = _downgrade_missing_strong_flip(negative_all, neg_elements)
+                    if negative_all.verdict == "hit":
+                        best_atom = negative_all.atom
+                        return self._check(item, "冲突", best_atom.text if best_atom else "", best_atom.turn_index if best_atom else None, ElementMatch("miss"), negative_all, "错误值元素组在全局 assistant 话语中命中；selector 未命中但 wrong side 自带对象主干")
+                return None
+            selected_atoms = self._knowledge_value_scope(selector, atoms)
+            positive = match_side(self.engine, item.id + ".correct", "knowledge_positive", pos_elements, item.secondary_elements, [], item.match_policy, selected_atoms, element_groups=correct_groups) if (pos_elements or correct_groups) else ElementMatch("miss")
+            negative = match_side(self.engine, item.id + ".wrong", "knowledge_negative", neg_elements, item.secondary_elements, [], _side_policy(item.match_policy, neg_elements), selected_atoms, element_groups=wrong_groups) if (neg_elements or wrong_groups) else self._negation_probe(item, selected_atoms, positive)
+            if negative.verdict == "miss" and wrong_groups:
+                carried = _contextual_fact_side_match(self.engine, item.id + ".wrong_ctx", wrong_groups, selected_atoms)
+                if carried.verdict != "miss":
+                    negative = carried
                 else:
-                    conflict = True
-            if conflict:
-                out.append(KnowledgeCheck(item.id, item.node_id, item.name, item.severity, "冲突", unit.text, unit.turn_index, "数值超出知识表允许范围", aliases=self._item_aliases(item)))
-            elif support:
-                out.append(KnowledgeCheck(item.id, item.node_id, item.name, item.severity, "支持", unit.text, unit.turn_index, "数值落在知识表允许范围内", aliases=self._item_aliases(item)))
+                    negative_all = match_side(self.engine, item.id + ".wrong_all", "knowledge_negative", neg_elements, item.secondary_elements, [], _side_policy(item.match_policy, neg_elements), atoms, element_groups=wrong_groups)
+                    negative_all = _downgrade_missing_strong_flip(negative_all, neg_elements)
+                    if negative_all.verdict == "hit":
+                        negative = negative_all
+            if selector.verdict == "review" and positive.verdict == "miss" and negative.verdict == "miss":
+                # Review-level selectors are kept as local gray candidates only
+                # when a value side also has evidence.  This lets the second
+                # filter/LLM see true ambiguity, but avoids flooding it with
+                # topic-only mentions.
+                return None
+            negative = _downgrade_missing_strong_flip(negative, neg_elements)
+            if negative.verdict == "hit":
+                best_atom = negative.atom or positive.atom or selector.atom
+            elif positive.verdict == "hit":
+                best_atom = positive.atom or negative.atom or selector.atom
+            elif negative.verdict == "review":
+                best_atom = negative.atom or positive.atom or selector.atom
+            else:
+                best_atom = positive.atom or negative.atom or selector.atom
+            evidence = best_atom.text if best_atom else ""
+            turn_index = best_atom.turn_index if best_atom else None
+            # A stated wrong fact is a local conflict even if another nearby
+            # utterance also states the correct fact.  The evaluator judges
+            # whether an erroneous customer-service claim appeared, not whether
+            # the transcript contains any correct sibling statement.
+            if negative.verdict == "hit":
+                return self._check(item, "冲突", evidence, turn_index, positive, negative, "对话 atom 命中知识 selector，且错误值元素组达本地命中层")
+            # A positive element group may be surface-hit inside a negated claim
+            # such as “对象A不适合场景B”.  Before declaring support, run the
+            # graph-driven value/direction checks over the selected local scope.
+            # This keeps positive wording from masking an explicit wrong fact.
+            value_based = self._judge_value_check(item, selected_atoms)
+            if value_based is not None and value_based.verdict == "冲突":
+                return value_based
+            directional_based = self._judge_directional_fact_conflict(item, selected_atoms)
+            if directional_based is not None:
+                return directional_based
+            if positive.verdict == "hit" and negative.verdict == "miss":
+                if value_based is not None:
+                    return value_based
+                return self._check(item, "支持", evidence, turn_index, positive, negative, "对话 atom 命中知识 selector，且正确值元素组达本地命中层")
+            if selector.verdict == "review" or positive.verdict == "review" or negative.verdict == "review":
+                return self._check(item, "证据不足", evidence, turn_index, positive, negative, "知识 atom 命中仲裁层但未达到本地确定命中层")
+            return None
+
+        # Legacy positive/negative side flow, kept for old graphs.
+        pos_groups = correct_groups
+        neg_groups = wrong_groups
+        if not pos_elements and not neg_elements and not pos_groups and not neg_groups:
+            return KnowledgeCheck(item.id, item.node_id, item.name, item.severity, "证据不足", "", None, "知识 atom 缺少正负元素组/元素规则，不能本地判定", aliases=list(item.aliases), requires_arbitration=True)
+        positive = match_side(self.engine, item.id, "knowledge_positive", pos_elements, item.secondary_elements, [], item.match_policy, atoms, element_groups=pos_groups)
+        neg_policy = _side_policy(item.match_policy, neg_elements)
+        negative = match_side(self.engine, item.id, "knowledge_negative", neg_elements, item.secondary_elements, [], neg_policy, atoms, element_groups=neg_groups) if (neg_elements or neg_groups) else self._negation_probe(item, atoms, positive)
+        negative = _downgrade_missing_strong_flip(negative, neg_elements)
+        if negative.verdict == "hit":
+            best_atom = negative.atom or positive.atom
+        elif positive.verdict == "hit":
+            best_atom = positive.atom or negative.atom
+        elif negative.verdict == "review":
+            best_atom = negative.atom or positive.atom
+        else:
+            best_atom = positive.atom or negative.atom
+        evidence = best_atom.text if best_atom else ""
+        turn_index = best_atom.turn_index if best_atom else None
+        p = positive.verdict
+        n = negative.verdict
+        if n == "hit":
+            return self._check(item, "冲突", evidence, turn_index, positive, negative, "客服 factual claim 命中知识 atom 负向情况")
+        value_based = self._judge_value_check(item, atoms)
+        if value_based is not None and value_based.verdict == "冲突":
+            return value_based
+        directional_based_legacy = self._judge_directional_fact_conflict(item, atoms)
+        if directional_based_legacy is not None:
+            return directional_based_legacy
+        if p == "hit" and n == "miss":
+            if value_based is not None:
+                return value_based
+            return self._check(item, "支持", evidence, turn_index, positive, negative, "客服 factual claim 与知识 atom 正向元素一致，且负向元素严格未命中")
+        if p == "miss" and n == "miss":
+            return None
+        if n == "miss" and p == "review":
+            return None
+        return self._check(item, "证据不足", evidence, turn_index, positive, negative, "知识正负两侧未形成稳定结论，送审")
+
+    def _knowledge_value_scope(self, selector: ElementMatch, atoms: list[DialogueAtom]) -> list[DialogueAtom]:
+        """Limit value verification to selector-confirmed local contexts.
+
+        A knowledge selector may have many valid candidate atoms (e.g. every
+        later mention of the same product option).  The old implementation kept only the
+        single highest-ranked selector atom, so a later wrong fact could be
+        invisible.  We now keep the small local window around every selector
+        candidate that reached hit/review.  This is still schema-grounded: value
+        sides must re-match their own main trunk and fact gates before support or
+        conflict can be produced.
+        """
+        if selector.atom is None:
+            return atoms
+        turn_indices: set[int] = {selector.atom.turn_index}
+        best_score = max([float(x.get("score") or 0.0) for x in (selector.candidate_results or [])] or [float(selector.score or 0.0)])
+        for cand in selector.candidate_results or []:
+            verdict = str(cand.get("verdict") or "")
+            score = float(cand.get("score") or 0.0)
+            ti = cand.get("turn_index")
+            if verdict in {"hit", "review"} and isinstance(ti, int) and score >= max(0.42, best_score * 0.75):
+                turn_indices.add(ti)
+        scope: list[DialogueAtom] = []
+        for ti in sorted(turn_indices):
+            scope.extend(a for a in atoms if a.turn_index == ti)
+            # Allow one following and one previous assistant turn for compact
+            # factual continuations, but keep the window anchored to selector
+            # candidates rather than the entire transcript.
+            next_turn = min((a.turn_index for a in atoms if a.turn_index > ti), default=None)
+            if next_turn is not None and next_turn <= ti + 2:
+                scope.extend(a for a in atoms if a.turn_index == next_turn)
+            prev_turn = max((a.turn_index for a in atoms if a.turn_index < ti), default=None)
+            if prev_turn is not None and ti - prev_turn <= 2:
+                scope.extend(a for a in atoms if a.turn_index == prev_turn)
+        seen: set[str] = set()
+        out: list[DialogueAtom] = []
+        for a in scope:
+            key = a.atom_id
+            if key not in seen:
+                seen.add(key)
+                out.append(a)
         return out
 
-# ---- Runtime extension helpers are attached below without domain-specific rules. ----
+
+    def _judge_value_check(self, item: KnowledgeItem, atoms: list[DialogueAtom]) -> KnowledgeCheck | None:
+        """Generic comparable-fact verification for numbers/time/money/counts.
+
+        This replaces numeric wrong-fact enumeration.  The graph should state the
+        expected fact once in value_check (expected_value/expected + optional
+        unit).  Runtime then extracts comparable facts from selector-confirmed
+        local evidence and compares them with the expected fact under the same
+        subject trunk.  A different number/time category under the same trunk is
+        a deterministic conflict; the graph does not need to list all wrong
+        numbers such as 8/10/12/15.
+        """
+        vc = dict(getattr(item, "value_check", {}) or {})
+        # A knowledge atom may contain several comparable facts under the same
+        # selector trunk, e.g. reward condition = 7 days + 10 orders + 1.5 yuan.
+        # The graph should not enumerate numeric wrong facts.  It declares the
+        # expected comparable slots once; runtime compares actual values by unit.
+        raw_checks = vc.get("checks") or vc.get("value_checks") or []
+        if isinstance(raw_checks, dict):
+            raw_checks = [raw_checks]
+        checks: list[dict[str, Any]] = [x for x in raw_checks if isinstance(x, dict)]
+        if not checks:
+            checks = [vc]
+        comparable_checks: list[tuple[str, str, dict[str, Any], dict[str, Any]]] = []
+        for check in checks:
+            expected = str(check.get("normalized_expected") or check.get("expected_value") or check.get("expected") or "").strip()
+            unit = str(check.get("unit") or "").strip()
+            if not expected:
+                continue
+            expected_profile = _build_fact_profile(expected, unit)
+            if expected_profile.get("has_comparable"):
+                comparable_checks.append((expected, unit, expected_profile, check))
+        if not comparable_checks:
+            return None
+
+        base_elements = [
+            e for e in (item.primary_elements or item.positive_elements or [])
+            if isinstance(e, dict) and str(e.get("type") or "") not in {"value", "quantity", "time", "value_mismatch", "polarity", "modality"}
+        ]
+        if not base_elements:
+            # New one-graph/two-table prompts put the subject trunk in selector_groups.
+            # Use selector main elements only; do not include correct/wrong groups here,
+            # otherwise a wrong number would be invisible because the correct fact is missing.
+            for group in getattr(item, "selector_element_groups", []) or []:
+                for erow in (group.get("elements") or []) if isinstance(group, dict) else []:
+                    if isinstance(erow, dict) and bool(erow.get("main")) and not bool(erow.get("fact")):
+                        base_elements.append(erow)
+        if not base_elements:
+            return None
+
+        base_policy = dict(item.match_policy or {})
+        base_policy["must_have"] = [
+            x for x in base_policy.get("must_have", [])
+            if x in {"business_target", "target"}
+        ]
+        if not base_policy.get("must_have"):
+            base_policy["must_have"] = ["business_target"] if any(e.get("type") == "business_target" for e in base_elements) else []
+
+        selector_groups = list(getattr(item, "selector_element_groups", []) or [])
+        support_rows: list[dict[str, Any]] = []
+        for atom in atoms:
+            trunk_hit = False
+            if selector_groups:
+                trunk_hit = _selector_group_trunk_hit(selector_groups, atom.text)
+                # Selected local scope may contain a compact continuation that
+                # only states the value slot, e.g. "每单多3元" after an earlier
+                # "连续7天有额外奖励" selector.  Allow comparison when the atom
+                # has a comparable value and no competing subject trunk is present.
+                if not trunk_hit and not _selected_scope_value_continuation(item, atom.text):
+                    continue
+            else:
+                subject = match_side(
+                    self.engine,
+                    item.id + ".value_subject",
+                    "knowledge_subject",
+                    base_elements,
+                    item.secondary_elements,
+                    [],
+                    base_policy,
+                    [atom],
+                    element_groups=[],
+                )
+                if subject.verdict == "miss":
+                    continue
+                trunk_hit = True
+            for expected, unit, expected_profile, check in comparable_checks:
+                if not _value_check_slot_applies(check, item, atom.text):
+                    continue
+                if _cross_slot_value_context_conflict_guard(item, atom.text):
+                    continue
+                actual_profile = _build_fact_profile(atom.text, unit or expected_profile.get("unit") or "")
+                if not _actual_fact_relevant(expected, atom.text, expected_profile, actual_profile):
+                    continue
+                cmp_result = _compare_fact_profiles(expected_profile, actual_profile)
+                if cmp_result == "conflict":
+                    return KnowledgeCheck(
+                        item.id, item.node_id, item.name, item.severity, "冲突", atom.text, atom.turn_index,
+                        f"同一知识对象下出现不同可比事实值；expected={expected_profile.get('canonical')}, actual={actual_profile.get('canonical')}",
+                        aliases=list(item.aliases), positive_verdict="miss", negative_verdict="hit",
+                        element_audit={"value_check": {"expected": expected_profile, "actual": actual_profile, "result": "conflict", "trunk_hit": trunk_hit}},
+                    )
+                if cmp_result == "support":
+                    support_rows.append({"atom": atom, "expected": expected, "expected_profile": expected_profile, "actual_profile": actual_profile, "trunk_hit": trunk_hit})
+        if support_rows:
+            row = support_rows[0]
+            atom = row["atom"]
+            return KnowledgeCheck(
+                item.id, item.node_id, item.name, item.severity, "支持", atom.text, atom.turn_index,
+                f"同一知识对象下的可比事实值与期望一致：expected={row['expected']}",
+                aliases=list(item.aliases), positive_verdict="hit", negative_verdict="miss",
+                element_audit={"value_check": {"expected": row["expected_profile"], "actual": row["actual_profile"], "result": "support", "trunk_hit": row["trunk_hit"]}},
+            )
+        return None
+
+
+    def _judge_directional_fact_conflict(self, item: KnowledgeItem, atoms: list[DialogueAtom]) -> KnowledgeCheck | None:
+        """Detect generic qualitative direction flips under a selected subject.
+
+        Numeric/time mismatches are handled by value_check.  This covers stable
+        non-numeric flips such as high/low, suitable/not suitable, helpful/not
+        helpful, or smoother/no difference.  It remains graph-driven:
+        a conflict requires the selector subject trunk and an expected fact-side
+        direction from correct_groups.
+        """
+        correct_groups = list(getattr(item, "correct_element_groups", []) or getattr(item, "positive_element_groups", []) or getattr(item, "element_groups", []) or [])
+        selector_groups = list(getattr(item, "selector_element_groups", []) or [])
+        expected_terms: list[str] = []
+        for group in correct_groups:
+            if not isinstance(group, dict):
+                continue
+            for e in group.get("elements") or []:
+                if not isinstance(e, dict) or not bool(e.get("fact")):
+                    continue
+                expected_terms.append(str(e.get("value") or ""))
+                expected_terms.extend(str(x) for x in (e.get("pool") or []))
+        pairs = _directional_opposite_pairs()
+
+        def _selector_terms() -> list[str]:
+            terms: list[str] = []
+            for group in selector_groups:
+                if not isinstance(group, dict):
+                    continue
+                for e in group.get("elements") or []:
+                    if not isinstance(e, dict) or not bool(e.get("main")):
+                        continue
+                    terms.append(str(e.get("value") or ""))
+                    terms.extend(str(x) for x in (e.get("pool") or []))
+            # Avoid very short generic terms causing false anchoring.
+            return [t for t in dict.fromkeys(terms) if len(t) >= 3]
+
+        subject_terms = _selector_terms()
+
+        def _opposite_bound_to_subject(text: str, opposite: str) -> bool:
+            if not subject_terms:
+                return True
+            pos = text.find(opposite)
+            if pos < 0:
+                return False
+            # Prefer same-clause binding. In contrastive sentences separated by
+            # “；/，/。”, a direction word may belong to the other object.
+            clause_seps = ["；", ";", "。", ".", "!", "！", "?", "？", "\n"]
+            left = max(text.rfind(sep, 0, pos) for sep in clause_seps)
+            # Treat comma as a weaker clause boundary for high/low comparisons;
+            # it prevents a direction term attached to one contrasted object from
+            # binding to another object merely because it appears nearby.
+            left = max(left, text.rfind("，", 0, pos), text.rfind(",", 0, pos))
+            right_seps = clause_seps + ["，", ","]
+            rights = [text.find(sep, pos + len(opposite)) for sep in right_seps]
+            rights = [r for r in rights if r >= 0]
+            right = min(rights) if rights else len(text)
+            clause = text[left + 1:right]
+            if any(t and t in clause for t in subject_terms):
+                return True
+            return False
+
+        for atom in atoms:
+            if selector_groups and not _selector_group_trunk_hit(selector_groups, atom.text):
+                continue
+            text = str(atom.text or "")
+            for expected_side, opposite_side, label in pairs:
+                if not any(t and t in et for et in expected_terms for t in expected_side):
+                    continue
+                hit_opposites = [o for o in opposite_side if o and o in text]
+                # In contrastive sentences, a high/low word may belong to a
+                # neighbouring object.  Require the
+                # opposite direction term to be locally bound to this knowledge
+                # selector object, otherwise a correct contrast is misread as a
+                # conflict.
+                if label == "高低方向反转" and hit_opposites:
+                    hit_opposites = [o for o in hit_opposites if _opposite_bound_to_subject(text, o)]
+                # Avoid treating a bare negation marker as a status flip for an
+                # unrelated predicate; a bare negation marker must bind to the same status slot.
+                if label == "状态反转":
+                    slot_terms = [t for t in expected_terms if any(x in t for x in ("生效", "显示", "开通", "设置", "添加", "签署"))]
+                    if slot_terms and not any((o + st[-2:]) in text or (o + st) in text for o in hit_opposites for st in slot_terms):
+                        continue
+                if hit_opposites:
+                    return KnowledgeCheck(
+                        item.id, item.node_id, item.name, item.severity, "冲突", atom.text, atom.turn_index,
+                        f"同一知识对象下出现方向性反转事实：{label}", aliases=list(item.aliases),
+                        positive_verdict="miss", negative_verdict="hit",
+                        element_audit={"directional_check": {"expected_terms": expected_terms[:12], "opposite_terms_hit": hit_opposites, "label": label}},
+                    )
+        return None
+
+    def _negation_probe(self, item: KnowledgeItem, atoms: list[DialogueAtom], positive: ElementMatch) -> ElementMatch:
+        # When the graph did not provide an explicit negative side, treat generic
+        # negation as a strong review signal if it appears on the same assistant
+        # atom as a partial or hit positive fact. This is intentionally generic.
+        if positive.atom and positive.verdict in {"hit", "review"}:
+            if any(e.type in {"polarity", "modality"} and e.value == "negation" for e in positive.atom.elements):
+                raw = str(getattr(positive.atom, "text", "") or "")
+                # Same-atom negation of a matched knowledge fact is a local
+                # conflict, not merely a gray item.  This catches statements like
+                # “对象A不适合场景B” where surface matching sees all positive
+                # terms but the polarity is flipped.
+                if any(x in raw for x in ("不适合", "不推荐", "不建议", "无关", "不影响", "没有帮助", "没帮助", "未生效", "未显示", "没有显示")):
+                    return ElementMatch("hit", 0.82, positive.atom, reason="正向知识候选同句出现明确否定/方向翻转，按本地冲突处理")
+                return ElementMatch("review", 0.6, positive.atom, reason="正向知识候选同句出现强否定元素")
+        for atom in atoms:
+            if any(e.type in {"polarity", "modality"} and e.value == "negation" for e in atom.elements):
+                # Only mention by itself is not enough for conflict, but it is enough to mark review when some fact side is nearby.
+                if positive.verdict != "miss":
+                    return ElementMatch("review", 0.5, atom, reason="知识相关候选附近出现否定元素")
+        return ElementMatch("miss", reason="没有显式负向元素或否定作用域")
+
+    def _check(self, item: KnowledgeItem, verdict: KnowledgeVerdict, evidence: str, turn_index: int | None, positive: ElementMatch, negative: ElementMatch, reason: str) -> KnowledgeCheck:
+        return KnowledgeCheck(
+            item.id,
+            item.node_id,
+            item.name,
+            item.severity,
+            verdict,
+            evidence,
+            turn_index,
+            reason,
+            claim_id=None,
+            aliases=list(item.aliases),
+            positive_verdict=positive.verdict,
+            negative_verdict=negative.verdict,
+            requires_arbitration=verdict == "证据不足",
+            element_audit={"correct_side": _match_audit(positive), "wrong_side": _match_audit(negative)},
+        )
+
+
+def _match_audit(match: ElementMatch) -> dict[str, Any]:
+    def elem(e: Any) -> dict[str, Any]:
+        return {
+            "value": getattr(e, "value", ""),
+            "main": bool(getattr(e, "required", False)),
+            "fact": bool(getattr(e, "fact", False)),
+            "pool": list(getattr(e, "secondary_pool", []) or []),
+            "type": getattr(e, "type", "surface"),
+        }
+    return {
+        "verdict": match.verdict,
+        "score": round(float(match.score or 0.0), 4),
+        "reason": match.reason,
+        "hit_elements": [elem(e) for e in match.primary_hits],
+        "missing_elements": [elem(e) for e in match.missing],
+        "candidate_results": list(getattr(match, "candidate_results", []) or []),
+    }
+
+
+
+CN_NUM = {
+    "零": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+    "十一": 11, "十二": 12, "十三": 13, "十四": 14, "十五": 15,
+    "十六": 16, "十七": 17, "十八": 18, "十九": 19, "二十": 20,
+}
+
+COMPARABLE_UNITS = ("单", "天", "元", "秒", "分钟", "小时", "点")
+
+TEMPORAL_CATEGORY_TERMS = {
+    "today": ("今天", "当天", "当日", "今日"),
+    "next_day": ("次日", "第二天", "隔天", "明天"),
+    "previous_day": ("前一天", "前日", "上一天", "前一日"),
+    "immediate": ("立即", "马上", "立刻", "当场"),
+}
+
+
+def _infer_unit(value: str) -> str:
+    raw = str(value or "")
+    # Deadline expressions like “前一天18点前” contain both “天” and “点”;
+    # the comparable numeric unit is the hour, while “前一天/当天/次日” is
+    # handled as a temporal category.
+    if "点" in raw or ":" in raw or "18:00" in raw:
+        return "点"
+    # Prefer the unit immediately attached to a number.  This avoids inferring
+    # “单” from words such as “单日” when the actual comparable fact is “8天”.
+    m = re.search(r"\d+(?:\.\d+)?\s*([个单天元秒分钟小时]+)", raw)
+    if m:
+        u = m.group(1)
+        for unit in COMPARABLE_UNITS:
+            if unit in u:
+                return unit
+    cn_pat = "|".join(sorted(map(re.escape, CN_NUM), key=len, reverse=True))
+    m = re.search(rf"({cn_pat})\s*([个单天元秒分钟小时]+)", raw)
+    if m:
+        u = m.group(2)
+        for unit in COMPARABLE_UNITS:
+            if unit in u:
+                return unit
+    for unit in COMPARABLE_UNITS:
+        if unit in raw:
+            return unit
+    return ""
+
+
+def _cn_number_to_float(token: str) -> float | None:
+    token = str(token or "").strip()
+    if not token:
+        return None
+    if token in CN_NUM:
+        return float(CN_NUM[token])
+    # Handle simple forms like 二十五 if they ever appear.
+    if "十" in token:
+        left, _, right = token.partition("十")
+        tens = CN_NUM.get(left, 1 if left == "" else None)
+        ones = CN_NUM.get(right, 0 if right == "" else None)
+        if tens is not None and ones is not None:
+            return float(tens * 10 + ones)
+    return None
+
+
+def _normalize_number_text(num: float) -> str:
+    if abs(num - int(num)) < 1e-9:
+        return str(int(num))
+    return (f"{num:.6f}".rstrip("0").rstrip("."))
+
+
+def _extract_number_unit_pairs(text: str, target_unit: str = "") -> list[tuple[str, str]]:
+    t = str(text or "")
+    pairs: list[tuple[str, str]] = []
+    unit_class = "个单天点元秒分钟小时"
+    # Ranges often attach the unit only to the second number: “5到10秒”.
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*(?:到|-|~|—|至)\s*(\d+(?:\.\d+)?)\s*([个单天点元秒分钟小时]+)", t):
+        u = m.group(3) or target_unit
+        if target_unit and target_unit not in u:
+            continue
+        for raw_num in (m.group(1), m.group(2)):
+            try:
+                pairs.append((_normalize_number_text(float(raw_num)), target_unit or u[:1]))
+            except Exception:
+                pass
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*([个单天点元秒分钟小时:]*)", t):
+        raw_num, raw_unit = m.group(1), m.group(2) or ""
+        unit = raw_unit
+        if unit == ":" or ":" in raw_unit:
+            unit = "点"
+        if target_unit and target_unit != unit:
+            # A graph may declare expected_value="10", unit="天". Treat a bare
+            # expected number as carrying the declared unit, but do not do this
+            # for free-form actual text where the unit is genuinely absent.
+            if unit == "" and compact(t) == compact(raw_num):
+                unit = target_unit
+            elif not (target_unit == "点" and (raw_num in {"18", "6"} or ":" in t)):
+                continue
+        try:
+            n = float(raw_num)
+        except Exception:
+            continue
+        if target_unit == "点" and _normalize_number_text(n) == "6" and ("下午" in t or "晚上" in t):
+            n = 18.0
+        pairs.append((_normalize_number_text(n), unit or target_unit))
+    cn_pat = "|".join(sorted(map(re.escape, CN_NUM), key=len, reverse=True))
+    for m in re.finditer(rf"({cn_pat})\s*(?:到|-|~|—|至)\s*({cn_pat})\s*([{unit_class}]+)", t):
+        unit = m.group(3)
+        if target_unit and target_unit not in unit:
+            continue
+        for raw_cn in (m.group(1), m.group(2)):
+            num = _cn_number_to_float(raw_cn)
+            if num is not None:
+                pairs.append((_normalize_number_text(num), target_unit or unit[:1]))
+    for m in re.finditer(rf"({cn_pat})\s*([{unit_class}]+)", t):
+        num = _cn_number_to_float(m.group(1))
+        unit = m.group(2)
+        if num is None:
+            continue
+        if target_unit and target_unit not in unit:
+            continue
+        if target_unit == "点" and _normalize_number_text(num) == "6" and ("下午" in t or "晚上" in t):
+            num = 18.0
+        pairs.append((_normalize_number_text(num), target_unit or unit[:1]))
+    if target_unit == "点" and ("下午6" in t or "下午六" in t or "晚上6" in t or "晚上六" in t):
+        pairs.append(("18", "点"))
+    seen: set[tuple[str, str]] = set()
+    out: list[tuple[str, str]] = []
+    for pair in pairs:
+        if pair not in seen:
+            seen.add(pair); out.append(pair)
+    return out
+
+
+def _extract_temporal_categories(text: str) -> set[str]:
+    t = str(text or "")
+    out: set[str] = set()
+    for label, terms in TEMPORAL_CATEGORY_TERMS.items():
+        if any(term in t for term in terms):
+            out.add(label)
+    return out
+
+
+def _build_fact_profile(text: str, unit: str = "") -> dict[str, Any]:
+    raw = str(text or "")
+    inferred_unit = unit or _infer_unit(raw)
+    pairs = _extract_number_unit_pairs(raw, inferred_unit)
+    nums = [n for n, _u in pairs]
+    units = [u for _n, u in pairs if u]
+    temporal = _extract_temporal_categories(raw)
+    canonical_parts = []
+    if nums:
+        canonical_parts.append("/".join(nums) + (inferred_unit or (units[0] if units else "")))
+    if temporal:
+        canonical_parts.append("|".join(sorted(temporal)))
+    return {
+        "text": raw,
+        "unit": inferred_unit,
+        "numbers": nums,
+        "number_units": pairs,
+        "temporal_categories": sorted(temporal),
+        "has_comparable": bool(nums or temporal),
+        "canonical": "+".join(canonical_parts) if canonical_parts else raw,
+    }
+
+
+
+
+def _contextual_fact_side_match(engine: ElementEngine, rule_id: str, groups: list[Any], atoms: list[DialogueAtom]) -> ElementMatch:
+    """Match fact-side errors when the subject is carried by local context.
+
+    Customer-service explanations often answer an immediately previous topic,
+    e.g. the user asks about an option and the agent replies only with
+    "小班实操不太适合".  The graph still declares the subject main element,
+    but within a selector-confirmed local scope a fact element may be evaluated
+    against a nearby subject mention.  This is deliberately limited to
+    knowledge wrong/correct fact sides and does not apply to node completion.
+    """
+    if not groups or not atoms:
+        return ElementMatch("miss", reason="没有可上下文承接的事实侧元素组")
+    context_text = " ".join(str(a.text or "") for a in atoms)
+    best: ElementMatch | None = None
+    for gi, group in enumerate(groups):
+        if not isinstance(group, dict):
+            continue
+        if not bool(group.get("allow_context_carry", False)):
+            continue
+        elems = [e for e in (group.get("elements") or []) if isinstance(e, dict)]
+        if not elems:
+            continue
+        main_elems = [e for e in elems if bool(e.get("main")) and not bool(e.get("fact"))]
+        fact_elems = [e for e in elems if bool(e.get("fact"))]
+        if not fact_elems or not main_elems:
+            continue
+        # The declared subject/object trunk must be present somewhere in the
+        # selector-confirmed local scope; otherwise a bare negative phrase is not
+        # enough.
+        trunk_ok = True
+        for e in main_elems:
+            terms = [str(e.get("value") or ""), *[str(x) for x in (e.get("pool") or [])]]
+            if not any(t and text_hit(t, context_text) for t in terms):
+                trunk_ok = False
+                break
+        if not trunk_ok:
+            continue
+        for atom in atoms:
+            # If the apparent wrong fact is explicitly rejected (e.g.
+            # "不能按明天补齐"), it is not a wrong-claim hit.
+            if any(x in str(atom.text or "") for x in ["不能", "不可以", "不可", "不算", "不是", "无需", "不用"]):
+                continue
+            hit_facts=[]; missing_facts=[]
+            for e in fact_elems:
+                terms=[str(e.get("value") or ""), *[str(x) for x in (e.get("pool") or [])]]
+                terms=[t for t in terms if t and len(compact(t)) >= 2 and compact(t) not in {"不", "没", "少", "会", "能"}]
+                if any(text_hit(t, atom.text) for t in terms):
+                    hit_facts.append(e)
+                else:
+                    missing_facts.append(e)
+            if not hit_facts:
+                continue
+            # If there are multiple fact gates, require at least half or one strong
+            # phrase; this avoids demanding every explanatory atom in a compact
+            # natural reply while still being stricter than keyword spotting.
+            coverage = len(hit_facts) / max(1, len(fact_elems))
+            if coverage < 0.5 and len(hit_facts) < 1:
+                continue
+            sem_hits=[]
+            for e in hit_facts:
+                sem_hits.append(SemanticElement("surface", str(e.get("value") or ""), aliases=[str(x) for x in (e.get("pool") or [])], required=bool(e.get("main")), fact=bool(e.get("fact")), secondary_pool=[str(x) for x in (e.get("pool") or [])]))
+            sem_missing=[]
+            for e in missing_facts:
+                sem_missing.append(SemanticElement("surface", str(e.get("value") or ""), aliases=[str(x) for x in (e.get("pool") or [])], required=bool(e.get("main")), fact=bool(e.get("fact")), secondary_pool=[str(x) for x in (e.get("pool") or [])]))
+            score=max(0.72, min(1.0, 0.72 + 0.2*coverage))
+            m=ElementMatch("hit", score, atom, primary_hits=sem_hits, missing=sem_missing, reason="事实元素在 selector 局部上下文中命中，主干由邻近候选承接")
+            if best is None or (m.verdict, m.score) > (best.verdict, best.score):
+                best=m
+    return best or ElementMatch("miss", reason="未形成上下文承接的事实侧命中")
+
+def _strict_surface_hit(term: str, text: str) -> bool:
+    """Strict surface hit used only for comparable fact trunk binding.
+
+    Candidate recall can be broad, but numeric/time comparison must not bind
+    a target object to a sibling option sentence just because
+    all characters appear somewhere.  Therefore trunk binding allows exact
+    compact inclusion and the small modal bridge normalization, but not the
+    character-overlap fallback used by general text_hit().
+    """
+    a = compact(term)
+    b = compact(text)
+    if not a or not b:
+        return False
+    if a in b:
+        return True
+    a2 = _drop_cn_modal_fillers(a)
+    b2 = _drop_cn_modal_fillers(b)
+    return bool(a2 and b2 and a2 in b2)
+
+
+
+def _selector_group_trunk_hit(selector_groups: list[Any], text: str) -> bool:
+    """Selector trunk binding for knowledge value/direction checks.
+
+    Strict all-main matching is ideal, but negative cases often use shorthand:
+    a shortened object phrase instead of the full schema object phrase.
+    This function therefore has two layers:
+    1) exact/all-main hit remains the strongest pass;
+    2) for sentences containing comparable values or direction words, at least
+       one specific object-like main element must hit.  Generic attribute mains
+       such as bare attributes or slot labels are never enough alone.
+    """
+    txt = str(text or "")
+    for group in selector_groups or []:
+        if not isinstance(group, dict):
+            continue
+        mains = [e for e in group.get("elements") or [] if isinstance(e, dict) and e.get("main") and not e.get("fact")]
+        if not mains:
+            continue
+        hit_flags = []
+        specific_hit = False
+        non_generic_hit = False
+        for e in mains:
+            terms = [str(e.get("value") or ""), *[str(x) for x in (e.get("pool") or [])]]
+            is_generic = _is_generic_selector_main(e)
+            hit = any(_strict_surface_hit(t, txt) for t in terms if t)
+            hit_flags.append(hit)
+            if hit and not is_generic:
+                non_generic_hit = True
+            if not is_generic and any(_object_like_term_hit(t, txt) for t in terms if t):
+                specific_hit = True
+        # A selector group made only of generic slot words such as “成本/成本/状态”
+        # must not by itself select a fact for deterministic conflict.  Otherwise
+        # a sibling correct sentence like “方案A成本较低” can be misread as a
+        # contradiction of “方案B成本略高”.
+        if all(hit_flags) and non_generic_hit:
+            return True
+        if specific_hit and _has_value_or_direction_surface(txt):
+            return True
+    return False
+
+
+_GENERIC_SELECTOR_SUFFIXES = ("状态", "情况", "方式", "时间", "类型", "条件", "机制", "目的", "作用", "路径", "入口", "选项", "场景", "范围", "数量", "数值", "结果", "对象", "原因", "关系", "方向")
+
+
+
+def _is_generic_selector_main(e: dict[str, Any]) -> bool:
+    terms = [compact(str(e.get("value") or "")), *[compact(str(x)) for x in (e.get("pool") or [])]]
+    terms = [t for t in terms if t]
+    if not terms:
+        return True
+    value = terms[0]
+    if len(value) <= 2:
+        return True
+    return any(value.endswith(suf) for suf in _GENERIC_SELECTOR_SUFFIXES)
+
+
+def _object_like_term_hit(term: str, text: str) -> bool:
+    if _strict_surface_hit(term, text):
+        return True
+    a = compact(term); b = compact(text)
+    if len(a) < 4 or not b:
+        return False
+    # Generic shorthand: the first two characters often remain when a long
+    # object phrase is shortened in natural dialogue.  This is only used after
+    # generic-slot filtering and only when a comparable value or direction word
+    # is present, so it cannot by itself create a fact verdict.
+    head = a[:2]
+    return bool(head and head in b)
+
+
+def _has_value_or_direction_surface(text: str) -> bool:
+    t = str(text or "")
+    if _build_fact_profile(t).get("has_comparable"):
+        return True
+    terms = set()
+    for left, right, _label in _directional_opposite_pairs():
+        terms.update(left); terms.update(right)
+    return any(x and x in t for x in terms)
+
+
+def _directional_opposite_pairs() -> list[tuple[tuple[str, ...], tuple[str, ...], str]]:
+    return [
+        (("较高", "略高", "更高", "偏高", "更贵"), ("较低", "更低", "偏低", "更便宜", "便宜"), "高低方向反转"),
+        (("较低", "更低", "偏低", "更便宜", "便宜"), ("较高", "略高", "更高", "偏高", "更贵"), "高低方向反转"),
+        (("适合", "适用", "适用于", "推荐", "鼓励选择"), ("不适合", "不太适合", "不推荐", "不建议"), "适用性反转"),
+        (("更流畅", "更顺", "更顺畅", "互动更好", "实时互动"), ("差不多", "没区别", "区别不大", "关系不大", "不明显"), "互动/效果优势反转"),
+        (("有助于", "有帮助", "帮助", "保住", "保留"), ("没帮助", "没有帮助", "无关", "不影响", "没用"), "作用/影响方向反转"),
+        (("已", "已经", "已开放", "已开启", "已显示"), ("未", "未开放", "未开启", "未显示", "还没", "没有"), "状态反转"),
+    ]
+
+
+
+def _cross_slot_value_context_conflict_guard(item: KnowledgeItem, text: str) -> bool:
+    """Avoid comparing values from a different local fact slot.
+
+    A transcript may mention a reward / compensation condition next to ordinary
+    contract quota facts, e.g. "连续7天每天10单才有额外奖励".  Those numbers
+    are not an assertion that the base contract itself is 7 days or 10 orders.
+    The guard is generic: if the assistant atom is explicitly about rewards,
+    bonuses, subsidies, or extra compensation, only knowledge atoms whose own
+    name/text/aliases are in the same reward slot may compare the numbers.
+    """
+    txt = str(text or "")
+    reward_terms = ("奖励", "额外", "奖金", "补贴", "补偿", "每单多", "多1", "多一")
+    if not any(t in txt for t in reward_terms):
+        return False
+    item_text = " ".join(str(x or "") for x in [getattr(item, "id", ""), getattr(item, "name", ""), getattr(item, "text", ""), " ".join(getattr(item, "aliases", []) or [])])
+    return not any(t in item_text for t in reward_terms)
+
+def _selected_scope_value_continuation(item: KnowledgeItem, text: str) -> bool:
+    """Allow value-only continuation inside selector-confirmed local scope.
+
+    This remains graph-driven: the continuation must contain a comparable value
+    declared by value_check and one of the non-numeric slot anchors supplied by
+    the graph/prompt, such as reward/amount/delay/effective-time/action slots.
+    """
+    vc = dict(getattr(item, "value_check", {}) or {})
+    raw_checks = vc.get("checks") or vc.get("value_checks") or []
+    if isinstance(raw_checks, dict):
+        raw_checks = [raw_checks]
+    if not raw_checks:
+        raw_checks = [vc]
+    if not bool(vc.get("allow_continuation", False)):
+        return False
+    txt = str(text or "")
+    blockers = [str(x) for x in (vc.get("continuation_blockers") or vc.get("blockers") or []) if str(x or "").strip()]
+    if blockers and any(text_hit(b, txt) for b in blockers):
+        return False
+    has_value = False
+    for check in raw_checks:
+        if not isinstance(check, dict):
+            continue
+        expected = str(check.get("expected_value") or check.get("expected") or "")
+        unit = str(check.get("unit") or "")
+        prof = _build_fact_profile(expected, unit)
+        if prof.get("has_comparable") and _build_fact_profile(txt, unit or prof.get("unit") or "").get("has_comparable"):
+            has_value = True
+            break
+    if not has_value:
+        return False
+    anchors = set()
+    for group in getattr(item, "selector_element_groups", []) or []:
+        if not isinstance(group, dict):
+            continue
+        for e in group.get("elements") or []:
+            if not isinstance(e, dict):
+                continue
+            for term in [e.get("value"), *(e.get("pool") or [])]:
+                term = str(term or "").strip()
+                if term and len(compact(term)) <= 8:
+                    anchors.add(term)
+    return any(a and a in txt for a in anchors)
+
+
+
+def _value_check_slot_applies(check: dict[str, Any], item: KnowledgeItem, text: str) -> bool:
+    """Check whether an actual comparable value belongs to this declared slot.
+
+    Selector recall may select a local window that also contains another numeric
+    fact, e.g. “条件X下满足数值Y可获得结果Z” near the separate rule
+    “业务协议A连续10天履约”.  Comparable value_check is therefore allowed to
+    compare only when the graph-declared slot anchors or condition anchors are
+    present in the same assistant atom.  This is still schema-driven: anchors
+    come from the knowledge table, not from dataset labels.
+    """
+    anchors = [str(x).strip() for x in (check.get("slot_anchors") or check.get("anchors") or []) if str(x).strip()]
+    condition = str(check.get("condition") or "").strip()
+    txt = str(text or "")
+    if not anchors and not condition:
+        return True
+    hits = 0
+    specific_hits = 0
+    for anchor in anchors:
+        if _anchor_term_hit(anchor, txt):
+            hits += 1
+            if not _generic_anchor_term(anchor):
+                specific_hits += 1
+    if anchors:
+        specific_count = sum(1 for a in anchors if not _generic_anchor_term(a))
+        if specific_count > 0:
+            # Numeric/time facts must bind to the intended object + attribute
+            # slot, not just a nearby generic attribute.  However LLM often
+            # writes slot_anchors without the shorthand variants already present
+            # in selector_groups, e.g. anchor=“对象A” while the user-facing
+            # wrong sentence says “标准延迟1到2秒”.  If at least one concrete
+            # slot anchor hits and the graph selector trunk also binds this
+            # sentence, allow the value comparison; this keeps the check
+            # schema-grounded while avoiding false semantic misses.
+            if specific_count >= 2:
+                if specific_hits >= 2:
+                    return True
+                if specific_hits >= 1 and _selector_group_trunk_hit(getattr(item, "selector_element_groups", []) or [], txt):
+                    return True
+                return False
+            return specific_hits > 0 or _selector_group_trunk_hit(getattr(item, "selector_element_groups", []) or [], txt)
+        return hits > 0
+    # If there are no explicit slot anchors, the caller has already selected a
+    # local knowledge scope with selector_groups.  Do not require a composite
+    # natural-language condition string to appear verbatim
+    # in the wrong utterance “取消后当天就会生效”.
+    return True
+
+
+def _generic_anchor_term(term: str) -> bool:
+    c = compact(term)
+    if len(c) <= 2:
+        return True
+    return c in {"成本", "成本", "状态", "情况", "时间", "方式", "条件", "要求", "标准", "结果", "影响", "生效"} or any(c.endswith(x) for x in _GENERIC_SELECTOR_SUFFIXES)
+
+
+def _anchor_term_hit(anchor: str, text: str) -> bool:
+    a = compact(anchor)
+    b = compact(text)
+    if not a or not b:
+        return False
+    if _strict_surface_hit(a, b):
+        return True
+    # Allow a small gap in phrases such as “连续履约” -> “连续10天履约”.
+    if len(a) >= 4:
+        parts = [x for x in re.split(r"[，,。；;：:/、()（）\[\]{}]|和|与|及|或", a) if x]
+        if len(parts) >= 2 and all(p in b for p in parts):
+            return True
+        if a[:2] in b and a[-2:] in b:
+            return True
+    return False
+
+def _actual_fact_relevant(expected_text: str, actual_text: str, expected: dict[str, Any], actual: dict[str, Any]) -> bool:
+    """Avoid turning a topic/time mention into a fact conflict.
+
+    Value_check compares facts after selector recall.  Selector recall may find a
+    broad topic utterance that mentions a date or time without asserting the
+    target comparable fact.  Numeric/time conflicts therefore need the comparable
+    value to be attached to the same expected fact slot, not merely present in
+    the selector window.
+    """
+    if not actual.get("has_comparable"):
+        return False
+    exp_nums = set(expected.get("numbers") or [])
+    act_nums = set(actual.get("numbers") or [])
+    # If the expected fact has a numeric component (18点、12单、5到10秒等),
+    # an actual sentence without any comparable number is only a topic mention.
+    if exp_nums and not act_nums:
+        return False
+    exp_text = str(expected_text or "")
+    act_text = str(actual_text or "")
+    # A comparable value mentioned under an explicit negation is usually a
+    # rejected value rather than an asserted value, e.g. "不能按明天补齐".
+    # Value_check only compares asserted comparable facts; explicit negative
+    # directions belong to wrong_groups / safety groups.
+    if any(x in act_text for x in ["不能", "不可以", "不可", "不算", "不是", "无需", "不用"]):
+        return False
+    # For temporal-only facts, require a slot anchor derived from the expected
+    # fact text itself instead of a built-in business vocabulary. This keeps
+    # local value_check generic: if the expected value is “next-cycle starts”,
+    # the anchor is the non-temporal action/object residue such as “starts”; if
+    # the expected value is only a bare time, no extra anchor is imposed.
+    if not exp_nums and expected.get("temporal_categories") and actual.get("temporal_categories"):
+        anchors = _semantic_slot_anchors(exp_text)
+        if anchors and not any(a in act_text for a in anchors):
+            return False
+    return True
+
+
+
+def _semantic_slot_anchors(text: str) -> list[str]:
+    """Extract non-comparable slot anchors from an expected fact value.
+
+    The function deliberately avoids a task-specific action list. It removes
+    dates, numeric values and common temporal/filler particles, then uses the
+    remaining compact lexical residue as the local slot anchor for value_check.
+    """
+    raw = compact(text)
+    if not raw:
+        return []
+    cleaned = re.sub(r"\d+(?:\.\d+)?", " ", raw)
+    cleaned = re.sub(r"[一二三四五六七八九十百千万两]+", " ", cleaned)
+    temporal_terms = (
+        "今天", "当天", "当日", "明天", "次日", "翌日", "第二天", "下一天",
+        "昨日", "昨天", "前天", "后天", "上周", "下周", "本周", "本月",
+        "次月", "下月", "前一天", "后一天", "下一工作日", "工作日",
+        "上午", "下午", "晚上", "中午", "凌晨", "早上", "点前", "点后",
+        "之前", "以后", "以内", "之内", "之后", "前", "后", "点", "时",
+        "分", "分钟", "小时", "天", "日", "周", "月", "年", "周期",
+    )
+    for term in sorted(temporal_terms, key=len, reverse=True):
+        cleaned = cleaned.replace(term, " ")
+    filler_terms = ("为", "是", "在", "从", "到", "至", "于", "的", "了", "会", "可", "可以", "必须", "需要", "进行")
+    for term in sorted(filler_terms, key=len, reverse=True):
+        cleaned = cleaned.replace(term, " ")
+    parts = [x for x in re.split(r"\s+|[，,。；;：:/、()（）\[\]{}]+", cleaned) if len(x) >= 2]
+    # Keep compact sub-spans only; very long strings are usually composite and
+    # should not become a hidden sentence-level anchor.
+    anchors = []
+    for part in parts:
+        if 2 <= len(part) <= 8 and part not in anchors:
+            anchors.append(part)
+    return anchors[:4]
+
+def _compare_fact_profiles(expected: dict[str, Any], actual: dict[str, Any]) -> str | None:
+    if not actual.get("has_comparable"):
+        return None
+    exp_temp = set(expected.get("temporal_categories") or [])
+    act_temp = set(actual.get("temporal_categories") or [])
+    if exp_temp and act_temp:
+        if exp_temp & act_temp:
+            # Continue to numeric check if both also have numbers.
+            pass
+        else:
+            return "conflict"
+    exp_nums = set(expected.get("numbers") or [])
+    act_nums = set(actual.get("numbers") or [])
+    if exp_nums and act_nums:
+        if act_nums <= exp_nums or exp_nums <= act_nums or (exp_nums & act_nums and not (act_nums - exp_nums)):
+            return "support"
+        return "conflict"
+    if exp_temp and act_temp and (exp_temp & act_temp):
+        return "support"
+    return None
+
+# Legacy helper names kept for compatibility with older diagnostics/tests.
+def _normalize_expected_values(value: str) -> set[str]:
+    return set(_build_fact_profile(value).get("numbers") or []) or {str(value or "").strip()}
+
+
+def _extract_numeric_values(text: str, unit: str = "") -> list[str]:
+    return [n for n, _u in _extract_number_unit_pairs(text, unit)]
+
+
+def _side_policy(base: dict[str, Any], elements: list[dict[str, Any]]) -> dict[str, Any]:
+    """Tighten knowledge-side policies for strong polarity elements.
+
+    Negation is not a negative-object layer in knowledge.  It is an ordinary
+    but strong semantic element.  If a negative fact side declares a negation or
+    other polarity/modality flip, that flip must be present before the negative
+    side can be a deterministic hit; otherwise a shared business target +
+    attribute would falsely trigger the negative side.
+    """
+    policy = dict(base or {})
+    must = list(policy.get("must_have") or [])
+    for element in elements or []:
+        if not isinstance(element, dict):
+            continue
+        typ = str(element.get("type") or "")
+        val = str(element.get("value") or "")
+        if typ in {"polarity", "modality"} and val in {"negation", "negative", "deny"}:
+            if typ not in must:
+                must.append(typ)
+    policy["must_have"] = must
+    return policy
+
+
+def _downgrade_missing_strong_flip(match: ElementMatch, elements: list[dict[str, Any]]) -> ElementMatch:
+    """For knowledge negative sides, missing the declared polarity flip is a strict miss.
+
+    A negative side often shares the same business_target/attribute with the
+    positive side and differs only by polarity/value.  If the polarity flip is
+    absent, partial object overlap should not force arbitration.
+    """
+    if match.verdict != "review":
+        return match
+    strong = {
+        (str(e.get("type") or ""), str(e.get("value") or ""))
+        for e in elements or [] if isinstance(e, dict)
+        and str(e.get("type") or "") in {"polarity", "modality"}
+        and str(e.get("value") or "") in {"negation", "negative", "deny"}
+    }
+    if not strong:
+        return match
+    hit_keys = {(e.type, e.value) for e in match.primary_hits}
+    if not (strong & hit_keys):
+        return ElementMatch("miss", 0.0, reason="知识负向侧缺少声明的否定/反转元素，按严格未命中处理")
+    return match

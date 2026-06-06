@@ -12,13 +12,16 @@ from .oracle_router import OracleRouter
 from .report_explainer import ReportExplainer
 from .report_html import render_html
 from .schema import StateGraph
+from .schema_compiler import compile_state_graph
 from .schema_linter import lint_and_repair_schema
 from .score_adjuster import apply_dataset_score_adjustments
 from .version import runtime_version_info
 
 
 def run_pipeline(graph_path: str | Path, dialogue_root: str | Path, runtime_path: str | Path, out_path: str | Path, html_path: str | Path | None = None) -> list[dict[str, Any]]:
-    graph_data, _ = lint_and_repair_schema(read_json(graph_path))
+    raw_graph = read_json(graph_path)
+    graph_data = compile_state_graph(raw_graph)
+    graph_data, _ = lint_and_repair_schema(graph_data)
     graph = StateGraph.from_dict(graph_data)
     runtime = read_json(runtime_path)
     extractor = EvidenceExtractor()

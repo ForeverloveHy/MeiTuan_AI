@@ -331,15 +331,17 @@ class ReportExplainer:
                     }
                 )
             for item in acceptance.missing_expected:
-                target = item.get("requirement_id") or item.get("node_id") or item.get("target_node") or item.get("knowledge_id") or item.get("constraint_id") or "未绑定"
+                target = item.get("requirement_id") or item.get("node_id") or item.get("target_node") or item.get("knowledge_id") or item.get("constraint_id") or item.get("target_id") or "未绑定"
+                diag = item.get("miss_diagnostic") or {}
+                root = diag.get("likely_root_cause") or "当前评估结果没有生成可对齐的本地错误事件。"
                 losses.append(
                     {
-                        "类型": "样本验收失败",
-                        "直白说明": "样本预设错误没有被当前评估结果识别出来。",
+                        "类型": "负包预设错误未命中",
+                        "直白说明": f"预设错误未被识别：{item.get('description') or target}",
                         "证据原话": str(item.get("evidence_span") or item.get("wrong_statement") or "未提供具体证据句"),
-                        "为什么失分": "对话或样本标注要求系统发现该问题，但当前节点、知识或限制证据没有命中。",
-                        "建议": "优先检查样本绑定是否正确，以及 schema compiler 是否编译出了足够证据；不要在代码层补词典。",
-                        "技术追踪": {"验收目标": target, "预设项": item},
+                        "为什么失分": root,
+                        "建议": "看技术追踪里的 closest_local_checks / closest_flow_targets / assistant_evidence_candidates，定位是 selector 没召回、value_check 没比较、hard 负向组过窄，还是节点粒度错误。",
+                        "技术追踪": {"验收目标": target, "预设项": item, "精查诊断": diag},
                     }
                 )
         if not losses:
@@ -376,6 +378,8 @@ class ReportExplainer:
                         "小任务文本": r.text or "未命名小任务",
                         "证据组编号": g.group_id,
                         "期望证据": list(getattr(g, "expected_patterns", []) or []),
+                        "待选元素": (r.element_audit or {}).get("hit_elements", []) + (r.element_audit or {}).get("missing_elements", []),
+                        "候选atom得分": (r.element_audit or {}).get("candidate_results", []),
                         "判定": "命中" if g.matched else "缺失",
                         "判定原因": reason,
                         "分数": round(g.score, 4),
@@ -390,6 +394,8 @@ class ReportExplainer:
                 "结论": x.verdict,
                 "证据原话": self._turn_line(units_by_turn, x.turn_index),
                 "判定原因": x.reason,
+                "待选元素": (x.to_dict().get("element_audit") or {}),
+                "候选atom得分": (x.to_dict().get("element_audit") or {}),
                 "说明": "冲突会扣知识分；支持用于证明事实正确；证据不足只进入灰区账本，不直接扣分。",
             }
             for x in evaluation.knowledge_checks if x.verdict in {"支持", "冲突", "证据不足"}
@@ -402,9 +408,11 @@ class ReportExplainer:
                 "结论": x.verdict,
                 "证据原话": self._turn_line(units_by_turn, x.turn_index),
                 "判定原因": x.reason,
-                "说明": "违规会扣限制分；安全用于证明边界回应正确；证据不足只进入灰区账本，不直接扣分。",
+                "待选元素": (x.to_dict().get("element_audit") or {}),
+                "候选atom得分": (x.to_dict().get("element_audit") or {}),
+                "说明": "违规会扣限制分；安全用于证明边界回应正确；证据不足进入灰区账本；软问题作为小权重话术质量提示写入报告。",
             }
-            for x in evaluation.constraint_checks if x.verdict in {"安全", "违规", "证据不足"}
+            for x in evaluation.constraint_checks if x.verdict in {"安全", "违规", "证据不足", "软问题"}
         ]
         relation_rows = [
             {
@@ -474,6 +482,7 @@ class ReportExplainer:
                     "轮次": x.turn_index,
                     "说明": x.reason,
                     "严重程度": x.severity,
+                    "元素层": x.to_dict().get("element_audit") or {},
                 }
                 for x in evaluation.knowledge_checks
             ]
@@ -490,6 +499,7 @@ class ReportExplainer:
                     "轮次": x.turn_index,
                     "说明": x.reason,
                     "严重程度": x.severity,
+                    "元素层": x.to_dict().get("element_audit") or {},
                 }
                 for x in evaluation.constraint_checks
             ]
@@ -557,6 +567,8 @@ class ReportExplainer:
             "已命中预设问题数": len(acceptance.matched_expected),
             "未命中预设问题数": len(acceptance.missing_expected),
             "待仲裁预设问题数": len(acceptance.oracle_expected or []),
+            "未对齐误杀数": len(acceptance.unexpected_bad_events or []),
+            "未对齐误杀明细": acceptance.unexpected_bad_events or [],
         }
 
     def _score_summary(self, evaluation: EvaluationResult) -> dict[str, Any]:

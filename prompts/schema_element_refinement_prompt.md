@@ -1,0 +1,3 @@
+当前项目使用 schema_atom_element_refinement_prompt.md 作为第四步一级元素建模提示词。
+本文件只保留为兼容入口说明；实际运行以 schema_atom_element_refinement_prompt.md 为准。
+对外方法只讲 atom_transport、atom_id、element_groups，不讲内部兼容字段。

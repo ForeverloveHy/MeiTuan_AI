@@ -1,0 +1,182 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "knowledge_fact_contradiction",
+    "context_optimized_after_deletion": true,
+    "audit_pass": "negative_audit_16_20_context_strengthened_preserve_single_knowledge_error"
+  },
+  "id": "merchant_negative_00_20",
+  "scenario": "knowledge_violation_low_latency_advantage_wrong_from_baseline_00",
+  "negative_id_scheme": "00_20",
+  "target_knowledge_violation": "low_latency_interaction_advantage",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，低延迟到底有什么区别？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么临时开？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，所以后台临时走低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是为了保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "后续发布页怎么显示？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "标准直播情况呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟互动是不是会明显好一点？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "互动体验和标准差不多。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "它一般适合小班课和实操课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以按路径手动开通。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先点【我的】，进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】，在【服务产品】里勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要确认吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以到【教务/财务设置】，进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用能不能保证不涨？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "费用结果我不能保证，具体以页面费用规则为准。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题我在企微里继续协助。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "low_latency_interaction_advantage",
+      "target_id": "low_latency_interaction_advantage",
+      "wrong_statement": "互动体验和标准差不多。",
+      "evidence_span": "互动体验和标准差不多。",
+      "description": "客服把低延迟直播的互动优势说错，正确口径应为低延迟互动更顺。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ]
+}

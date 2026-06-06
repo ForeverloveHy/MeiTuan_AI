@@ -19,14 +19,14 @@ if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 from sceg.demo_runner import run_offline_project  # noqa: E402
-from sceg.longcat_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
+from sceg.llm_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
 from sceg.version import CORE_VERSION  # noqa: E402
 
 
 class OfflineApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title(f"复杂指令对话检查系统｜离线状态图评估 Demo｜{CORE_VERSION}")
+        self.title(f"复杂指令对话检查系统｜离线状态图评估")
         self.geometry("1040x680")
         self.minsize(900, 560)
         self.result: dict | None = None
@@ -45,7 +45,7 @@ class OfflineApp(tk.Tk):
         ttk.Button(title, text="打开项目目录", command=self.open_project_dir).pack(side=tk.RIGHT)
 
         desc = (
-            "这个版本不输入复杂指令，也不执行建图。请直接选择已有 graph.json，"
+            "离线评估不输入复杂指令，也不执行建图。请直接选择已有 graph.json，"
             "再选择本地对话目录，系统会用同一套本地评估内核生成 JSON、HTML 和上传包。"
         )
         ttk.Label(frm, text=desc, foreground="#555", wraplength=980).pack(fill=tk.X, pady=(8, 8))
@@ -55,12 +55,16 @@ class OfflineApp(tk.Tk):
 
         ttk.Label(cfg, text="离线 graph.json").grid(row=0, column=0, sticky="w")
         self.graph_path = ttk.Entry(cfg, width=80)
+        self.graph_path.insert(0, str(APP_ROOT / "examples" / "graph_abstract.json"))
         self.graph_path.grid(row=0, column=1, sticky="we", padx=6)
         ttk.Button(cfg, text="选择", command=self.choose_graph).grid(row=0, column=2, sticky="w")
 
         ttk.Label(cfg, text="本地对话根目录").grid(row=1, column=0, sticky="w", pady=(6, 0))
         self.dialogue_root = ttk.Entry(cfg, width=80)
-        self.dialogue_root.insert(0, str(APP_ROOT / "data" / "dialogues"))
+        default_dialogues = APP_ROOT / "data" / "dialogues"
+        if not default_dialogues.exists():
+            default_dialogues = APP_ROOT / "examples" / "dialogues"
+        self.dialogue_root.insert(0, str(default_dialogues))
         self.dialogue_root.grid(row=1, column=1, sticky="we", padx=6, pady=(6, 0))
         ttk.Button(cfg, text="选择", command=self.choose_dialogue_root).grid(row=1, column=2, sticky="w", pady=(6, 0))
 
@@ -85,17 +89,17 @@ class OfflineApp(tk.Tk):
 
         ttk.Label(cfg, text="API Key（仅二级判断需要）").grid(row=4, column=0, sticky="w", pady=(6, 0))
         self.api_key = ttk.Entry(cfg, show="*", width=52)
-        self.api_key.insert(0, os.getenv("LONGCAT_API_KEY", ""))
+        self.api_key.insert(0, os.getenv("LLM_API_KEY", ""))
         self.api_key.grid(row=4, column=1, sticky="w", padx=6, pady=(6, 0))
 
         ttk.Label(cfg, text="Base URL").grid(row=5, column=0, sticky="w", pady=(6, 0))
         self.base_url = ttk.Entry(cfg, width=52)
-        self.base_url.insert(0, os.getenv("LONGCAT_BASE_URL", DEFAULT_BASE_URL))
+        self.base_url.insert(0, os.getenv("LLM_BASE_URL", DEFAULT_BASE_URL))
         self.base_url.grid(row=5, column=1, sticky="w", padx=6, pady=(6, 0))
 
         ttk.Label(cfg, text="Model").grid(row=6, column=0, sticky="w", pady=(6, 0))
         self.model = ttk.Entry(cfg, width=32)
-        self.model.insert(0, os.getenv("LONGCAT_MODEL", DEFAULT_MODEL))
+        self.model.insert(0, os.getenv("LLM_MODEL", DEFAULT_MODEL))
         self.model.grid(row=6, column=1, sticky="w", padx=6, pady=(6, 0))
 
         ttk.Label(cfg, text="报告类型").grid(row=7, column=0, sticky="w", pady=(6, 0))
@@ -116,7 +120,7 @@ class OfflineApp(tk.Tk):
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress = ttk.Progressbar(frm, variable=self.progress_var, maximum=100, mode="determinate")
         self.progress.pack(fill=tk.X, pady=(0, 8))
-        self.status = tk.StringVar(value=f"准备就绪。本地评估内核：{CORE_VERSION}")
+        self.status = tk.StringVar(value=f"准备就绪。")
         ttk.Label(frm, textvariable=self.status, foreground="#444").pack(fill=tk.X)
         self.log = tk.Text(frm, height=16, wrap=tk.WORD, font=("Consolas", 9), bg="#111", fg="#e6e6e6")
         self.log.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
@@ -232,7 +236,7 @@ class OfflineApp(tk.Tk):
             self.log_msg("项目目录：%s" % APP_ROOT)
             self.log_msg("离线图：%s" % cfg["graph_path"])
             self.log_msg("对话目录：%s" % cfg["dialogue_root"])
-            self.log_msg("本地评估内核：%s" % CORE_VERSION)
+            self.log_msg("本地评估内核标识：%s" % CORE_VERSION)
             self.result = run_offline_project(
                 graph_path=cfg["graph_path"],
                 project_root=APP_ROOT,
@@ -241,9 +245,9 @@ class OfflineApp(tk.Tk):
                 pack_type=cfg["pack_type"],
                 llm_verifier_mode=cfg["llm_mode"],
                 llm_verifier_max_items=cfg["llm_max_items"],
-                longcat_api_key=cfg["api_key"],
-                longcat_base_url=cfg["base_url"],
-                longcat_model=cfg["model"],
+                llm_api_key=cfg["api_key"],
+                llm_base_url=cfg["base_url"],
+                llm_model=cfg["model"],
                 report_mode=cfg["report_mode"],
                 progress_callback=self._progress_callback,
             )

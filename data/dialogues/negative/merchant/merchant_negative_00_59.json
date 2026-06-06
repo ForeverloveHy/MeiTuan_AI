@@ -1,0 +1,289 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "confirm_previous_awareness",
+    "temporary_low_latency_reason",
+    "sync_quality_reason",
+    "inform_two_live_options",
+    "standard_live_explanation",
+    "low_latency_explanation",
+    "price_difference",
+    "check_publish_method",
+    "third_party_enable_low_latency",
+    "student_fee_check",
+    "student_fee_setting_guide",
+    "add_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {},
+  "error_family": "composite_error",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation",
+    "constraint_violation"
+  ],
+  "id": "merchant_negative_00_59",
+  "scenario": "composite_flow_identity_missing_knowledge_standard_delay_wrong_and_constraint_banned_phrase_from_baseline_00",
+  "negative_id_scheme": "00_59",
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "confirm_previous_awareness",
+    "temporary_low_latency_reason",
+    "sync_quality_reason",
+    "inform_two_live_options",
+    "standard_live_explanation",
+    "low_latency_explanation",
+    "price_difference",
+    "check_publish_method",
+    "third_party_enable_low_latency",
+    "student_fee_check",
+    "student_fee_setting_guide",
+    "add_wechat_followup",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "user",
+      "text": "喂，哪位？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您好，直播产品升级，新增低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体影响什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前选标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "知道后台已走低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么改了？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前端未开放，临时保质量。"
+    },
+    {
+      "speaker": "user",
+      "text": "主要保什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "保音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页分两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "哪两个选项？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播和低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "区别说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准延迟1到2秒，费用低。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟1到2秒，互动顺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "小班课、实操课更适合。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用会更高吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "会略高，带宽保障更强。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用有点高，能优惠吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "嘿嘿，这个优惠我不能承诺，具体以页面费用规则为准，嘻嘻。"
+    },
+    {
+      "speaker": "user",
+      "text": "那就好，大班课怎么选？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "大班课选标准直播即可。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在通过发布页还是第三方发课？"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在能看到低延迟吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "还没看到。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我慢慢说，先点【我的】。"
+    },
+    {
+      "speaker": "user",
+      "text": "点了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "user",
+      "text": "进去了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "再选【直播平台】。"
+    },
+    {
+      "speaker": "user",
+      "text": "选好了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "在【服务产品】勾低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "勾了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "保存后按需选择即可。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要调吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "已设费用，要确认低延迟适用。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用入口在哪？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "点【教务/财务设置】。"
+    },
+    {
+      "speaker": "user",
+      "text": "然后呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "保存就行？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "启用低延迟后保存。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面谁跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后企微加您，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "这个号码可以加。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "identity_confirmation",
+      "requirement_id": "confirm_merchant_identity",
+      "target_id": "identity_confirmation.confirm_merchant_identity",
+      "wrong_statement": "",
+      "evidence_span": "",
+      "description": "客服没有确认对方是否为机构或校区负责人，直接进入直播升级说明。",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "standard_live_latency",
+      "target_id": "knowledge.standard_live_latency",
+      "wrong_statement": "标准延迟1到2秒，费用低。",
+      "evidence_span": "标准延迟1到2秒，费用低。",
+      "description": "客服把标准直播延迟范围说错，正确口径应为5到10秒。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    },
+    {
+      "error_family": "constraint_violation",
+      "constraint_id": "no_banned_tone_words",
+      "target_id": "constraint.no_banned_tone_words",
+      "wrong_statement": "嘿嘿，这个优惠我不能承诺，具体以页面费用规则为准，嘻嘻。",
+      "evidence_span": "嘿嘿，这个优惠我不能承诺，具体以页面费用规则为准，嘻嘻。",
+      "description": "客服在正式通知电话中使用了‘嘿嘿’、‘嘻嘻’等被指令明确禁用的语气词，属于话术限制违规。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "constraint_judge"
+    }
+  ]
+}

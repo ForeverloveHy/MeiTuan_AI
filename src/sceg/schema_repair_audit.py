@@ -125,14 +125,14 @@ def _schema_quality_warnings(graph: dict[str, Any], max_items: int = 40) -> list
                     "type": "comparative_support_missing_refute",
                     "knowledge_id": item.get("id") or "",
                     "claim_id": claim.get("id") or "",
-                    "message": "support patterns contain a comparative direction but refute_patterns are empty; repair should add object-gated opposite-direction refutes, using complete attribute-direction phrases rather than bare direction characters.",
+                    "message": "support patterns contain a comparative direction but refute_patterns are empty; element细化 should add object-gated opposite-direction refutes, using complete attribute-direction phrases rather than bare direction characters.",
                 })
             if _pattern_shape_risky(claim.get("refute_patterns") or claim.get("conflict_patterns") or []):
                 warnings.append({
                     "type": "risky_short_or_any_only_refute",
                     "knowledge_id": item.get("id") or "",
                     "claim_id": claim.get("id") or "",
-                    "message": "refute pattern is short or any-only; repair should add explicit claim/object anchors and preserve decisive operators so sibling facts do not contaminate each other.",
+                    "message": "refute pattern is short or any-only; element细化 should add explicit claim/object anchors and preserve decisive operators so sibling facts do not contaminate each other.",
                 })
             if any(_has_contrastive_operator(v) for v in refute_values + support_values):
                 risky_any = [p for p in claim.get("refute_patterns") or [] if isinstance(p, dict) and p.get("any") and not p.get("all") and not p.get("regex_any")]
@@ -141,14 +141,14 @@ def _schema_quality_warnings(graph: dict[str, Any], max_items: int = 40) -> list
                         "type": "contrastive_refute_needs_operator_preservation",
                         "knowledge_id": item.get("id") or "",
                         "claim_id": claim.get("id") or "",
-                        "message": "support/refute contains contrastive time/direction/polarity operators; repair should keep the decisive operator inside exact, all-gated or regex patterns so opposite forms are not collapsed.",
+                        "message": "support/refute contains contrastive time/direction/polarity operators; element细化 should keep the decisive operator inside exact, all-gated or regex patterns so opposite forms are not collapsed.",
                     })
             if claim.get("refute_patterns") and not claim.get("claim_patterns"):
                 warnings.append({
                     "type": "refute_without_claim_anchor",
                     "knowledge_id": item.get("id") or "",
                     "claim_id": claim.get("id") or "",
-                    "message": "refute patterns exist without a claim/object anchor; repair should add object and attribute anchors instead of broad any-only refutes.",
+                    "message": "refute patterns exist without a claim/object anchor; element细化 should add object and attribute anchors instead of broad any-only refutes.",
                 })
             if len(warnings) >= max_items:
                 return warnings
@@ -164,19 +164,19 @@ def _schema_quality_warnings(graph: dict[str, Any], max_items: int = 40) -> list
             warnings.append({
                 "type": "constraint_scope_incomplete",
                 "constraint_id": rule.get("id") or "",
-                "message": "constraint lacks protected_objects or forbidden_actions; repair should extract controlled objects/results and prohibited speech acts from the instruction into violation_scope.",
+                "message": "constraint lacks protected_objects or forbidden_actions; element细化 should extract controlled objects/results and prohibited speech acts from the instruction into violation_scope.",
             })
         if prohibited and not any(isinstance(p, dict) and (p.get("self_sufficient") or p.get("requires_trigger")) for p in prohibited):
             warnings.append({
                 "type": "constraint_trigger_mode_unclear",
                 "constraint_id": rule.get("id") or "",
-                "message": "prohibited patterns do not state whether they are self_sufficient or require a user trigger; repair should mark self-contained violations with self_sufficient=true and contextual violations with requires_trigger=true.",
+                "message": "prohibited patterns do not state whether they are self_sufficient or require a user trigger; element细化 should mark self-contained violations with self_sufficient=true and contextual violations with requires_trigger=true.",
             })
         if protected_values and forbidden_values and len(protected_values) <= 2 and len(forbidden_values) <= 2:
             warnings.append({
                 "type": "constraint_paraphrase_gap",
                 "constraint_id": rule.get("id") or "",
-                "message": "constraint scope has very few protected/action paraphrases; repair should add instruction-derived object aliases, result aliases, action aliases, and safe-action aliases without using sample wrong statements.",
+                "message": "constraint scope has very few protected/action paraphrases; element细化 should add instruction-derived object aliases, result aliases, action aliases, and safe-action aliases without using sample wrong statements.",
             })
         if len(warnings) >= max_items:
             return warnings
@@ -190,7 +190,7 @@ def _schema_quality_warnings(graph: dict[str, Any], max_items: int = 40) -> list
             warnings.append({
                 "type": "terminal_trigger_paraphrase_gap",
                 "policy_id": policy.get("id") or f"terminal_policy_{idx}",
-                "message": "terminal policy suppresses later nodes but trigger coverage is mostly literal; repair should infer broader user-condition paraphrases from the instruction and current policy description.",
+                "message": "terminal policy suppresses later nodes but trigger coverage is mostly literal; element细化 should infer broader user-condition paraphrases from the instruction and current policy description.",
             })
         if len(warnings) >= max_items:
             return warnings
@@ -205,16 +205,15 @@ def audit_schema_repair_need(
     """Build a small LLM-repair audit for the generated graph.
 
     The audit never patches the graph.  It only summarizes schema gaps so the
-    next LongCat call can repair the schema.  All signals come from LongCat's
+    next LLM call can refine the schema.  All signals come from LLM's
     current schema plus package metadata IDs/coverage intent, not from answer-key
     evidence spans or task-specific Python dictionaries.
 
-    repair_mode controls *whether* a second LongCat call is needed:
-    - ``quality``: old strict behavior; any advisory quality warning can trigger repair.
-    - ``blocking``: default GUI fast path; repair only for hard executable gaps.
-    - ``off``: never call LongCat repair; keep warnings in metadata for review.
+    第二阶段 element细化是必要建图阶段，不能由审计结果或用户选项跳过。
+    本函数只负责提供细化重点与质量提示；`needs_repair` 在新语义下表示
+    “必须进入第二阶段 element细化”。
     """
-    mode = str(repair_mode or "quality").lower().strip()
+    mode = "required"
     rows = parse_binding_hints(binding_hints)
     ids = _all_schema_ids(graph)
     full_text_n = _norm(schema_text(graph))
@@ -264,16 +263,12 @@ def audit_schema_repair_need(
             break
     quality_warnings = _schema_quality_warnings(graph)
     blocking_gaps = bool(missing_targets or structural_warnings)
-    if mode in {"off", "none", "skip", "disabled"}:
-        needs = False
-    elif mode in {"blocking", "fast", "hard"}:
-        needs = blocking_gaps
-    else:
-        needs = bool(blocking_gaps or quality_warnings)
-    skipped_advisory = bool((mode in {"blocking", "fast", "hard", "off", "none", "skip", "disabled"}) and quality_warnings and not needs)
+    # 新机制下第二阶段 element细化必跑；审计只决定提示重点，不决定是否触发。
+    needs = True
+    skipped_advisory = False
     return {
         "needs_repair": needs,
-        "repair_mode": mode,
+        "refine_mode": mode,
         "blocking_repair_needed": blocking_gaps,
         "quality_repair_needed": bool(quality_warnings),
         "quality_warnings_kept_as_advisory": skipped_advisory,
@@ -284,7 +279,7 @@ def audit_schema_repair_need(
         "missing_or_unbound_targets": missing_targets,
         "structural_warnings": structural_warnings,
         "quality_warnings": quality_warnings,
-        "repair_policy": "Ask LongCat to return a complete corrected schema JSON only when the selected repair mode requires it. Do not let local code add task facts.",
+        "refine_policy": "Second-stage element refinement is mandatory. Ask LLM to return a complete refined schema JSON; local code must not add task facts.",
     }
 
 
@@ -296,6 +291,6 @@ def build_repair_instruction(original_instruction: str, graph: dict[str, Any], a
         "binding_hints_tail": parse_binding_hints(binding_hints),
     }
     # Compact JSON substantially reduces the second-call prompt size while
-    # preserving every schema field needed by LongCat.  This is not a semantic
+    # preserving every schema field needed by LLM.  This is not a semantic
     # shortcut and does not hide any repair signal.
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))

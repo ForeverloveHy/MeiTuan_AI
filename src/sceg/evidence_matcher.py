@@ -70,7 +70,7 @@ def _has_generic_inquiry_equivalent(text: str) -> bool:
 
 
 def _relaxed_schema_any_value_matches(value: Any, text: str) -> bool:
-    """Task-agnostic tolerance for LongCat evidence-group paraphrases.
+    """Task-agnostic tolerance for LLM evidence-group paraphrases.
 
     The concrete value still comes from the schema.  This only handles two
     cross-domain language effects:
@@ -198,7 +198,7 @@ class EvidenceMatcher:
                     break
             if not matched_single:
                 # 通用跨句合并：电话话术经常被约束为 15-20 字一句，
-                # LongCat 却可能把“两个要点都要说”编成同一个 any + min_any_hits。
+                # LLM 却可能把“两个要点都要说”编成同一个 any + min_any_hits。
                 # 单句不命中时，允许同一 speaker 的多句共同满足该 evidence group。
                 # 具体词仍完全来自 schema，不在本地写业务词典。
                 hits.extend(self._match_pattern_across_turns(exec_pattern, units))

@@ -1,0 +1,160 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "negative",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_51",
+  "scenario": "复合错误：缺退出规则 + 恶劣天气知识错误",
+  "negative_id_scheme": "00_51",
+  "error_family": "flow_missing+knowledge_violation",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": [
+    "exit_rule.explain_app_cancel_before_18_next_day_effective"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "可以，我今天能跑。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单，并且连续7天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "下雨天跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "天气差的时候订单会更少，跑不跑对飞毛腿资格帮助不大。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果后面不想继续，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你后面再看一下App入口就行。"
+    },
+    {
+      "speaker": "user",
+      "text": "那具体截止时间和生效时间呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这个你到时候自己看页面提示。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么算？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "exit_rule",
+      "requirement_id": "explain_app_cancel_before_18_next_day_effective",
+      "target_id": "exit_rule.explain_app_cancel_before_18_next_day_effective",
+      "description": "骑手询问如何退出时，客服没有说明前一天18点前在App飞毛腿报名里取消且取消后次日生效。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "bad_weather_order_and_qualification",
+      "target_id": "knowledge.bad_weather_order_and_qualification",
+      "wrong_statement": "天气差的时候订单会更少，跑不跑对飞毛腿资格帮助不大。",
+      "evidence_span": "天气差的时候订单会更少，跑不跑对飞毛腿资格帮助不大。",
+      "description": "客服把恶劣天气订单量和资格关系说反；正确口径是恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": [
+    "knowledge.bad_weather_order_and_qualification"
+  ]
+}

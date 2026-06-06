@@ -1,0 +1,147 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "担心后续机会",
+  "difficulty": "基础顺序态",
+  "quality_label": "negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "purity": "single_target_error",
+    "leakage": "injected_errors_for_validation_only",
+    "notes": "由原外推型限制违规替换为复杂指令可直接读出的知识错误。"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_34",
+  "scenario": "知识错误：单日合同未达标后果说错",
+  "negative_id_scheme": "00_34",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，站长你说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "能跑，但我担心今天万一差几单，会不会影响后面合同和派单？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单，并且连续7天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果今天只跑到9单，后续是不是会受影响？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天差几单也不影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "那名额这块还是看排名吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预，你也尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "下雨天跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果后面真不想继续，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "额外奖励呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "single_day_under_quota_consequence",
+      "target_id": "single_day_under_quota_consequence",
+      "wrong_statement": "今天差几单也不影响后续合同和派单。",
+      "evidence_span": "今天差几单也不影响后续合同和派单。",
+      "description": "客服把单日合同未达标的后果说错；正确口径应为未达标可能影响后续合同和派单。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": "single_day_under_quota_consequence",
+  "audit_notes": "knowledge_replace03：去除外推型硬限制，改为可由指令直接建表的知识错误。"
+}

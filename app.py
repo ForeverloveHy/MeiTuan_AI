@@ -21,13 +21,13 @@ if str(APP_ROOT) not in sys.path:
 
 from sceg.demo_runner import run_project  # noqa: E402
 from sceg.io_utils import read_json  # noqa: E402
-from sceg.longcat_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
+from sceg.llm_client import DEFAULT_BASE_URL, DEFAULT_MODEL  # noqa: E402
 
 DEFAULT_INSTRUCTION = """请在这里粘贴复杂客服指令。
 
-本 demo 保留“界面输入 LongCat Key + 可选 LLM 辅助”的交互方式：
-1. 在界面里输入 LongCat API Key；
-2. 点击按钮后，用 LongCat 离线生成状态图、知识表和限制表；
+本 demo 保留“界面输入 LLM Key + 可选 LLM 辅助”的交互方式：
+1. 在界面里输入 LLM API Key；
+2. 点击按钮后，用 LLM 离线生成状态图、知识表和限制表；
 3. 用项目最新本地评估内核读取 data/dialogues 下的最新正负包；
 4. 可选择关闭、审计模式或辅助模式的大模型二级判断；
 5. 输出中文 HTML 报告和 upload_bundle.zip。
@@ -65,31 +65,30 @@ class App(tk.Tk):
         self.txt.pack(fill=tk.BOTH, expand=True, pady=(8, 8))
         self.txt.insert("1.0", DEFAULT_INSTRUCTION)
 
-        cfg = ttk.LabelFrame(frm, text="配置：LongCat 只离线建图；评估使用最新本地 schema 内核与最新正负包", padding=10)
+        cfg = ttk.LabelFrame(frm, text="配置：LLM 只离线建图；评估使用最新本地 schema 内核与最新正负包", padding=10)
         cfg.pack(fill=tk.X, pady=(0, 8))
 
-        ttk.Label(cfg, text="LongCat API Key（必填）").grid(row=0, column=0, sticky="w")
+        ttk.Label(cfg, text="LLM API Key（必填）").grid(row=0, column=0, sticky="w")
         self.api_key = ttk.Entry(cfg, show="*", width=52)
-        self.api_key.insert(0, os.getenv("LONGCAT_API_KEY", ""))
+        self.api_key.insert(0, os.getenv("LLM_API_KEY", ""))
         self.api_key.grid(row=0, column=1, sticky="we", padx=6)
 
         ttk.Label(cfg, text="Base URL").grid(row=0, column=2, sticky="w")
         self.base_url = ttk.Entry(cfg, width=38)
-        self.base_url.insert(0, os.getenv("LONGCAT_BASE_URL", DEFAULT_BASE_URL))
+        self.base_url.insert(0, os.getenv("LLM_BASE_URL", "你的 LLM BASE URL"))
         self.base_url.grid(row=0, column=3, sticky="we", padx=6)
 
         ttk.Label(cfg, text="Model").grid(row=1, column=0, sticky="w", pady=(6, 0))
         self.model = ttk.Entry(cfg, width=32)
-        self.model.insert(0, os.getenv("LONGCAT_MODEL", DEFAULT_MODEL))
+        self.model.insert(0, os.getenv("LLM_MODEL", "你的LLM NAME"))
         self.model.grid(row=1, column=1, sticky="w", padx=6, pady=(6, 0))
 
-        ttk.Label(cfg, text="LongCat 超时").grid(row=1, column=2, sticky="w", pady=(6, 0))
+        ttk.Label(cfg, text="LLM 超时").grid(row=1, column=2, sticky="w", pady=(6, 0))
         ttk.Label(cfg, text="不限制", foreground="#666").grid(row=1, column=3, sticky="w", padx=6, pady=(6, 0))
 
         ttk.Label(cfg, text="建图模式").grid(row=2, column=0, sticky="w", pady=(6, 0))
-        self.graph_mode = ttk.Combobox(cfg, state="readonly", width=28, values=["快速建图（只补硬缺口）", "稳健建图（质量缺口也补）", "只建一次（跳过补图）"])
-        self.graph_mode.set("快速建图（只补硬缺口）")
-        self.graph_mode.grid(row=2, column=1, sticky="w", padx=6, pady=(6, 0))
+        self.graph_mode = tk.StringVar(value="一图两表 + atom registry 元素生成")
+        ttk.Label(cfg, textvariable=self.graph_mode, foreground="#444").grid(row=2, column=1, sticky="w", padx=6, pady=(6, 0))
 
         ttk.Label(cfg, text="评估数据包").grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.pack_choice = ttk.Combobox(cfg, state="readonly", width=22, values=["全部数据", "只跑正包", "只跑负包"])
@@ -138,10 +137,10 @@ class App(tk.Tk):
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress = ttk.Progressbar(prog, variable=self.progress_var, maximum=100, mode="determinate")
         self.progress.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.elapsed_var = tk.StringVar(value="进度：0% ｜ 总用时：0 秒 ｜ 一次建图：未开始 ｜ 二次补图：未开始")
+        self.elapsed_var = tk.StringVar(value="进度：0% ｜ 总用时：0 秒 ｜ 主图：未开始 ｜ 知识表：未开始 ｜ 限制表：未开始 ｜ 元素：未开始 ｜ 扩张：未开始")
         ttk.Label(prog, textvariable=self.elapsed_var, width=64, anchor="e").pack(side=tk.RIGHT, padx=(8, 0))
 
-        self.status = tk.StringVar(value="准备就绪。请粘贴复杂指令并填写 LongCat Key。")
+        self.status = tk.StringVar(value="准备就绪。请粘贴复杂指令并填写 LLM Key。")
         ttk.Label(frm, textvariable=self.status, foreground="#444").pack(fill=tk.X, pady=(4, 4))
         self.log = tk.Text(frm, height=10, wrap=tk.WORD, font=("Consolas", 9), bg="#111", fg="#e6e6e6")
         self.log.pack(fill=tk.BOTH, expand=False)
@@ -187,9 +186,9 @@ class App(tk.Tk):
         if not instruction or instruction == DEFAULT_INSTRUCTION.strip():
             messagebox.showwarning("缺少输入", "请先粘贴真实复杂指令。")
             return
-        api_key = self.api_key.get().strip() or os.getenv("LONGCAT_API_KEY", "")
+        api_key = self.api_key.get().strip() or os.getenv("LLM_API_KEY", "")
         if not api_key:
-            messagebox.showwarning("缺少 LongCat Key", "请先填写 LongCat API Key，或设置 LONGCAT_API_KEY。")
+            messagebox.showwarning("缺少 LLM Key", "请先填写 LLM API Key，或设置 LLM_API_KEY。")
             return
         self.run_btn.config(state=tk.DISABLED)
         self._run_started_at = time.perf_counter()
@@ -199,8 +198,8 @@ class App(tk.Tk):
         self._phase_started_at = {}
         self._phase_done_seconds = {}
         self.progress_var.set(0.0)
-        self.elapsed_var.set("进度：0% ｜ 总用时：0 秒 ｜ 一次建图：未开始 ｜ 二次补图：未开始")
-        self.status.set("正在运行：LongCat 离线建图 → 最新本地评估 → 中文报告...")
+        self.elapsed_var.set("进度：0% ｜ 总用时：0 秒 ｜ 主图：未开始 ｜ 知识表：未开始 ｜ 限制表：未开始 ｜ 元素：未开始 ｜ 扩张：未开始")
+        self.status.set("正在运行：LLM 离线建图 → 最新本地评估 → 中文报告...")
         self.log.delete("1.0", tk.END)
         try:
             max_count = None
@@ -215,17 +214,17 @@ class App(tk.Tk):
         run_cfg = {
             "max_count": max_count,
             "dialogue_root": self._resolved_dialogue_root(),
-            "api_key": self.api_key.get().strip() or os.getenv("LONGCAT_API_KEY", ""),
+            "api_key": self.api_key.get().strip() or os.getenv("LLM_API_KEY", ""),
             "base_url": self.base_url.get().strip(),
             "model": self.model.get().strip(),
             "pack_label": self.pack_choice.get(),
             "pack_type": self._pack_filter(),
-            "graph_mode_label": self.graph_mode.get() if hasattr(self, "graph_mode") else "快速建图（只补硬缺口）",
+            "graph_mode_label": self.graph_mode.get() if hasattr(self, "graph_mode") else "一图两表 + atom registry 元素生成",
             "llm_label": self.llm_mode.get(),
             "llm_mode": self._llm_mode(),
             "llm_max_items": self._llm_max_items(),
             "report_mode": self._report_mode(),
-            "repair_mode": self._repair_mode(),
+            "refine_mode": self._refine_mode(),
             "use_graph_cache": True,
         }
         self._tick_elapsed()
@@ -237,21 +236,21 @@ class App(tk.Tk):
         try:
             dialogue_root = run_cfg.get("dialogue_root")
             self.log_msg("项目目录：%s" % APP_ROOT)
-            self.log_msg("第 1 步：调用 LongCat 离线生成状态图、知识表和限制表")
-            self.log_msg("LongCat Base URL：%s" % run_cfg.get("base_url"))
-            self.log_msg("LongCat Model：%s" % run_cfg.get("model"))
-            self.log_msg("LongCat 超时：不限制")
+            self.log_msg("第 1 步：调用 LLM 离线生成状态图、知识表和限制表")
+            self.log_msg("LLM Base URL：%s" % run_cfg.get("base_url"))
+            self.log_msg("LLM Model：%s" % run_cfg.get("model"))
+            self.log_msg("LLM 超时：不限制")
             self.log_msg("对话目录：%s" % dialogue_root)
             self.log_msg("数据包：%s" % run_cfg.get("pack_label"))
-            self.log_msg("建图模式：%s（快速=只在硬缺口时二次补图；稳健=质量警告也补；只建一次=跳过补图）" % run_cfg.get("graph_mode_label"))
+            self.log_msg("建图模式：%s（一图两表；本地统一 atom registry 后生成一级/零级元素，再扩张二级元素）" % run_cfg.get("graph_mode_label"))
             self.log_msg("大模型二级判断：%s（关闭=纯本地；审计=只记录；辅助=可把待仲裁负包改为仲裁通过）" % run_cfg.get("llm_label"))
             self.result = run_project(
                 instruction=instruction,
                 project_root=APP_ROOT,
-                longcat_api_key=str(run_cfg.get("api_key") or ""),
-                longcat_base_url=str(run_cfg.get("base_url") or ""),
-                longcat_model=str(run_cfg.get("model") or ""),
-                longcat_timeout=None,
+                llm_api_key=str(run_cfg.get("api_key") or ""),
+                llm_base_url=str(run_cfg.get("base_url") or ""),
+                llm_model=str(run_cfg.get("model") or ""),
+                llm_timeout=None,
                 dialogue_root=dialogue_root or None,
                 max_dialogues=run_cfg.get("max_count"),
                 pack_type=run_cfg.get("pack_type"),
@@ -259,7 +258,7 @@ class App(tk.Tk):
                 llm_verifier_max_items=run_cfg.get("llm_max_items"),
                 report_mode=str(run_cfg.get("report_mode") or "detail"),
                 progress_callback=self._progress_callback,
-                repair_mode=str(run_cfg.get("repair_mode") or "blocking"),
+                refine_mode="required",
                 use_graph_cache=bool(run_cfg.get("use_graph_cache", True)),
             )
             self.log_msg("第 2 步：已读取最新对话目录 %s" % self.result["dialogue_root"])
@@ -275,7 +274,7 @@ class App(tk.Tk):
                 self.log_msg("Token 用量：总计 %s" % total_tokens)
             except Exception:
                 pass
-            self.log_msg("对话数 = %s，状态图来源 = %s，建图模式 = %s，缓存命中 = %s" % (self.result["dialogue_count"], self.result["graph_source"], self.result.get("repair_mode"), self.result.get("longcat_cache_hit")))
+            self.log_msg("对话数 = %s，状态图来源 = %s，建图模式 = %s，缓存命中 = %s" % (self.result["dialogue_count"], self.result["graph_source"], self.result.get("refine_mode"), self.result.get("llm_cache_hit")))
             self._post_ui("complete", None)
         except Exception as exc:
             self.log_msg(traceback.format_exc())
@@ -283,13 +282,9 @@ class App(tk.Tk):
         finally:
             self._post_ui("enable_button", None)
 
-    def _repair_mode(self) -> str:
-        choice = self.graph_mode.get() if hasattr(self, "graph_mode") else "快速建图（只补硬缺口）"
-        if "稳健" in choice:
-            return "quality"
-        if "只建一次" in choice or "跳过" in choice:
-            return "off"
-        return "blocking"
+    def _refine_mode(self) -> str:
+        # 第二阶段 element细化是必要建图阶段，不再提供跳过或快速/稳健分支。
+        return "required"
 
     def _report_mode(self) -> str:
         choice = self.report_mode.get() if hasattr(self, "report_mode") else "详细过程报告"
@@ -344,8 +339,13 @@ class App(tk.Tk):
         else:
             stage_pct = {
                 "build_graph": 8.0,
-                "longcat_build_graph": 14.0,
-                "longcat_repair_graph": 20.0,
+                "llm_core_graph": 10.0,
+                "llm_knowledge_table": 14.0,
+                "llm_constraint_tables": 18.0,
+                "llm_atom_element_refinement": 21.0,
+                "llm_element_expansion": 24.0,
+                "llm_build_graph": 10.0,
+                "llm_element_refinement": 21.0,
                 "load_dialogues": 22.0,
                 "filter_dialogues": 24.0,
                 "evaluate": 30.0,
@@ -360,7 +360,7 @@ class App(tk.Tk):
             self.progress_var.set(pct)
         msg = rec.get("message") or "正在评估"
         self.status.set(msg)
-        loggable_stages = {"build_graph", "longcat_build_graph", "longcat_repair_graph", "load_dialogues", "filter_dialogues", "llm_verifier", "summaries", "html_reports", "bundle"}
+        loggable_stages = {"build_graph", "llm_core_graph", "llm_knowledge_table", "llm_constraint_tables", "llm_atom_element_refinement", "llm_build_graph", "llm_element_refinement", "llm_element_expansion", "load_dialogues", "filter_dialogues", "llm_verifier", "summaries", "html_reports", "bundle"}
         event_key = "%s:%s" % (stage, rec.get("event") or "")
         if event_key != self._last_progress_stage or stage in loggable_stages:
             self.log_msg("[%s%%] %s" % (int(self.progress_var.get()), msg))
@@ -370,7 +370,7 @@ class App(tk.Tk):
     def _apply_phase_event(self, rec: dict) -> None:
         phase = rec.get("phase")
         event = rec.get("event")
-        if phase not in {"longcat_build_graph", "longcat_repair_graph"}:
+        if phase not in {"llm_core_graph", "llm_knowledge_table", "llm_constraint_tables", "llm_atom_element_refinement", "llm_build_graph", "llm_element_refinement", "llm_element_expansion"}:
             return
         now = time.perf_counter()
         if event == "start":
@@ -412,8 +412,11 @@ class App(tk.Tk):
         elapsed_second = int(elapsed)
         phase_second_key = (
             elapsed_second,
-            self._format_phase_elapsed("longcat_build_graph"),
-            self._format_phase_elapsed("longcat_repair_graph"),
+            self._format_phase_elapsed("llm_core_graph"),
+            self._format_phase_elapsed("llm_knowledge_table"),
+            self._format_phase_elapsed("llm_constraint_tables"),
+            self._format_phase_elapsed("llm_atom_element_refinement"),
+            self._format_phase_elapsed("llm_element_expansion"),
         )
         if not force_done and self._last_elapsed_display_second == phase_second_key:
             return
@@ -421,8 +424,8 @@ class App(tk.Tk):
         pct = int(round(self.progress_var.get()))
         prefix = "完成" if force_done else "进度"
         self.elapsed_var.set(
-            "%s：%s%% ｜ 总用时：%d 秒 ｜ 一次建图：%s ｜ 二次补图：%s"
-            % (prefix, pct, elapsed_second, self._format_phase_elapsed("longcat_build_graph"), self._format_phase_elapsed("longcat_repair_graph"))
+            "%s：%s%% ｜ 总用时：%d 秒 ｜ 主图：%s ｜ 知识表：%s ｜ 限制表：%s ｜ 元素：%s ｜ 扩张：%s"
+            % (prefix, pct, elapsed_second, self._format_phase_elapsed("llm_core_graph"), self._format_phase_elapsed("llm_knowledge_table"), self._format_phase_elapsed("llm_constraint_tables"), self._format_phase_elapsed("llm_atom_element_refinement"), self._format_phase_elapsed("llm_element_expansion"))
         )
         self.update_idletasks()
 

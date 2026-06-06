@@ -1,0 +1,141 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "error_family": "composite",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "id": "merchant_negative_00_55",
+  "scenario": "composite_flow_missing_fee_setting_guidance_and_constraint_fee_rule_success_guarantee_from_baseline_00",
+  "negative_id_scheme": "00_55",
+  "target_missing": "fee_setting_guidance.guide_fee_setting_entry",
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体影响什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前选标准直播，后台已经临时走低延迟，是因为前端当时未开放，为了保障音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒、费用较低、适合大班课；低延迟直播1到2秒、互动更顺、适合小班课和实操课，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们学员端原来有附加费设置，低延迟也适用吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播不适用原来的学员端费用，原收费规则不用看。"
+    },
+    {
+      "speaker": "user",
+      "text": "那我要去哪改费用入口？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这个费用入口我先不展开，您后面自己看一下后台。"
+    },
+    {
+      "speaker": "user",
+      "text": "第三方系统怎么开低延迟？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以点【我的】进入【服务商/直播平台管理】，选择【直播平台】，再到【服务产品】勾选低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "fee_setting_guidance",
+      "requirement_id": "guide_fee_setting_entry",
+      "target_id": "fee_setting_guidance.guide_fee_setting_entry",
+      "description": "商家询问学员端费用入口和收费规则时，客服没有引导进入【教务/财务设置】和【收费规则】。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "student_fee_applicability_for_low_latency",
+      "target_id": "knowledge.student_fee_applicability_for_low_latency",
+      "wrong_statement": "低延迟直播不适用原来的学员端费用，原收费规则不用看。",
+      "evidence_span": "低延迟直播不适用原来的学员端费用，原收费规则不用看。",
+      "description": "客服把低延迟直播与已设置学员端费用的适用关系说错；正确口径是需要确认原费用是否适用于低延迟直播。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": "knowledge.student_fee_applicability_for_low_latency"
+}

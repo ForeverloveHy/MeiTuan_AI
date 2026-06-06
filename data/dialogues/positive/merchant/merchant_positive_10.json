@@ -1,0 +1,46 @@
+{
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {},
+  "coverage_targets": [
+    "identity_confirmation",
+    "handle_driving",
+    "safe_close",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "merchant_positive_10",
+  "scenario": "driving_safe_termination",
+  "personality": "开车",
+  "difficulty": "高压边界",
+  "baseline_index": 10,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，但我正在开车。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "那您先注意安全，我不继续推进业务说明。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "等您方便时，我稍后再联系您。"
+    },
+    {
+      "speaker": "user",
+      "text": "好，稍后再说。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，祝您一路平安。"
+    }
+  ]
+}

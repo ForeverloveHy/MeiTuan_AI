@@ -1,25 +1,62 @@
 {
-  "model": "LongCat-Flash-Lite",
+  "model": "你的LLM NAME",
   "weights": {
     "node_completion": 0.5,
-    "relation_score": 0.15,
+    "relation_score": 0.1,
     "knowledge_score": 0.2,
-    "constraint_score": 0.15
+    "constraint_score": 0.15,
+    "soft_constraint_score": 0.05
   },
   "thresholds": {
-    "positive_pass": 85.0,
+    "positive_pass": 90.0,
     "node_satisfied": 0.75,
     "node_partial": 0.35,
-    "negative_failure_cap": 72.0,
-    "positive_scenario_scoped_pass": 55.0,
-    "target_hit_hint_similarity": 0.4
+    "negative_failure_cap": 64.0,
+    "positive_scenario_scoped_pass": 82.0,
+    "target_hit_hint_similarity": 0.4,
+    "positive_required_atom_min_score": 0.75,
+    "positive_component_mins": {
+      "node_completion": 78.0,
+      "relation_score": 70.0,
+      "knowledge_score": 98.0,
+      "constraint_score": 98.0
+    },
+    "negative_max_unexpected_bad_events": 0,
+    "negative_count_flow_false_positives": false,
+    "negative_count_relation_false_positives": false,
+    "negative_false_positive_alignment_similarity": 0.12,
+    "info_request_user_provided_satisfies": true,
+    "score_separation_caps": {
+      "enabled": true,
+      "flow_missing_single_cap": 66.0,
+      "flow_missing_multiple_cap": 58.0,
+      "flow_partial_cap": 84.0,
+      "knowledge_low_cap": 68.0,
+      "knowledge_medium_cap": 60.0,
+      "knowledge_high_cap": 52.0,
+      "knowledge_critical_cap": 48.0,
+      "constraint_low_cap": 62.0,
+      "constraint_medium_cap": 54.0,
+      "constraint_high_cap": 46.0,
+      "constraint_critical_cap": 38.0,
+      "context_cap": 62.0,
+      "context_combined_cap": 52.0,
+      "knowledge_plus_flow_cap": 52.0,
+      "constraint_plus_other_cap": 42.0,
+      "combined_issue_cap": 42.0,
+      "cap_partial_hits": false
+    }
   },
   "oracle_budget": {
     "enabled": true,
-    "max_dialogue_candidates": 2,
-    "max_batch_candidates": 36,
-    "min_need": 0.7,
-    "min_evidence_strength": 0.35
+    "max_dialogue_candidates": 3,
+    "max_batch_candidates": 24,
+    "min_need": 0.84,
+    "min_evidence_strength": 0.56,
+    "route_requirement_candidates": false,
+    "route_context_candidates": false,
+    "high_value_arbitration_only": true,
+    "route_open_set_candidates": false
   },
   "constraint_language_operators": {
     "commitment": [
@@ -57,5 +94,13 @@
       "急也",
       "忙也"
     ]
+  },
+  "base_url": "你的 LLM BASE URL",
+  "llm": {
+    "api_key_env": "LLM_API_KEY",
+    "base_url_env": "LLM_BASE_URL",
+    "model_env": "LLM_MODEL",
+    "model": "你的LLM NAME",
+    "base_url": "你的 LLM BASE URL"
   }
 }

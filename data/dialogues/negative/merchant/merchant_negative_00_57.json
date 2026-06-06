@@ -1,0 +1,150 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "controlled_negative_composite_error",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "error_family": "composite",
+  "composite_error_families": [
+    "knowledge_violation",
+    "knowledge_violation"
+  ],
+  "id": "merchant_negative_00_57",
+  "scenario": "composite_knowledge_student_fee_relation_wrong_and_constraint_page_display_guarantee_from_baseline_00",
+  "negative_id_scheme": "00_57",
+  "target_knowledge_violation": [
+    "knowledge.student_fee_applicability",
+    "knowledge.publish_page_two_options"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "具体影响什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前选标准直播，后台已经临时走低延迟，是因为前端当时未开放，为了保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "后续发布页会怎么显示？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "保存后发布页只会显示低延迟直播，不会再显示标准直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "那标准直播没有了？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，后续主要就是低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺，适合小班课和实操课，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们原来学员端有费用设置，低延迟适用吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟不适用原学员端费用。"
+    },
+    {
+      "speaker": "user",
+      "text": "那要不要确认费用？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不用按原费用确认。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统没显示低延迟直播，可以到【我的】、【服务商/直播平台管理】、【直播平台】、【服务产品】勾选低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "publish_page_two_options",
+      "target_id": "knowledge.publish_page_two_options",
+      "wrong_statement": "保存后发布页只会显示低延迟直播，不会再显示标准直播。",
+      "evidence_span": "保存后发布页只会显示低延迟直播，不会再显示标准直播。",
+      "description": "客服把发布页两个选项说错；正确口径是后续发布页会分标准直播和低延迟直播两个选项。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "student_fee_applicability",
+      "target_id": "knowledge.student_fee_applicability",
+      "wrong_statement": "低延迟不适用原学员端费用。",
+      "evidence_span": "低延迟不适用原学员端费用。",
+      "description": "客服把低延迟直播与已设置学员端费用的适用关系说错，正确口径应为需要确认低延迟直播也适用已设置费用。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ]
+}

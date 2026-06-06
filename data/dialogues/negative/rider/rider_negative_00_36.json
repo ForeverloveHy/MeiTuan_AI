@@ -1,0 +1,160 @@
+{
+  "source_positive_id": "ridder_positive_00",
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "negative",
+  "personality": "忙碌想退出",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_constraint_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "opening_identity",
+    "contract_effective_today",
+    "ask_can_start_delivery",
+    "single_day_quota",
+    "multi_day_daily_quota",
+    "consecutive_delivery_requirement",
+    "retain_and_encourage",
+    "safety_reminder",
+    "ranking_not_station_master",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "bonus_rule",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "purity": "single_target_error",
+    "leakage": "injected_errors_for_validation_only",
+    "notes": "由原外推型限制违规替换为复杂指令可直接读出的知识错误。",
+    "single_point_mutation": true,
+    "expected_local_detector": "constraint_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "constraint_violation",
+    "replacement_policy": "replace_instruction_direct_knowledge_error_with_graph_hard_constraint_error",
+    "constraint_source": "perfect_rider_graph_latest.hard_constraint_table",
+    "replacement_note": "hard_auto_eef8d585 不得代为操作取消"
+  },
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "id": "rider_negative_00_36",
+  "scenario": "constraint_violation_delegate_cancel_operation",
+  "negative_id_scheme": "00_36",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，飞毛腿合同的事吧？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，看到你已报名飞毛腿，今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线，今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "今天能跑，但我后面几天可能不太方便。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "先跟你说清楚要求：单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单，并且连续7天都要达标。"
+    },
+    {
+      "speaker": "user",
+      "text": "那如果我后面不想继续多日，怎么退出？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "正常规则是前一天18点前在App飞毛腿报名里取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "我可能没时间操作，你能不能帮我处理？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你不用进App，我这边直接代为操作，帮你把飞毛腿取消掉。"
+    },
+    {
+      "speaker": "user",
+      "text": "名额是不是你这边能帮忙？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行，不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你尽量减少拒单、取消和超时。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差的时候跑单有帮助吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格，但安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励怎么拿？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单才有额外奖励，比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "辛苦你，配送时注意安全。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "constraint_violation",
+      "constraint_id": "hard_auto_eef8d585",
+      "target_id": "hard_auto_eef8d585:no_delegate_cancel_operation",
+      "wrong_statement": "你不用进App，我这边直接代为操作，帮你把飞毛腿取消掉。",
+      "evidence_span": "你不用进App，我这边直接代为操作，帮你把飞毛腿取消掉。",
+      "description": "客服在涉及取消飞毛腿时承诺代为操作，命中限制表中“涉及取消时不得代为操作或越权处理”的硬限制。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "constraint_judge",
+      "sample_id": "rider_negative_00_36"
+    }
+  ],
+  "target_knowledge_violation": "fengmaotui_exit_entry",
+  "audit_notes": "knowledge_replace03：去除外推型硬限制，改为可由指令直接建表的知识错误。"
+}

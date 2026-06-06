@@ -1,0 +1,13 @@
+{
+  "id": "positive_demo",
+  "sample_type": "positive",
+  "turns": [
+    {"speaker": "assistant", "text": "您好，我这边先确认一下，您是这项服务的负责人本人吗？"},
+    {"speaker": "user", "text": "是我，你说。"},
+    {"speaker": "assistant", "text": "好的，这项服务已经生效，可以开始使用。"},
+    {"speaker": "user", "text": "后面结果怎么算？"},
+    {"speaker": "assistant", "text": "结果按规则和页面显示为准，我不能保证或人工调整。"},
+    {"speaker": "user", "text": "那具体怎么操作？"},
+    {"speaker": "assistant", "text": "您进入对应页面，选择需要办理的项目，确认信息后保存提交即可。"}
+  ]
+}

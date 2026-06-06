@@ -1,0 +1,169 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_flow_missing",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "id_scheme": "domain_negative_baselineIndex_negativeIndex",
+  "id": "merchant_negative_00_08",
+  "scenario": "flow_missing_low_latency_delay_and_use_case_from_baseline_00",
+  "negative_id_scheme": "00_08",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "audio_video_whiteboard_sync_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "audio_video_whiteboard_sync_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "target_missing": "low_latency_delay_and_use_case",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是机构或校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先这样走？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，后台临时走低延迟。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是为了保障音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "user",
+      "text": "区别说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播主要适合需要更顺畅体验的课程。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以手动开通。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "点【我的】，进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】，在【服务产品】里勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用怎么确认？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以到【教务/财务设置】，进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "low_latency_delay_and_use_case",
+      "requirement_id": "explain_low_latency_delay_and_use_case",
+      "target_id": "low_latency_delay_and_use_case.explain_low_latency_delay_and_use_case",
+      "description": "商家询问低延迟区别时，客服没有说明低延迟约1到2秒、互动更顺，也没有说明小班课和实操课更适合。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor",
+      "mutation_from_baseline": "将母例中低延迟延迟范围和适用场景替换为笼统表述，保留价格差异、第三方开通和费用设置流程。",
+      "sample_id": "merchant_negative_00_08"
+    }
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "schema_executor",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_deletion": true,
+    "audit_status": "reinforced_in_negative_audit_00_10",
+    "audit_notes": [
+      "保留单点流程缺失目标，不修复 injected_errors 指向的缺失项",
+      "补强其他保留流程锚点，使负包只坏一个点",
+      "统一术语：低延迟直播、后台临时走低延迟、发布页两个选项、第三方开通路径"
+    ]
+  }
+}

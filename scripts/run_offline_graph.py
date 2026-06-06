@@ -8,7 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from sceg2.demo_runner import run_offline_project
+from sceg.demo_runner import run_offline_project
 
 
 def main() -> None:
@@ -33,9 +33,9 @@ def main() -> None:
         pack_type=None if args.pack == "all" else args.pack,
         llm_verifier_mode=args.llm_mode,
         llm_verifier_max_items=args.llm_max_items,
-        longcat_api_key=args.api_key,
-        longcat_base_url=args.base_url,
-        longcat_model=args.model,
+        llm_api_key=args.api_key,
+        llm_base_url=args.base_url,
+        llm_model=args.model,
         report_mode=args.report_mode,
     )
     print("完成离线评估：%s 条" % result["dialogue_count"])

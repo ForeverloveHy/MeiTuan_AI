@@ -24,9 +24,13 @@ class OracleCandidate:
     error_family: str | None = None
     evaluability: str | None = None
     expected_detector: str | None = None
+    requires_arbitration: bool = False
+    positive_verdict: str | None = None
+    negative_verdict: str | None = None
+    trigger_verdict: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "candidate_id": self.candidate_id,
             "kind": self.kind,
             "node_id": self.node_id,
@@ -43,6 +47,15 @@ class OracleCandidate:
             "evaluability": self.evaluability,
             "expected_detector": self.expected_detector,
         }
+        if self.requires_arbitration:
+            data["requires_arbitration"] = True
+        if self.positive_verdict is not None:
+            data["positive_verdict"] = self.positive_verdict
+        if self.negative_verdict is not None:
+            data["negative_verdict"] = self.negative_verdict
+        if self.trigger_verdict is not None:
+            data["trigger_verdict"] = self.trigger_verdict
+        return data
 
 
 def _norm_family(value: Any, kind: str | None = None) -> str:
@@ -155,7 +168,7 @@ def _keep_priority_evidence(items: list[str], limit: int = 6) -> list[str]:
 def _target_schema_summary(result: EvaluationResult, err: dict[str, Any], family: str) -> list[str]:
     """Summarize the bound schema target without using answer-key spans.
 
-    For acceptance arbitration, LongCat must know what local schema target the
+    For acceptance arbitration, LLM must know what local schema target the
     sample expects, but it must not receive injected wrong_statement or
     evidence_span as the answer.  This summary is built only from evaluator
     ledgers generated from the graph: target id, name, reason, and current
@@ -216,13 +229,13 @@ def _node_evidence(result: EvaluationResult, node_id: Any, requirement_id: Any =
 
 
 def _acceptance_evidence(result: EvaluationResult, err: dict[str, Any], node_id: Any, req_id: Any, family: str) -> list[str]:
-    # Do not pass injected evidence_span / wrong_statement to LongCat as an
+    # Do not pass injected evidence_span / wrong_statement to LLM as an
     # answer key.  Arbitration should see evaluator ledgers plus actual
     # assistant utterances from the dialogue.  Earlier versions only passed the
     # local ledger row when it existed; for schema-gap negatives this often meant
-    # LongCat saw a vague "verdict=证据不足" line but not the real assistant
+    # LLM saw a vague "verdict=证据不足" line but not the real assistant
     # context.  The transcript summary below is generic dialogue evidence, not
-    # sample-answer leakage, and lets LongCat decide the Chinese semantic issue.
+    # sample-answer leakage, and lets LLM decide the Chinese semantic issue.
     out: list[str] = []
     if family == "flow_missing":
         out.extend(_node_evidence(result, node_id, req_id))
@@ -264,11 +277,13 @@ def _acceptance_evidence(result: EvaluationResult, err: dict[str, Any], node_id:
 
 
 class OracleRouter:
-    """Build one unified arbitration queue.
+    """Build the LLM arbitration queue.
 
-    The router does not infer domain meaning. It only packages traceable grey
-    zones from requirement coverage, knowledge checks, constraint checks,
-    context policies, and dataset acceptance expectations.
+    The current method contract keeps node/flow fulfillment fully local: nodes
+    are scored by the deterministic state-graph evaluator and are not sent to
+    LLM for semantic completion.  LLM only reviews knowledge facts and
+    hard-constraint boundary grey zones.  Requirement/context routing is kept as
+    an explicit opt-in diagnostic path, disabled by default.
     """
 
     def __init__(self, runtime: dict[str, Any]) -> None:
@@ -278,12 +293,17 @@ class OracleRouter:
         if not self.config.get("enabled", True):
             return []
         out: list[OracleCandidate] = []
-        out.extend(self._requirement_candidates(result))
+        if bool(self.config.get("route_requirement_candidates", False)):
+            out.extend(self._requirement_candidates(result))
         out.extend(self._knowledge_candidates(result))
         out.extend(self._constraint_candidates(result))
-        out.extend(self._context_candidates(result))
-        if acceptance:
-            out.extend(self._acceptance_candidates(result, acceptance))
+        if bool(self.config.get("route_context_candidates", False)):
+            out.extend(self._context_candidates(result))
+        # Dataset labels (negative ids, injected_errors, wrong_statement, evidence_span)
+        # are answer-key metadata. They are report-only and must never become
+        # LLM arbitration candidates. Oracle routing is based only on
+        # evaluator-produced local review/ambiguous events.
+        _ = acceptance
         max_items = int(self.config.get("max_dialogue_candidates", 2))
         by_key: dict[tuple[Any, ...], OracleCandidate] = {}
         for cand in sorted(out, key=lambda x: (x.source == "acceptance", x.need, x.strength), reverse=True):
@@ -326,7 +346,7 @@ class OracleRouter:
     def _knowledge_candidates(self, result: EvaluationResult) -> list[OracleCandidate]:
         out: list[OracleCandidate] = []
         for check in result.knowledge_checks:
-            if check.verdict != "证据不足":
+            if check.verdict != "证据不足" and not (getattr(check, "requires_arbitration", False) or getattr(check, "positive_verdict", "") == "review" or getattr(check, "negative_verdict", "") == "review"):
                 continue
             out.append(
                 OracleCandidate(
@@ -335,12 +355,15 @@ class OracleRouter:
                     node_id=check.node_id,
                     knowledge_id=check.knowledge_id,
                     question=f"对话中关于“{check.name}”的事实声明应判为支持、冲突，还是证据不足？",
-                    evidence=[check.evidence] if check.evidence else [],
+                    evidence=[x for x in [check.evidence, f"本地原因：{getattr(check, 'reason', '')}；positive_verdict={getattr(check, 'positive_verdict', '')}；negative_verdict={getattr(check, 'negative_verdict', '')}；requires_arbitration={getattr(check, 'requires_arbitration', False)}"] if x],
                     need=0.82,
                     strength=0.60 if check.evidence else 0.35,
                     error_family="knowledge_violation",
                     evaluability="semantic",
                     expected_detector="knowledge_nli",
+                    requires_arbitration=bool(getattr(check, "requires_arbitration", False)),
+                    positive_verdict=getattr(check, "positive_verdict", None),
+                    negative_verdict=getattr(check, "negative_verdict", None),
                 )
             )
         return out
@@ -348,7 +371,7 @@ class OracleRouter:
     def _constraint_candidates(self, result: EvaluationResult) -> list[OracleCandidate]:
         out: list[OracleCandidate] = []
         for check in result.constraint_checks:
-            if check.verdict != "证据不足":
+            if check.verdict != "证据不足" and not (getattr(check, "requires_arbitration", False) or getattr(check, "negative_verdict", "") == "review" or getattr(check, "positive_verdict", "") == "review"):
                 continue
             out.append(
                 OracleCandidate(
@@ -357,12 +380,16 @@ class OracleRouter:
                     node_id=check.node_id,
                     constraint_id=check.constraint_id,
                     question=f"对话中关于“{check.name}”的表达应判为安全、违规，还是证据不足？",
-                    evidence=[check.evidence] if check.evidence else [],
+                    evidence=[x for x in [check.evidence, f"本地原因：{getattr(check, 'reason', '')}；trigger_verdict={getattr(check, 'trigger_verdict', '')}；positive_verdict={getattr(check, 'positive_verdict', '')}；negative_verdict={getattr(check, 'negative_verdict', '')}；requires_arbitration={getattr(check, 'requires_arbitration', False)}"] if x],
                     need=0.86,
                     strength=0.60 if check.evidence else 0.35,
                     error_family="constraint_violation",
                     evaluability="semantic",
                     expected_detector="constraint_nli",
+                    requires_arbitration=bool(getattr(check, "requires_arbitration", False)),
+                    positive_verdict=getattr(check, "positive_verdict", None),
+                    negative_verdict=getattr(check, "negative_verdict", None),
+                    trigger_verdict=getattr(check, "trigger_verdict", None),
                 )
             )
         return out

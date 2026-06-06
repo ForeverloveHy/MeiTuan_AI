@@ -1,0 +1,207 @@
+{
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "merchant_positive_04",
+  "scenario": "standard_vs_low_latency_detailed_difference",
+  "personality": "理性追问",
+  "difficulty": "中等难度",
+  "baseline_index": 4,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问是机构负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "是，先把区别说清楚。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次直播产品升级，新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "后台已经改了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后台已经临时走低延迟，您知道吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么先改？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "当时前端未开放，所以后台先临时开启。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "后续是不是两个入口？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，发布页会分两个选项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播和低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "标准直播适合什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "大班课选择标准直播比较合适。"
+    },
+    {
+      "speaker": "user",
+      "text": "低延迟适合什么？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "小班课、实操课更适合。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用差别原因呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟费用会略高。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为带宽和节点保障更强。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们是SaaS系统B发课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您现在能看到低延迟选项吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "还没有。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以手动开通。先点【我的】。"
+    },
+    {
+      "speaker": "user",
+      "text": "点了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "user",
+      "text": "看到了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "再选择【直播平台】。"
+    },
+    {
+      "speaker": "user",
+      "text": "选好了。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "在【服务产品】里勾选低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "勾完保存？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，按页面提示保存，之后按课程类型选择。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用会沿用吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否也适用于低延迟。"
+    },
+    {
+      "speaker": "user",
+      "text": "费用入口呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "到【教务/财务设置】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面怎么跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我会加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "user",
+      "text": "好的。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝您课程顺利，招生满满。"
+    }
+  ],
+  "positive_validation": {
+    "expected_result": "本地通过",
+    "knowledge_events": [],
+    "constraint_events": [],
+    "injected_errors": [],
+    "notes": "标准/低延迟区别型正包，重点覆盖延迟、费用、适用场景、第三方开通和学员端费用。",
+    "audit_revision": "小修：区别解释更完整，补强低延迟费用略高原因。"
+  }
+}

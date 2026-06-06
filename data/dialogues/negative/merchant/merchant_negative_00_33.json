@@ -1,0 +1,173 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "大班课选择担心",
+  "difficulty": "基础顺序态",
+  "quality_label": "controlled_negative_knowledge_violation",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_low_latency_reason",
+    "separate_standard_and_low_latency_options",
+    "standard_live_delay_and_cost",
+    "low_latency_delay_and_use_case",
+    "price_difference",
+    "publish_method_check",
+    "third_party_enable_low_latency_steps",
+    "student_fee_check",
+    "fee_setting_guidance",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": true,
+    "expected_local_detector": "knowledge_judge",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "knowledge_fact_contradiction",
+    "replacement_policy": "replace_over_scoped_constraint_with_instruction_direct_knowledge_error",
+    "replaced_original_issue": "system_display_guarantee"
+  },
+  "id": "merchant_negative_00_33",
+  "scenario": "knowledge_violation_publish_page_options_wrong_from_baseline_00",
+  "negative_id_scheme": "00_33",
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是校区负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是负责人，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次来同步直播产品升级，平台新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您之前使用的是标准直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先走低延迟？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后台临时走低延迟，主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "user",
+      "text": "以后发布页怎么选？我们还有大班课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "升级后发布页只会显示低延迟直播，不再显示标准直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "那标准直播以后看不到了吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我先把差别说一下。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "低延迟直播大概1到2秒，互动更顺，适合小班课和实操课。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为带宽和节点保障更强，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B发课，但没看到入口。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "如果第三方系统里没显示低延迟直播，可以手动开通。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "点【我的】，进入【服务商/直播平台管理】。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "选择【直播平台】，再到【服务产品】勾选低延迟直播。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用要调吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "可以到【教务/财务设置】，进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "user",
+      "text": "后面谁跟进？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "稍后我加您企业微信，请通过验证。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "有问题我在企微继续协助。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "merchant_publish_page_two_live_options",
+      "target_id": "knowledge.merchant_publish_page_two_live_options",
+      "wrong_statement": "升级后发布页只会显示低延迟直播，不再显示标准直播。",
+      "evidence_span": "升级后发布页只会显示低延迟直播，不再显示标准直播。",
+      "description": "客服把发布页选项说错。正确口径是后续发布页会分开显示标准直播和低延迟直播两个选项。",
+      "evaluability": "local",
+      "expected_detector": "knowledge_judge"
+    }
+  ]
+}

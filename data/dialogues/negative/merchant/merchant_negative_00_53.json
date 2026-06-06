@@ -1,0 +1,148 @@
+{
+  "source_positive_id": "merchant_positive_00",
+  "source_instruction_id": 2,
+  "domain": "merchant",
+  "sample_type": "negative",
+  "personality": "配合",
+  "difficulty": "复合错误态",
+  "quality_label": "negative",
+  "baseline_index": 0,
+  "pair_role": "derived_from_unpaired_perfect_positive_baseline",
+  "coverage_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "enterprise_wechat_followup",
+    "polite_close"
+  ],
+  "intended_preserved_targets": [
+    "identity_confirmation",
+    "upgrade_brief_notice",
+    "previous_awareness_check",
+    "temporary_enable_reason",
+    "quality_sync_reason",
+    "publish_page_two_options",
+    "standard_live_explanation",
+    "low_latency_live_explanation",
+    "price_difference",
+    "publish_method_check",
+    "third_party_low_latency_enable",
+    "student_fee_check",
+    "polite_close"
+  ],
+  "negative_validation": {
+    "single_point_mutation": false,
+    "expected_local_detector": "mixed_schema_and_knowledge_or_constraint",
+    "should_not_use_wrong_statement_for_scoring": true,
+    "context_optimized_after_mutation": true,
+    "mutation_type": "composite_error"
+  },
+  "id": "merchant_negative_00_53",
+  "scenario": "复合错误：缺企业微信跟进 + 第三方路径说错",
+  "negative_id_scheme": "00_53",
+  "error_family": "flow_missing+knowledge_violation",
+  "composite_error_families": [
+    "flow_missing",
+    "knowledge_violation"
+  ],
+  "target_missing": [
+    "enterprise_wechat_followup.add_enterprise_wechat_and_verify"
+  ],
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "您好，请问您是机构负责人吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "我是，你说吧。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这次直播产品升级，平台新增低延迟直播。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "您知道后台已经临时走低延迟了吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "不知道，为什么后台先走？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "因为前端当时未开放，主要是保障音视频和白板同步。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "后续发布页会分标准直播和低延迟直播两个选项。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "标准直播延迟5到10秒，费用较低，适合大班课；低延迟直播1到2秒，互动更顺，适合小班课和实操课，费用会略高。"
+    },
+    {
+      "speaker": "user",
+      "text": "我们用SaaS系统B，但没看到入口。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "你去【订单页】里找低延迟入口，保存课程时勾一下就行。"
+    },
+    {
+      "speaker": "user",
+      "text": "不是在服务产品里吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不用进服务产品，订单页就能找到。"
+    },
+    {
+      "speaker": "user",
+      "text": "学员端费用呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要确认原费用是否适用于低延迟直播，可以到【教务/财务设置】进入【收费规则】编辑附加费。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "祝课程顺利，招生满满。"
+    }
+  ],
+  "injected_errors": [
+    {
+      "error_family": "flow_missing",
+      "node_id": "enterprise_wechat_followup",
+      "requirement_id": "add_enterprise_wechat_and_verify",
+      "target_id": "enterprise_wechat_followup.add_enterprise_wechat_and_verify",
+      "description": "客服没有说明稍后通过企业微信添加并请商家通过验证。",
+      "evidence_span": "",
+      "wrong_statement": "",
+      "evaluability": "local",
+      "expected_detector": "schema_executor"
+    },
+    {
+      "error_family": "knowledge_violation",
+      "knowledge_id": "third_party_enable_path",
+      "target_id": "knowledge.third_party_enable_path",
+      "wrong_statement": "你去【订单页】里找低延迟入口，保存课程时勾一下就行。",
+      "evidence_span": "你去【订单页】里找低延迟入口，保存课程时勾一下就行。",
+      "description": "客服把第三方系统开通低延迟直播的路径说错；正确路径是【我的】→【服务商/直播平台管理】→【直播平台】→【服务产品】勾选低延迟直播。",
+      "evaluability": "local_or_oracle",
+      "expected_detector": "knowledge_judge"
+    }
+  ],
+  "target_knowledge_violation": [
+    "knowledge.third_party_enable_path"
+  ]
+}

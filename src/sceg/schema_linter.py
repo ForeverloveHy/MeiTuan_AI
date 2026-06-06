@@ -19,6 +19,62 @@ def _walk_patterns(container: Any) -> list[dict[str, Any]]:
     return out
 
 
+
+
+def _normalize_patterns_for_lint(value: Any) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, str):
+        text = value.strip()
+        return [{"speaker": "user", "any": [text]}] if text else []
+    if isinstance(value, (list, tuple)):
+        out: list[dict[str, Any]] = []
+        scalars: list[str] = []
+        for item in value:
+            if isinstance(item, dict):
+                out.append(item)
+            elif isinstance(item, str) and item.strip():
+                scalars.append(item.strip())
+        if scalars:
+            out.append({"speaker": "user", "any": scalars})
+        return out
+    return []
+
+
+def _normalize_activation_for_lint(node: dict[str, Any]) -> dict[str, Any]:
+    activation = node.get("activation")
+    if isinstance(activation, dict):
+        activation["mode"] = str(activation.get("mode") or "always")
+        activation["patterns"] = _normalize_patterns_for_lint(activation.get("patterns"))
+        trigger_object = activation.get("trigger_object") or activation.get("target_object") or activation.get("positive_object") or {}
+        activation["trigger_object"] = trigger_object if isinstance(trigger_object, dict) else ({"surface_forms": [str(trigger_object)]} if str(trigger_object or "").strip() else {})
+        # Keep clean-contract activation fields.  The linter should normalize,
+        # not erase, trigger_hint/trigger_groups produced by the element pass.
+        if "trigger_element_groups" in activation and "trigger_groups" not in activation:
+            activation["trigger_groups"] = activation.get("trigger_element_groups")
+        node["activation"] = activation
+        return activation
+    if isinstance(activation, str):
+        text = activation.strip()
+        low = text.lower()
+        if low in {"always", "start", "required"} or text in {"默认", "始终", "必做"}:
+            activation = {"mode": "always", "patterns": [], "trigger_object": {}}
+        elif low in {"optional", "faq"} or text in {"可选", "非必做"}:
+            activation = {"mode": "optional", "patterns": [], "trigger_object": {}}
+        elif low in {"user_triggered", "condition", "conditional"} or text in {"用户触发", "条件触发"}:
+            activation = {"mode": "user_triggered", "patterns": [], "trigger_object": {}}
+        else:
+            activation = {"mode": "user_triggered", "patterns": [{"speaker": "user", "any": [text]}], "trigger_object": {"surface_forms": [text]}}
+    elif isinstance(activation, (list, tuple)):
+        activation = {"mode": "user_triggered", "patterns": _normalize_patterns_for_lint(activation), "trigger_object": {}}
+    else:
+        activation = {"mode": "always", "patterns": [], "trigger_object": {}}
+    node["activation"] = activation
+    return activation
+
+
 def _pattern_values(patterns: list[dict[str, Any]]) -> set[str]:
     vals: set[str] = set()
     for pat in patterns or []:
@@ -86,7 +142,7 @@ def _requirement_text(req: dict[str, Any]) -> str:
 def _is_soft_requirement(req: dict[str, Any]) -> bool:
     """Detect soft/style/exhortation requirements without task vocabulary.
 
-    This repairs a common LongCat graph issue: secondary advice or style
+    This repairs a common LLM graph issue: secondary advice or style
     requirements are emitted as hard `always` tasks.  The detector only uses
     generic speech-act markers (encourage, avoid, be brief, repeat, style) and
     never names a business domain or product.
@@ -200,17 +256,46 @@ def _remove_overlapping_refutes(block: dict[str, Any], issues: list[dict[str, An
     return removed + dup_removed
 
 
+
+def _has_group_elements(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    for group in value:
+        if not isinstance(group, dict):
+            continue
+        elems = group.get("elements") or group.get("primary_elements") or []
+        if isinstance(elems, list) and any(isinstance(e, dict) and str(e.get("value") or e.get("v") or e.get("text") or "").strip() for e in elems):
+            return True
+    return False
+
+
+def _activation_has_trigger_material(activation: dict[str, Any]) -> bool:
+    if activation.get("patterns") or activation.get("trigger_object"):
+        return True
+    if str(activation.get("trigger_hint") or activation.get("description") or activation.get("hint") or "").strip():
+        return True
+    for key in ("trigger_groups", "trigger_element_groups", "element_groups", "primary_elements"):
+        value = activation.get(key)
+        if key == "primary_elements" and isinstance(value, list) and value:
+            return True
+        if _has_group_elements(value):
+            return True
+    return False
+
 def _lint_nodes(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
     for node_idx, node in enumerate(data.get("nodes") or []):
         if not isinstance(node, dict):
             continue
-        activation = node.get("activation") or {}
+        activation = _normalize_activation_for_lint(node)
         mode = str(activation.get("mode") or "always")
         if mode not in {"always", "user_triggered", "condition", "optional"}:
             issues.append({"level": "warning", "type": "unknown_activation_mode", "path": f"nodes[{node_idx}].activation", "message": f"未知 activation.mode={mode}，评估时可能按默认逻辑处理。"})
-        if mode in {"user_triggered", "condition"} and not activation.get("patterns"):
-            node["required"] = False
-            issues.append({"level": "warning", "type": "conditional_without_trigger_repaired", "path": f"nodes[{node_idx}]", "message": "条件/用户触发节点缺少触发证据，已降级为非必需，避免未触发分支误扣。"})
+        if mode in {"user_triggered", "condition"} and not _activation_has_trigger_material(activation):
+            # Do not silently downgrade required nodes.  Missing triggers are a
+            # graph-quality problem that should be visible in the linter/gate;
+            # otherwise the evaluator can skip important mainline or branch
+            # obligations and make both positive and negative packs look good.
+            issues.append({"level": "warning", "type": "conditional_without_trigger", "path": f"nodes[{node_idx}]", "message": "条件/用户触发节点缺少 trigger_object/patterns；应由提示词重新生成触发证据，本地不再降级为非必需。"})
         if str(node.get("type") or "") == "terminal" and not (node.get("requirements") or node.get("evidence_groups")):
             node["required"] = False
             activation["mode"] = "optional"
@@ -226,7 +311,7 @@ def _lint_nodes(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
                     for group in req.get("evidence_groups") or []:
                         if isinstance(group, dict):
                             group["required"] = False
-            issues.append({"level": "warning", "type": "followup_handoff_made_optional", "path": f"nodes[{node_idx}]", "message": "检测到后续联系/交接类节点被 LongCat 放入 always 主线，已降为 optional；若样本显式触发该目标，仍可通过 coverage/negative target 验收。"})
+            issues.append({"level": "warning", "type": "followup_handoff_made_optional", "path": f"nodes[{node_idx}]", "message": "检测到后续联系/交接类节点被 LLM 放入 always 主线，已降为 optional；若样本显式触发该目标，仍可通过 coverage/negative target 验收。"})
 
         reqs = node.get("requirements") or []
         hard_req_count = sum(1 for r in reqs if isinstance(r, dict) and (r.get("required", True) is not False) and not _is_soft_requirement(r) and _requirement_has_required_evidence(r))
@@ -242,8 +327,10 @@ def _lint_nodes(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
             if not isinstance(req, dict):
                 continue
             groups = req.get("evidence_groups") or []
-            if not groups:
-                issues.append({"level": "warning", "type": "requirement_without_group", "path": f"nodes[{node_idx}].requirements[{req_idx}]", "message": "小任务没有证据组，可能无法被本地评估器命中。"})
+            node_has_atom_rules = bool(node.get("atoms"))
+            req_has_element_rule = bool(req.get("primary_elements") or (req.get("positive_object") or {}).get("primary_elements"))
+            if not groups and not node_has_atom_rules and not req_has_element_rule:
+                issues.append({"level": "warning", "type": "requirement_without_element_rule", "path": f"nodes[{node_idx}].requirements[{req_idx}]", "message": "小任务缺少 atom/element 命中规则，可能无法被本地评估器命中。"})
             for group_idx, group in enumerate(groups):
                 if not isinstance(group, dict):
                     continue
@@ -261,19 +348,25 @@ def _lint_nodes(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
 
 
 def _lint_relations(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
-    nodes = {str(n.get("id")): n for n in data.get("nodes") or [] if isinstance(n, dict)}
+    nodes = {str(n.get("id") or n.get("node_id")): n for n in data.get("nodes") or [] if isinstance(n, dict) and (n.get("id") or n.get("node_id"))}
     for edge_idx, edge in enumerate(data.get("edges") or []):
         if not isinstance(edge, dict):
             continue
-        rel = str(edge.get("relation") or "soft_order")
-        tgt = nodes.get(str(edge.get("target") or ""))
-        if rel == "branch" and tgt:
-            activation = tgt.get("activation") or {}
-            if str(activation.get("mode") or "always") == "always":
+        rel = str(edge.get("relation") or edge.get("type") or "soft_order")
+        tgt = nodes.get(str(edge.get("target") or edge.get("to") or ""))
+        if rel in {"branch", "condition_on"} and tgt:
+            activation = _normalize_activation_for_lint(tgt)
+            mode = str(activation.get("mode") or "always")
+            if mode == "always":
                 activation["mode"] = "user_triggered"
                 tgt["activation"] = activation
+            if tgt.get("required", True) is not False:
                 tgt["required"] = False
-                issues.append({"level": "warning", "type": "branch_target_activation_repaired", "path": f"edges[{edge_idx}].target", "message": "branch 目标节点原本像必跑节点，已改为用户触发/非必需，避免未触发分支误扣。"})
+                tgt["type"] = "branch"
+                for atom in tgt.get("atoms") or []:
+                    if isinstance(atom, dict):
+                        atom.setdefault("required", True)
+                issues.append({"level": "warning", "type": "condition_branch_made_triggered_optional", "path": f"edges[{edge_idx}].target", "message": "condition_on/branch 目标节点已按条件分支处理：节点不再全局必跑，但触发后仍按其 atoms 评分。"})
 
 
 def _lint_knowledge(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
@@ -287,7 +380,7 @@ def _lint_knowledge(data: dict[str, Any], issues: list[dict[str, Any]]) -> None:
                 continue
             _remove_overlapping_refutes(claim, issues, f"knowledge_table[{item_idx}].claims[{claim_idx}]")
             if claim.get("refute_patterns") and not claim.get("claim_patterns"):
-                issues.append({"level": "warning", "type": "refute_without_claim_anchor", "path": f"knowledge_table[{item_idx}].claims[{claim_idx}]", "message": "反驳证据缺少 claim_patterns 作为对象锚点，建议 LongCat 在知识声明里补对象/属性锚点。"})
+                issues.append({"level": "warning", "type": "refute_without_claim_anchor", "path": f"knowledge_table[{item_idx}].claims[{claim_idx}]", "message": "反驳证据缺少 claim_patterns 作为对象锚点，建议 LLM 在知识声明里补对象/属性锚点。"})
 
 
 
@@ -358,7 +451,7 @@ def _lint_constraints(data: dict[str, Any], issues: list[dict[str, Any]]) -> Non
         _ensure_constraint_violation_scope(rule)
         scope = rule.get("violation_scope") or {}
         if rule.get("severity") in {"high", "critical"} and not scope.get("protected_objects") and not rule.get("prohibited"):
-            issues.append({"level": "warning", "type": "constraint_scope_incomplete", "path": f"constraint_table[{idx}].violation_scope", "message": "高风险限制缺少 protected_objects/prohibited，建议 LongCat 补全违例范围；本地仅进入灰区，不编造业务对象。"})
+            issues.append({"level": "warning", "type": "constraint_scope_incomplete", "path": f"constraint_table[{idx}].violation_scope", "message": "高风险限制缺少 protected_objects/prohibited，建议 LLM 补全违例范围；本地仅进入灰区，不编造业务对象。"})
 
 
 
@@ -371,7 +464,14 @@ def _lint_relation_groups(data: dict[str, Any], issues: list[dict[str, Any]]) ->
         if group_type not in {"all_of", "ordered", "strict_order"}:
             continue
         node_ids = [str(x) for x in group.get("nodes") or []]
-        required_nodes = [nid for nid in node_ids if (nodes.get(nid) or {}).get("required", True) is not False and str(((nodes.get(nid) or {}).get("activation") or {}).get("mode") or "always") != "optional"]
+        required_nodes = []
+        for nid in node_ids:
+            node_obj = nodes.get(nid) or {}
+            if node_obj.get("required", True) is False:
+                continue
+            activation = _normalize_activation_for_lint(node_obj)
+            if str(activation.get("mode") or "always") != "optional":
+                required_nodes.append(nid)
         old_min = group.get("min_completed")
         if old_min is None:
             continue
@@ -384,8 +484,32 @@ def _lint_relation_groups(data: dict[str, Any], issues: list[dict[str, Any]]) ->
             group["min_completed"] = new_value
             issues.append({"level": "warning", "type": "relation_group_optional_nodes_repaired", "path": f"relation_groups[{idx}].min_completed", "message": f"关系组包含 optional/非必需节点，min_completed 已从 {old_value} 下调到 {new_value}，避免可选后续事项压低主流程。"})
 
+
+
+def _merge_dual_constraint_tables_for_lint(data: dict[str, Any]) -> None:
+    if data.get("constraint_table"):
+        return
+    merged: list[dict[str, Any]] = []
+    for key, enforcement, default_kind in (
+        ("hard_constraint_table", "hard", "semantic_object"),
+        ("soft_constraint_table", "soft", "fuzzy_quality"),
+    ):
+        for item in data.get(key, []) or []:
+            if not isinstance(item, dict):
+                continue
+            rule = copy.deepcopy(item)
+            rule.setdefault("enforcement", enforcement)
+            rule.setdefault("constraint_kind", default_kind)
+            merged.append(rule)
+    for item in data.get("constraint_table", []) or []:
+        if isinstance(item, dict):
+            merged.append(copy.deepcopy(item))
+    if merged:
+        data["constraint_table"] = merged
+
 def lint_and_repair_schema(data: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     repaired = copy.deepcopy(data)
+    _merge_dual_constraint_tables_for_lint(repaired)
     issues: list[dict[str, Any]] = []
     _lint_nodes(repaired, issues)
     _lint_relations(repaired, issues)

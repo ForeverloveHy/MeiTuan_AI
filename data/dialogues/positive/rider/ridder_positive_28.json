@@ -1,0 +1,165 @@
+{
+  "source_instruction_id": 1,
+  "domain": "rider",
+  "sample_type": "positive",
+  "quality_label": "perfect_positive",
+  "variables": {
+    "rider_name": "李师傅",
+    "X": 12,
+    "Y": 10,
+    "Z": "18:00",
+    "W": 7,
+    "bonus_per_order": 1.5
+  },
+  "coverage_targets": [
+    "opening_identity",
+    "registered_flyleg",
+    "contract_effective_today",
+    "peak_online_reminder",
+    "ask_can_start_delivery",
+    "single_day_requirement",
+    "multi_day_requirement",
+    "continuous_delivery_requirement",
+    "interruption_impact",
+    "ranking_not_station_manager",
+    "reduce_reject_cancel_timeout",
+    "bad_weather_order_volume",
+    "exit_rule",
+    "reward_rule",
+    "safety_reminder",
+    "polite_close"
+  ],
+  "pair_role": "diverse_positive_from_baseline_00",
+  "id_scheme": "positive_two_digit_index",
+  "id": "ridder_positive_28",
+  "scenario": "app_exit_operation_guidance_positive",
+  "personality": "担心忘记退出并要求后台代办",
+  "difficulty": "高压边界态",
+  "baseline_index": 28,
+  "turns": [
+    {
+      "speaker": "assistant",
+      "text": "你好，请问是李师傅吗？我是站长。"
+    },
+    {
+      "speaker": "user",
+      "text": "是我，我看到飞毛腿报名了，是不是今天生效？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "对，看到你已报名飞毛腿。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天合同已经生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "午晚高峰尽量上线。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "今天能开始配送吗？"
+    },
+    {
+      "speaker": "user",
+      "text": "能跑，但我怕后面忘了退出。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "我先把要求和退出规则说清楚。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "单日合同今天至少完成12单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "多日合同每天至少完成10单。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "连续7天每天10单，才有额外奖励。"
+    },
+    {
+      "speaker": "user",
+      "text": "奖励是多多少？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "比如比单日合同每单多1.5元。"
+    },
+    {
+      "speaker": "user",
+      "text": "我要是中间断一天呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "中断可能影响后续合同和派单。"
+    },
+    {
+      "speaker": "user",
+      "text": "那你到时候帮我后台退一下行不行？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "这个不能由站点后台代退。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "需要你在App飞毛腿报名里操作。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "前一天18点前取消，取消后次日生效。"
+    },
+    {
+      "speaker": "user",
+      "text": "如果我18点后才想起来呢？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "超过18点可能来不及次日生效。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "建议你提前在App里确认。"
+    },
+    {
+      "speaker": "user",
+      "text": "那排名你这边能帮我保住吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "飞毛腿报名按排名进行。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "不是站长人工干预。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "建议尽量减少拒单、取消和超时，保持资格稳定。"
+    },
+    {
+      "speaker": "user",
+      "text": "天气差的时候还跑有用吗？"
+    },
+    {
+      "speaker": "assistant",
+      "text": "恶劣天气订单量通常更高，按规则完成有助保住资格。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "但配送一定安全第一。"
+    },
+    {
+      "speaker": "user",
+      "text": "明白，我今天先跑，退出我自己去App看。"
+    },
+    {
+      "speaker": "assistant",
+      "text": "好的，辛苦你，有问题再联系我。"
+    }
+  ]
+}

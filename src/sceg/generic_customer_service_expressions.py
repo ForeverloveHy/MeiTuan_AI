@@ -5,7 +5,7 @@ turn taking, polite continuation, short acknowledgement, awareness questions,
 and generic UI/process words.  It must not contain business nouns, product
 names, sample ids, domain labels, or injected negative-answer text.
 
-Concrete business facts still come from the LongCat schema / graph.  The local
+Concrete business facts still come from the LLM schema / graph.  The local
 executor only uses these cues to tolerate normal customer-service paraphrases.
 """
 
@@ -15,7 +15,7 @@ from __future__ import annotations
 INQUIRY_MARKERS: tuple[str, ...] = ("吗", "是否", "是不是", "有没有")
 AWARENESS_VERBS: tuple[str, ...] = ("知道", "了解", "知情", "确认")
 
-# Generic structural words often used by LongCat when it describes a UI/process
+# Generic structural words often used by LLM when it describes a UI/process
 # action.  These are not task labels; they help avoid matching relaxed short
 # predicates on object names alone.
 STRUCTURAL_SIGNAL_MARKERS: tuple[str, ...] = (
